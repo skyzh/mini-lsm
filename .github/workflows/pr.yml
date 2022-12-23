@@ -1,4 +1,4 @@
-name: CI (Pull Request)
+name: CI (pull request)
 
 on:
   pull_request:
@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: setup rust toolchain
+        run: rustup show
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@mdbook
       - name: check and build
