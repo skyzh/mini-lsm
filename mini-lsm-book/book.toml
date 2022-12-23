@@ -1,0 +1,10 @@
+[book]
+authors = ["Alex Chi"]
+language = "en"
+multilingual = false
+src = "src"
+title = "LSM in a Week"
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]

@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "mini-lsm",
+  "xtask"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+homepage = "https://github.com/skyzh/mini-lsm"
+keywords = ["storage", "database", "tutorial"]
+license = "Apache-2.0"
+repository = "https://github.com/skyzh/mini-lsm"

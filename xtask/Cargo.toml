@@ -1,0 +1,16 @@
+[package]
+name = "mini-lsm-xtask"
+version = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+console = "0.15"
+clap = { version = "4", features = ["derive"] }
+duct = "0.13"
