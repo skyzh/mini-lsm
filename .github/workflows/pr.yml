@@ -1,0 +1,20 @@
+name: CI (Pull Request)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@mdbook
+      - name: check and build
+        run: cargo x ci

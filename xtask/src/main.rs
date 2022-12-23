@@ -9,10 +9,14 @@ use duct::cmd;
 enum Action {
     /// Check.
     Check,
+    /// Build and serve book.
+    Book,
     /// Install necessary tools for development.
     InstallTools,
     /// Show environment variables.
     Show,
+    /// Run CI jobs
+    Ci,
 }
 
 /// Simple program to greet a person
@@ -32,6 +36,48 @@ fn switch_to_workspace_root() -> Result<()> {
     Ok(())
 }
 
+fn fmt() -> Result<()> {
+    println!("{}", style("cargo fmt").bold());
+    cmd!("cargo", "fmt").run()?;
+    Ok(())
+}
+
+fn check_fmt() -> Result<()> {
+    println!("{}", style("cargo fmt --check").bold());
+    cmd!("cargo", "fmt", "--check").run()?;
+    Ok(())
+}
+
+fn check() -> Result<()> {
+    println!("{}", style("cargo check").bold());
+    cmd!("cargo", "check", "--all-targets").run()?;
+    Ok(())
+}
+
+fn test() -> Result<()> {
+    println!("{}", style("cargo nextest run").bold());
+    cmd!("cargo", "nextest", "run").run()?;
+    Ok(())
+}
+
+fn clippy() -> Result<()> {
+    println!("{}", style("cargo clippy").bold());
+    cmd!("cargo", "clippy", "--all-targets").run()?;
+    Ok(())
+}
+
+fn build_book() -> Result<()> {
+    println!("{}", style("mdbook build").bold());
+    cmd!("mdbook", "build").dir("mini-lsm-book").run()?;
+    Ok(())
+}
+
+fn serve_book() -> Result<()> {
+    println!("{}", style("mdbook serve").bold());
+    cmd!("mdbook", "serve").dir("mini-lsm-book").run()?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
 
@@ -44,16 +90,22 @@ fn main() -> Result<()> {
         }
         Action::Check => {
             switch_to_workspace_root()?;
-            println!("{}", style("cargo fmt").bold());
-            cmd!("cargo", "fmt").run()?;
-            println!("{}", style("cargo check").bold());
-            cmd!("cargo", "check", "--all-targets").run()?;
-            println!("{}", style("cargo nextest run").bold());
-            cmd!("cargo", "nextest", "run").run()?;
-            println!("{}", style("cargo clippy").bold());
-            cmd!("cargo", "clippy", "--all-targets").run()?;
-            println!("{}", style("mdbook build").bold());
-            cmd!("mdbook", "build").dir("mini-lsm-book").run()?;
+            fmt()?;
+            check()?;
+            test()?;
+            clippy()?;
+        }
+        Action::Book => {
+            switch_to_workspace_root()?;
+            serve_book()?;
+        }
+        Action::Ci => {
+            switch_to_workspace_root()?;
+            check_fmt()?;
+            check()?;
+            test()?;
+            clippy()?;
+            build_book()?;
         }
         Action::Show => {
             println!("CARGO_MANIFEST_DIR={}", env!("CARGO_MANIFEST_DIR"));
