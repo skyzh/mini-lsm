@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "mini-lsm",
+  "mini-lsm-starter",
   "xtask"
 ]
 

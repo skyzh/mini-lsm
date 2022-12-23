@@ -179,6 +179,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mini-lsm-starter"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+]
+
+[[package]]
 name = "mini-lsm-xtask"
 version = "0.1.0"
 dependencies = [

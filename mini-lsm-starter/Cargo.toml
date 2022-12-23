@@ -1,5 +1,5 @@
 [package]
-name = "mini-lsm-xtask"
+name = "mini-lsm-starter"
 version = { workspace = true }
 edition = { workspace = true }
 homepage = { workspace = true }
@@ -9,7 +9,4 @@ repository = { workspace = true }
 publish = false
 
 [dependencies]
-anyhow = "1"
-console = "0.15"
-clap = { version = "4", features = ["derive"] }
-duct = "0.13"
+bytes = "1"
