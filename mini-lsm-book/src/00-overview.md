@@ -103,10 +103,10 @@ simple. We recommend you to think carefully about your implementation and write 
 As of writing (at the end of 2022), Chi is a first-year master's student in Carnegie Mellon University. He has 5 years'
 experience with the Rust programming language since 2018. He has been working on a variety of database systems including
 [TiKV][db1], [AgateDB][db2], [TerarkDB][db3], [RisingLight][db4], and [RisingWave][db5]. In his first semester in CMU,
-he worked as a teaching assistant for CMU's [15-445/645 Intro to Database Systems][15445-course] course, where
-he built a new SQL processing layer for the BusTub educational database system, added more query optimization stuff into
+he worked as a teaching assistant for CMU's [15-445/645 Intro to Database Systems][15445-course] course, where he built
+a new SQL processing layer for the [BusTub][bustub] educational database system, added more query optimization stuff into
 the course, and made the course [more challenging than ever before][tweet]. Chi is interested in exploring how the Rust
-programming language can fit in the database world. Check out his [previous tutorial](type-exercise) on building a
+programming language can fit in the database world. Check out his [previous tutorial][type-exercise] on building a
 vectorized expression framework if you are also interested in that topic.
 
 [db1]: https://github.com/tikv/tikv
@@ -117,3 +117,4 @@ vectorized expression framework if you are also interested in that topic.
 [15445-course]: https://15445.courses.cs.cmu.edu/fall2022/
 [tweet]: https://twitter.com/andy_pavlo/status/1598137241016360961
 [type-exercise]: https://github.com/skyzh/type-exercise-in-rust
+[bustub]: https://github.com/cmu-db/bustub
