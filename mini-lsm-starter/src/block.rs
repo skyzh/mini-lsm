@@ -10,7 +10,10 @@ pub use builder::BlockBuilder;
 pub use iterator::BlockIterator;
 
 /// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted key-value pairs.
-pub struct Block {}
+pub struct Block {
+    data: Vec<u8>,
+    offsets: Vec<u16>,
+}
 
 impl Block {
     pub fn encode(&self) -> Bytes {

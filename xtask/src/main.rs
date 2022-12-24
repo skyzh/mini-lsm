@@ -6,6 +6,11 @@ use console::style;
 use duct::cmd;
 
 #[derive(clap::Subcommand, Debug)]
+enum CopyTestAction {
+    Day1,
+}
+
+#[derive(clap::Subcommand, Debug)]
 enum Action {
     /// Check.
     Check,
@@ -21,6 +26,9 @@ enum Action {
     Sync,
     /// Check starter code
     Scheck,
+    /// Copy test cases
+    #[command(subcommand)]
+    CopyTest(CopyTestAction),
 }
 
 /// Simple program to greet a person
@@ -114,6 +122,20 @@ fn sync() -> Result<()> {
     Ok(())
 }
 
+fn copy_test_case(test: CopyTestAction) -> Result<()> {
+    match test {
+        CopyTestAction::Day1 => {
+            cmd!(
+                "cp",
+                "mini-lsm/src/block/tests.rs",
+                "mini-lsm-starter/src/block/tests.rs"
+            )
+            .run()?;
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
 
@@ -159,6 +181,10 @@ fn main() -> Result<()> {
         Action::Sync => {
             switch_to_workspace_root()?;
             sync()?;
+        }
+        Action::CopyTest(test) => {
+            switch_to_workspace_root()?;
+            copy_test_case(test)?;
         }
     }
 

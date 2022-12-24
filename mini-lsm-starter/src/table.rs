@@ -25,7 +25,7 @@ impl BlockMeta {
     /// Encode block meta to a buffer.
     pub fn encode_block_meta(
         block_meta: &[BlockMeta],
-        #[allow(clippy::ptr_arg)] buf: &mut Vec<u8>,
+        #[allow(clippy::ptr_arg)] /* remove this allow after you finish */ buf: &mut Vec<u8>,
     ) {
         unimplemented!()
     }

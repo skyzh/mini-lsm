@@ -12,3 +12,7 @@ homepage = "https://github.com/skyzh/mini-lsm"
 keywords = ["storage", "database", "tutorial"]
 license = "Apache-2.0"
 repository = "https://github.com/skyzh/mini-lsm"
+
+[workspace.dependencies]
+anyhow = "1"
+bytes = "1"

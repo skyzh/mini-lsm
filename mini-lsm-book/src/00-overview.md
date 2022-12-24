@@ -95,4 +95,25 @@ We provide you starter code (see `mini-lsm-starter` crate), where we simply repl
 `unimplemented!()`. You can start your project based on this starter code. We provide test cases, but they are very
 simple. We recommend you to think carefully about your implementation and write test cases by yourself.
 
-You can use `cargo x scheck` to run all test cases and do style check in your codebase.
+* You can use `cargo x scheck` to run all test cases and do style check in your codebase.
+* You can use `cargo x copy-test dayX` to copy test cases to the starter code.
+
+## About the Author
+
+As of writing (at the end of 2022), Chi is a first-year master's student in Carnegie Mellon University. He has 5 years'
+experience with the Rust programming language since 2018. He has been working on a variety of database systems including
+[TiKV][db1], [AgateDB][db2], [TerarkDB][db3], [RisingLight][db4], and [RisingWave][db5]. In his first semester in CMU,
+he worked as a teaching assistant for CMU's [15-445/645 Intro to Database Systems][15445-course] course, where
+he built a new SQL processing layer for the BusTub educational database system, added more query optimization stuff into
+the course, and made the course [more challenging than ever before][tweet]. Chi is interested in exploring how the Rust
+programming language can fit in the database world. Check out his [previous tutorial](type-exercise) on building a
+vectorized expression framework if you are also interested in that topic.
+
+[db1]: https://github.com/tikv/tikv
+[db2]: https://github.com/tikv/agatedb
+[db3]: https://github.com/bytedance/terarkdb
+[db4]: https://github.com/risinglightdb/risinglight
+[db5]: https://github.com/risingwavelabs/risingwave
+[15445-course]: https://15445.courses.cs.cmu.edu/fall2022/
+[tweet]: https://twitter.com/andy_pavlo/status/1598137241016360961
+[type-exercise]: https://github.com/skyzh/type-exercise-in-rust
