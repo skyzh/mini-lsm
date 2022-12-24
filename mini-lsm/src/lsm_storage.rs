@@ -3,9 +3,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
-use arc_swap::ArcSwap;
 use bytes::Bytes;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 
 use crate::iterators::impls::StorageIterator;
 use crate::iterators::merge_iterator::MergeIterator;
@@ -22,6 +21,9 @@ pub struct LsmStorageInner {
     imm_memtables: Vec<Arc<MemTable>>,
     /// L0 SsTables, from earliest to latest.
     l0_sstables: Vec<Arc<SsTable>>,
+    /// L1 - L6 SsTables, sorted by key range.
+    #[allow(dead_code)]
+    levels: Vec<Vec<Arc<SsTable>>>,
 }
 
 impl LsmStorageInner {
@@ -30,26 +32,32 @@ impl LsmStorageInner {
             memtable: Arc::new(MemTable::create()),
             imm_memtables: vec![],
             l0_sstables: vec![],
+            levels: vec![],
         }
     }
 }
 
 /// The storage interface of the LSM tree.
 pub struct LsmStorage {
-    inner: ArcSwap<LsmStorageInner>,
+    inner: Arc<RwLock<Arc<LsmStorageInner>>>,
     flush_lock: Mutex<()>,
 }
 
 impl LsmStorage {
     pub fn open(_path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
-            inner: ArcSwap::from_pointee(LsmStorageInner::create()),
+            inner: Arc::new(RwLock::new(Arc::new(LsmStorageInner::create()))),
             flush_lock: Mutex::new(()),
         })
     }
 
+    /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        let snapshot = self.inner.load();
+        let snapshot = {
+            let guard = self.inner.read();
+            Arc::clone(&guard)
+        }; // drop global lock here
+
         // Search on the current memtable.
         if let Some(value) = snapshot.memtable.get(key) {
             if value.is_empty() {
@@ -83,31 +91,29 @@ impl LsmStorage {
         Ok(None)
     }
 
+    /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         assert!(!value.is_empty(), "value cannot be empty");
         assert!(!key.is_empty(), "key cannot be empty");
-        loop {
-            let snapshot = self.inner.load();
-            if snapshot.memtable.put(key, value) {
-                break;
-            }
-            // waiting for a new memtable to be propagated
-        }
+
+        let guard = self.inner.read();
+        guard.memtable.put(key, value);
+
         Ok(())
     }
 
+    /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, key: &[u8]) -> Result<()> {
         assert!(!key.is_empty(), "key cannot be empty");
-        loop {
-            let snapshot = self.inner.load();
-            if snapshot.memtable.put(key, b"") {
-                break;
-            }
-            // waiting for a new memtable to be propagated
-        }
+
+        let guard = self.inner.read();
+        guard.memtable.put(key, b"");
+
         Ok(())
     }
 
+    /// In day 3: flush the current memtable to disk as L0 SST.
+    /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         let _flush_lock = self.flush_lock.lock();
 
@@ -115,20 +121,18 @@ impl LsmStorage {
 
         // Move mutable memtable to immutable memtables.
         {
-            let guard = self.inner.load();
+            let mut guard = self.inner.write();
             // Swap the current memtable with a new one.
             let mut snapshot = guard.as_ref().clone();
             let memtable = std::mem::replace(&mut snapshot.memtable, Arc::new(MemTable::create()));
             flush_memtable = memtable.clone();
             // Add the memtable to the immutable memtables.
-            snapshot.imm_memtables.push(memtable.clone());
-            // Disable the memtable.
-            memtable.seal();
+            snapshot.imm_memtables.push(memtable);
             // Update the snapshot.
-            self.inner.store(Arc::new(snapshot));
+            *guard = Arc::new(snapshot);
         }
 
-        // At this point, the old memtable should be disabled for write, and all threads should be
+        // At this point, the old memtable should be disabled for write, and all write threads should be
         // operating on the new memtable. We can safely flush the old memtable to disk.
 
         let mut builder = SsTableBuilder::new(4096);
@@ -137,31 +141,35 @@ impl LsmStorage {
 
         // Add the flushed L0 table to the list.
         {
-            let guard = self.inner.load();
+            let mut guard = self.inner.write();
             let mut snapshot = guard.as_ref().clone();
             // Remove the memtable from the immutable memtables.
             snapshot.imm_memtables.pop();
             // Add L0 table
             snapshot.l0_sstables.push(sst);
             // Update the snapshot.
-            self.inner.store(Arc::new(snapshot));
+            *guard = Arc::new(snapshot);
         }
 
         Ok(())
     }
 
+    /// Create an iterator over a range of keys.
     pub fn scan(
         &self,
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
-        let snapshot = self.inner.load();
+        let snapshot = {
+            let guard = self.inner.read();
+            Arc::clone(&guard)
+        }; // drop global lock here
 
         let mut memtable_iters = Vec::new();
         memtable_iters.reserve(snapshot.imm_memtables.len() + 1);
-        memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)?));
+        memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)));
         for memtable in snapshot.imm_memtables.iter().rev() {
-            memtable_iters.push(Box::new(memtable.scan(lower, upper)?));
+            memtable_iters.push(Box::new(memtable.scan(lower, upper)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
 

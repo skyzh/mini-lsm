@@ -29,6 +29,17 @@ This architectural design makes LSM tree easy to work with.
 
 In this tutorial, we will learn how to build an LSM-Tree-based storage engine in the Rust programming language.
 
+## Prerequisites of this Tutorial
+
+* You should know the basics of the Rust programming language. Reading [the Rust book](https://doc.rust-lang.org/book/)
+  is enough.
+* You should know the basic concepts of key-value storage engines, i.e., why we need somehow complex design to achieve
+  persistence. If you have no experience with database systems and storage systems before, you can implement Bitcask
+  in [PingCAP Talent Plan](https://github.com/pingcap/talent-plan/tree/master/courses/rust/projects/project-2).
+* Knowing the basics of an LSM tree is not a requirement but we recommend you to read something about it, e.g., the 
+  overall idea of LevelDB. This would familiarize you with concepts like mutable and immutable mem-tables, SST,
+  compaction, WAL, etc.
+
 ## Overview of LSM
 
 An LSM storage engine generally contains 3 parts:

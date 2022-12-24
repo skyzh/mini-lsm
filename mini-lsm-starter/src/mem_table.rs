@@ -24,17 +24,17 @@ impl MemTable {
     }
 
     /// Get a value by key.
-    pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
+    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
         unimplemented!()
     }
 
     /// Put a key-value pair into the mem-table.
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    pub fn put(&self, key: &[u8], value: &[u8]) {
         unimplemented!()
     }
 
     /// Get an iterator over a range of keys.
-    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<MemTableIterator> {
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
         unimplemented!()
     }
 

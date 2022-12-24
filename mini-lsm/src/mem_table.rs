@@ -1,5 +1,4 @@
 use std::ops::Bound;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -14,7 +13,6 @@ use crate::table::SsTableBuilder;
 /// A basic mem-table based on crossbeam-skiplist
 pub struct MemTable {
     map: Arc<SkipMap<Bytes, Bytes>>,
-    sealed: AtomicBool,
 }
 
 pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
@@ -30,7 +28,6 @@ impl MemTable {
     pub fn create() -> Self {
         Self {
             map: Arc::new(SkipMap::new()),
-            sealed: AtomicBool::new(false),
         }
     }
 
@@ -39,19 +36,14 @@ impl MemTable {
         self.map.get(key).map(|e| e.value().clone())
     }
 
-    /// Put a key-value pair into the mem-table. If the current mem-table is sealed, return false.
-    pub fn put(&self, key: &[u8], value: &[u8]) -> bool {
-        use std::sync::atomic::Ordering;
-        if self.sealed.load(Ordering::Acquire) {
-            return false;
-        }
+    /// Put a key-value pair into the mem-table.
+    pub fn put(&self, key: &[u8], value: &[u8]) {
         self.map
             .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
-        true
     }
 
     /// Get an iterator over a range of keys.
-    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<MemTableIterator> {
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
         let (lower, upper) = (map_bound(lower), map_bound(upper));
         let mut iter = MemTableIteratorBuilder {
             map: self.map.clone(),
@@ -61,7 +53,7 @@ impl MemTable {
         .build();
         let entry = iter.with_iter_mut(|iter| MemTableIterator::entry_to_item(iter.next()));
         iter.with_mut(|x| *x.item = entry);
-        Ok(iter)
+        iter
     }
 
     /// Flush the mem-table to SSTable.
@@ -70,12 +62,6 @@ impl MemTable {
             builder.add(&entry.key()[..], &entry.value()[..]);
         }
         Ok(())
-    }
-
-    /// Disable writes to this memtable.
-    pub(crate) fn seal(&self) {
-        use std::sync::atomic::Ordering;
-        self.sealed.store(true, Ordering::Release);
     }
 }
 

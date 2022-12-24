@@ -58,7 +58,7 @@ fn test_memtable_iter() {
     memtable.put(b"key3", b"value3");
 
     {
-        let mut iter = memtable.scan(Bound::Unbounded, Bound::Unbounded).unwrap();
+        let mut iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
         assert_eq!(iter.key(), b"key1");
         assert_eq!(iter.value(), b"value1");
         iter.next().unwrap();
@@ -72,9 +72,7 @@ fn test_memtable_iter() {
     }
 
     {
-        let mut iter = memtable
-            .scan(Bound::Included(b"key1"), Bound::Included(b"key2"))
-            .unwrap();
+        let mut iter = memtable.scan(Bound::Included(b"key1"), Bound::Included(b"key2"));
         assert_eq!(iter.key(), b"key1");
         assert_eq!(iter.value(), b"value1");
         iter.next().unwrap();
@@ -85,9 +83,7 @@ fn test_memtable_iter() {
     }
 
     {
-        let mut iter = memtable
-            .scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"))
-            .unwrap();
+        let mut iter = memtable.scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
         assert_eq!(iter.key(), b"key2");
         assert_eq!(iter.value(), b"value2");
         iter.next().unwrap();
