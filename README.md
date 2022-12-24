@@ -19,3 +19,19 @@ cargo x book
 
 If you changed public API in the reference solution, you might also need to synchronize it to the starter crate.
 To do this, use `cargo x sync`.
+
+## Progress
+
+The tutorial has 8 parts (which can be finished in 7 days):
+
+* Day 1: Block encoding. SSTs are composed of multiple data blocks. We will implement the block encoding.
+* Day 2: SST encoding.
+* Day 3: Engine. In this day we will get a functional (but not persistent) key-value engine with `get`, `put`, `delete`
+  API.
+* Day 4: Block cache. To reduce disk I/O and maximize performance, we will use moka-rs to build a block cache for the
+  LSM tree.
+* Day 5: Compaction. Now it's time to maintain a leveled structure for SSTs.
+* Day 6: Recovery. We will implement WAL and manifest so that the engine can recover after restart.
+* Day 7: Bloom filter and key compression. They are widely-used optimizations in LSM tree structures.
+
+We have reference solution up to day 2 and tutorial up to day 1 for now.
