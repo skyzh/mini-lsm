@@ -1,8 +1,9 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
-use crate::iterators::impls::StorageIterator;
 use anyhow::Result;
+
+use crate::iterators::impls::StorageIterator;
 
 pub struct LsmIterator {}
 
@@ -24,7 +25,8 @@ impl StorageIterator for LsmIterator {
     }
 }
 
-/// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is invalid.
+/// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is
+/// invalid.
 pub struct FusedIterator<I: StorageIterator> {
     iter: I,
 }

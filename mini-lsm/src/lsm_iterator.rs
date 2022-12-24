@@ -71,7 +71,8 @@ impl StorageIterator for LsmIterator {
     }
 }
 
-/// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is invalid.
+/// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is
+/// invalid.
 pub struct FusedIterator<I: StorageIterator> {
     iter: I,
 }

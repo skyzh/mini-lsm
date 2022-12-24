@@ -161,6 +161,12 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
                 "mini-lsm-starter/src/iterators/tests/two_merge_iterator_test.rs"
             )
             .run()?;
+            cmd!(
+                "cp",
+                "mini-lsm/src/iterators/tests.rs",
+                "mini-lsm-starter/src/iterators/tests.rs"
+            )
+            .run()?;
         }
     }
     Ok(())

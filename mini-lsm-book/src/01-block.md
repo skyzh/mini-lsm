@@ -87,6 +87,8 @@ After implementing this part, you should be able to pass all tests in `block/tes
 
 ## Extra Tasks
 
+Here is a list of extra tasks you can do to make the block encoding more robust and efficient.
+
 *Note: Some test cases might not pass after implementing this part. You might need to write your own test cases.*
 
 * Implement block checksum. Verify checksum when decoding the block.

@@ -14,7 +14,7 @@ pub struct SsTableBuilder {
 }
 
 impl SsTableBuilder {
-    /// Create a builder based on target SST size and target block size.
+    /// Create a builder based on target block size.
     pub fn new(block_size: usize) -> Self {
         unimplemented!()
     }
