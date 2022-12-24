@@ -2,10 +2,12 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 
 use super::{BlockMeta, SsTable};
+use crate::lsm_storage::BlockCache;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
@@ -31,7 +33,17 @@ impl SsTableBuilder {
 
     /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
     /// chapter 4 block cache.
-    pub fn build(self, path: impl AsRef<Path>) -> Result<SsTable> {
+    pub fn build(
+        self,
+        id: usize,
+        block_cache: Option<Arc<BlockCache>>,
+        path: impl AsRef<Path>,
+    ) -> Result<SsTable> {
         unimplemented!()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn build_for_test(self, path: impl AsRef<Path>) -> Result<SsTable> {
+        self.build(0, None, path)
     }
 }

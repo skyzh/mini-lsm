@@ -1,10 +1,12 @@
 use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::BufMut;
 
 use super::{BlockMeta, FileObject, SsTable};
 use crate::block::BlockBuilder;
+use crate::lsm_storage::BlockCache;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
@@ -61,7 +63,12 @@ impl SsTableBuilder {
 
     /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
     /// chapter 4 block cache.
-    pub fn build(mut self, path: impl AsRef<Path>) -> Result<SsTable> {
+    pub fn build(
+        mut self,
+        id: usize,
+        block_cache: Option<Arc<BlockCache>>,
+        path: impl AsRef<Path>,
+    ) -> Result<SsTable> {
         self.finish_block();
         let mut buf = self.data;
         let meta_offset = buf.len();
@@ -69,9 +76,16 @@ impl SsTableBuilder {
         buf.put_u32(meta_offset as u32);
         let file = FileObject::create(path.as_ref(), buf)?;
         Ok(SsTable {
+            id,
             file,
             block_metas: self.meta,
             block_meta_offset: meta_offset,
+            block_cache,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn build_for_test(self, path: impl AsRef<Path>) -> Result<SsTable> {
+        self.build(0, None, path)
     }
 }

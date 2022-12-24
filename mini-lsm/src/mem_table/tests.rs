@@ -1,3 +1,5 @@
+use tempfile::tempdir;
+
 use super::MemTable;
 use crate::iterators::impls::StorageIterator;
 use crate::table::{SsTableBuilder, SsTableIterator};
@@ -35,7 +37,8 @@ fn test_memtable_flush() {
     memtable.put(b"key3", b"value3");
     let mut builder = SsTableBuilder::new(128);
     memtable.flush(&mut builder).unwrap();
-    let sst = builder.build("").unwrap();
+    let dir = tempdir().unwrap();
+    let sst = builder.build_for_test(dir.path().join("1.sst")).unwrap();
     let mut iter = SsTableIterator::create_and_seek_to_first(sst.into()).unwrap();
     assert_eq!(iter.key(), b"key1");
     assert_eq!(iter.value(), b"value1");

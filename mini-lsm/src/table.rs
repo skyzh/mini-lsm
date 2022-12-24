@@ -1,15 +1,17 @@
 mod builder;
 mod iterator;
 
+use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 pub use builder::SsTableBuilder;
 use bytes::{Buf, BufMut, Bytes};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
+use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
@@ -52,19 +54,50 @@ impl BlockMeta {
 }
 
 /// A file object.
-pub struct FileObject(Bytes);
+///
+/// Before day 4, it should look like:
+///
+/// ```ignore
+/// pub struct FileObject(Bytes);
+///
+/// impl FileObject {
+///     pub fn read(&self, offset: u64, len: u64) -> Result<Vec<u8>> {
+///         Ok(self.0[offset as usize..(offset + len) as usize].to_vec())
+///    }
+///     pub fn size(&self) -> u64 {
+///         self.0.len() as u64
+///     }
+///
+///     pub fn create(_path: &Path, data: Vec<u8>) -> Result<Self> {
+///         Ok(FileObject(data.into()))
+///     }
+///
+///     pub fn open(_path: &Path) -> Result<Self> {
+///         unimplemented!()
+///     }
+/// }
+/// ```
+pub struct FileObject(File, u64);
 
 impl FileObject {
     pub fn read(&self, offset: u64, len: u64) -> Result<Vec<u8>> {
-        Ok(self.0[offset as usize..(offset + len) as usize].to_vec())
+        use std::os::unix::fs::FileExt;
+        let mut data = vec![0; len as usize];
+        self.0.read_exact_at(&mut data[..], offset)?;
+        Ok(data)
     }
 
     pub fn size(&self) -> u64 {
-        self.0.len() as u64
+        self.1
     }
 
-    pub fn create(_path: &Path, data: Vec<u8>) -> Result<Self> {
-        Ok(FileObject(data.into()))
+    /// Create a new file object (day 2) and write the file to the disk (day 4).
+    pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
+        std::fs::write(path, &data)?;
+        Ok(FileObject(
+            File::options().read(true).write(false).open(path)?,
+            data.len() as u64,
+        ))
     }
 
     pub fn open(_path: &Path) -> Result<Self> {
@@ -76,11 +109,18 @@ pub struct SsTable {
     file: FileObject,
     block_metas: Vec<BlockMeta>,
     block_meta_offset: usize,
+    id: usize,
+    block_cache: Option<Arc<BlockCache>>,
 }
 
 impl SsTable {
+    #[cfg(test)]
+    pub(crate) fn open_for_test(file: FileObject) -> Result<Self> {
+        Self::open(0, None, file)
+    }
+
     /// Open SSTable from a file.
-    pub fn open(file: FileObject) -> Result<Self> {
+    pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let len = file.size();
         let raw_meta_offset = file.read(len - 4, 4)?;
         let block_meta_offset = (&raw_meta_offset[..]).get_u32() as u64;
@@ -89,6 +129,8 @@ impl SsTable {
             file,
             block_metas: BlockMeta::decode_block_meta(&raw_meta[..]),
             block_meta_offset: block_meta_offset as usize,
+            id,
+            block_cache,
         })
     }
 
@@ -104,6 +146,18 @@ impl SsTable {
             .file
             .read(offset as u64, (offset_end - offset) as u64)?;
         Ok(Arc::new(Block::decode(&block_data[..])))
+    }
+
+    /// Read a block from disk, with block cache.
+    pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
+        if let Some(ref block_cache) = self.block_cache {
+            let blk = block_cache
+                .try_get_with((self.id, block_idx), || self.read_block(block_idx))
+                .map_err(|e| anyhow!("{}", e))?;
+            Ok(blk)
+        } else {
+            self.read_block(block_idx)
+        }
     }
 
     /// Find the block that may contain `key`.

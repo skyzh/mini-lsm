@@ -13,6 +13,7 @@ use bytes::{Buf, Bytes};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
+use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
@@ -50,6 +51,7 @@ impl FileObject {
         self.0.len() as u64
     }
 
+    /// Create a new file object (day 2) and write the file to the disk (day 4).
     pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
         unimplemented!()
     }
@@ -66,13 +68,23 @@ pub struct SsTable {
 }
 
 impl SsTable {
+    #[cfg(test)]
+    pub(crate) fn open_for_test(file: FileObject) -> Result<Self> {
+        Self::open(0, None, file)
+    }
+
     /// Open SSTable from a file.
-    pub fn open(file: FileObject) -> Result<Self> {
+    pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         unimplemented!()
     }
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
+        unimplemented!()
+    }
+
+    /// Read a block from disk, with block cache. (Day 4)
+    pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
         unimplemented!()
     }
 

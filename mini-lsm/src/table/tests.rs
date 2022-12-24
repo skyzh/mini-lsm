@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
+use tempfile::{tempdir, TempDir};
 
 use super::*;
 use crate::iterators::impls::StorageIterator;
@@ -10,7 +11,8 @@ use crate::table::SsTableBuilder;
 fn test_sst_build_single_key() {
     let mut builder = SsTableBuilder::new(16);
     builder.add(b"233", b"233333");
-    builder.build("").unwrap();
+    let dir = tempdir().unwrap();
+    builder.build_for_test(dir.path().join("1.sst")).unwrap();
 }
 
 #[test]
@@ -23,7 +25,8 @@ fn test_sst_build_two_blocks() {
     builder.add(b"55", b"11");
     builder.add(b"66", b"22");
     assert!(builder.meta.len() >= 2);
-    builder.build("").unwrap();
+    let dir = tempdir().unwrap();
+    builder.build_for_test(dir.path().join("1.sst")).unwrap();
 }
 
 fn key_of(idx: usize) -> Vec<u8> {
@@ -38,14 +41,16 @@ fn num_of_keys() -> usize {
     100
 }
 
-fn generate_sst() -> SsTable {
+fn generate_sst() -> (TempDir, SsTable) {
     let mut builder = SsTableBuilder::new(128);
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
         builder.add(&key[..], &value[..]);
     }
-    builder.build("").unwrap()
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("1.sst");
+    (dir, builder.build_for_test(path).unwrap())
 }
 
 #[test]
@@ -55,9 +60,9 @@ fn test_sst_build_all() {
 
 #[test]
 fn test_sst_decode() {
-    let sst = generate_sst();
+    let (_dir, sst) = generate_sst();
     let meta = sst.block_metas.clone();
-    let new_sst = SsTable::open(sst.file).unwrap();
+    let new_sst = SsTable::open_for_test(sst.file).unwrap();
     assert_eq!(new_sst.block_metas, meta);
 }
 
@@ -67,7 +72,8 @@ fn as_bytes(x: &[u8]) -> Bytes {
 
 #[test]
 fn test_sst_iterator() {
-    let sst = Arc::new(generate_sst());
+    let (_dir, sst) = generate_sst();
+    let sst = Arc::new(sst);
     let mut iter = SsTableIterator::create_and_seek_to_first(sst).unwrap();
     for _ in 0..5 {
         for i in 0..num_of_keys() {
@@ -95,7 +101,8 @@ fn test_sst_iterator() {
 
 #[test]
 fn test_sst_seek_key() {
-    let sst = Arc::new(generate_sst());
+    let (_dir, sst) = generate_sst();
+    let sst = Arc::new(sst);
     let mut iter = SsTableIterator::create_and_seek_to_key(sst, &key_of(0)).unwrap();
     for offset in 1..=5 {
         for i in 0..num_of_keys() {

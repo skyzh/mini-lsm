@@ -1,17 +1,20 @@
 use std::ops::Bound;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
 use parking_lot::{Mutex, RwLock};
 
+use crate::block::Block;
 use crate::iterators::impls::StorageIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::mem_table::{map_bound, MemTable};
 use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
+
+pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
 #[derive(Clone)]
 pub struct LsmStorageInner {
@@ -24,6 +27,8 @@ pub struct LsmStorageInner {
     /// L1 - L6 SsTables, sorted by key range.
     #[allow(dead_code)]
     levels: Vec<Vec<Arc<SsTable>>>,
+    /// The next SSTable ID.
+    next_sst_id: usize,
 }
 
 impl LsmStorageInner {
@@ -33,6 +38,7 @@ impl LsmStorageInner {
             imm_memtables: vec![],
             l0_sstables: vec![],
             levels: vec![],
+            next_sst_id: 1,
         }
     }
 }
@@ -41,13 +47,17 @@ impl LsmStorageInner {
 pub struct LsmStorage {
     inner: Arc<RwLock<Arc<LsmStorageInner>>>,
     flush_lock: Mutex<()>,
+    path: PathBuf,
+    block_cache: Arc<BlockCache>,
 }
 
 impl LsmStorage {
-    pub fn open(_path: impl AsRef<Path>) -> Result<Self> {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
             inner: Arc::new(RwLock::new(Arc::new(LsmStorageInner::create()))),
             flush_lock: Mutex::new(()),
+            path: path.as_ref().to_path_buf(),
+            block_cache: Arc::new(BlockCache::new(1 << 20)), // 4GB block cache
         })
     }
 
@@ -112,12 +122,17 @@ impl LsmStorage {
         Ok(())
     }
 
+    fn path_of_sst(&self, id: usize) -> PathBuf {
+        self.path.join(format!("{:05}.sst", id))
+    }
+
     /// In day 3: flush the current memtable to disk as L0 SST.
     /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         let _flush_lock = self.flush_lock.lock();
 
         let flush_memtable;
+        let sst_id;
 
         // Move mutable memtable to immutable memtables.
         {
@@ -126,18 +141,24 @@ impl LsmStorage {
             let mut snapshot = guard.as_ref().clone();
             let memtable = std::mem::replace(&mut snapshot.memtable, Arc::new(MemTable::create()));
             flush_memtable = memtable.clone();
+            sst_id = snapshot.next_sst_id;
             // Add the memtable to the immutable memtables.
             snapshot.imm_memtables.push(memtable);
             // Update the snapshot.
             *guard = Arc::new(snapshot);
         }
 
-        // At this point, the old memtable should be disabled for write, and all write threads should be
-        // operating on the new memtable. We can safely flush the old memtable to disk.
+        // At this point, the old memtable should be disabled for write, and all write threads
+        // should be operating on the new memtable. We can safely flush the old memtable to
+        // disk.
 
         let mut builder = SsTableBuilder::new(4096);
         flush_memtable.flush(&mut builder)?;
-        let sst = Arc::new(builder.build("")?);
+        let sst = Arc::new(builder.build(
+            sst_id,
+            Some(self.block_cache.clone()),
+            self.path_of_sst(sst_id),
+        )?);
 
         // Add the flushed L0 table to the list.
         {
@@ -147,6 +168,8 @@ impl LsmStorage {
             snapshot.imm_memtables.pop();
             // Add L0 table
             snapshot.l0_sstables.push(sst);
+            // Update SST ID
+            snapshot.next_sst_id += 1;
             // Update the snapshot.
             *guard = Arc::new(snapshot);
         }

@@ -9,9 +9,12 @@ use anyhow::Result;
 use arc_swap::ArcSwap;
 use bytes::Bytes;
 
+use crate::block::Block;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::mem_table::MemTable;
 use crate::table::SsTable;
+
+pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
 #[derive(Clone)]
 pub struct LsmStorageInner {
