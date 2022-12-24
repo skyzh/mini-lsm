@@ -16,16 +16,19 @@ use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
 #[derive(Clone)]
 pub struct LsmStorageInner {
-    /// MemTables, from oldest to earliest.
-    memtables: Vec<Arc<MemTable>>,
-    /// L0 SsTables, from oldest to earliest.
+    /// The current memtable.
+    memtable: Arc<MemTable>,
+    /// Immutable memTables, from earliest to latest.
+    imm_memtables: Vec<Arc<MemTable>>,
+    /// L0 SsTables, from earliest to latest.
     l0_sstables: Vec<Arc<SsTable>>,
 }
 
 impl LsmStorageInner {
     fn create() -> Self {
         Self {
-            memtables: vec![Arc::new(MemTable::create())],
+            memtable: Arc::new(MemTable::create()),
+            imm_memtables: vec![],
             l0_sstables: vec![],
         }
     }
@@ -47,8 +50,17 @@ impl LsmStorage {
 
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         let snapshot = self.inner.load();
-        for memtable in snapshot.memtables.iter().rev() {
-            if let Some(value) = memtable.get(key)? {
+        // Search on the current memtable.
+        if let Some(value) = snapshot.memtable.get(key) {
+            if value.is_empty() {
+                // found tomestone, return key not exists
+                return Ok(None);
+            }
+            return Ok(Some(value));
+        }
+        // Search on immutable memtables.
+        for memtable in snapshot.imm_memtables.iter().rev() {
+            if let Some(value) = memtable.get(key) {
                 if value.is_empty() {
                     // found tomestone, return key not exists
                     return Ok(None);
@@ -74,30 +86,67 @@ impl LsmStorage {
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         assert!(!value.is_empty(), "value cannot be empty");
         assert!(!key.is_empty(), "key cannot be empty");
-        let snapshot = self.inner.load();
-        snapshot.memtables[0].put(key, value)?;
+        loop {
+            let snapshot = self.inner.load();
+            if snapshot.memtable.put(key, value) {
+                break;
+            }
+            // waiting for a new memtable to be propagated
+        }
         Ok(())
     }
 
     pub fn delete(&self, key: &[u8]) -> Result<()> {
-        let snapshot = self.inner.load();
-        snapshot.memtables[0].put(key, b"")?;
+        assert!(!key.is_empty(), "key cannot be empty");
+        loop {
+            let snapshot = self.inner.load();
+            if snapshot.memtable.put(key, b"") {
+                break;
+            }
+            // waiting for a new memtable to be propagated
+        }
         Ok(())
     }
 
     pub fn sync(&self) -> Result<()> {
         let _flush_lock = self.flush_lock.lock();
-        let mut snapshot = {
-            let snapshot = self.inner.load();
-            snapshot.as_ref().clone()
-        };
+
+        let flush_memtable;
+
+        // Move mutable memtable to immutable memtables.
+        {
+            let guard = self.inner.load();
+            // Swap the current memtable with a new one.
+            let mut snapshot = guard.as_ref().clone();
+            let memtable = std::mem::replace(&mut snapshot.memtable, Arc::new(MemTable::create()));
+            flush_memtable = memtable.clone();
+            // Add the memtable to the immutable memtables.
+            snapshot.imm_memtables.push(memtable.clone());
+            // Disable the memtable.
+            memtable.seal();
+            // Update the snapshot.
+            self.inner.store(Arc::new(snapshot));
+        }
+
+        // At this point, the old memtable should be disabled for write, and all threads should be
+        // operating on the new memtable. We can safely flush the old memtable to disk.
 
         let mut builder = SsTableBuilder::new(4096);
-        let memtable = snapshot.memtables.pop().unwrap();
-        assert!(snapshot.memtables.is_empty());
-        memtable.flush(&mut builder)?;
-        snapshot.l0_sstables.push(Arc::new(builder.build("")?));
-        self.inner.store(Arc::new(snapshot));
+        flush_memtable.flush(&mut builder)?;
+        let sst = Arc::new(builder.build("")?);
+
+        // Add the flushed L0 table to the list.
+        {
+            let guard = self.inner.load();
+            let mut snapshot = guard.as_ref().clone();
+            // Remove the memtable from the immutable memtables.
+            snapshot.imm_memtables.pop();
+            // Add L0 table
+            snapshot.l0_sstables.push(sst);
+            // Update the snapshot.
+            self.inner.store(Arc::new(snapshot));
+        }
+
         Ok(())
     }
 
@@ -109,8 +158,9 @@ impl LsmStorage {
         let snapshot = self.inner.load();
 
         let mut memtable_iters = Vec::new();
-        memtable_iters.reserve(snapshot.memtables.len());
-        for memtable in snapshot.memtables.iter().rev() {
+        memtable_iters.reserve(snapshot.imm_memtables.len() + 1);
+        memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)?));
+        for memtable in snapshot.imm_memtables.iter().rev() {
             memtable_iters.push(Box::new(memtable.scan(lower, upper)?));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
