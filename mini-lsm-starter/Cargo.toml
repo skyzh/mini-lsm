@@ -8,5 +8,7 @@ publish = false
 anyhow = "1"
 arc-swap = "1"
 bytes = "1"
+crossbeam-epoch = "0.9"
 crossbeam-skiplist = "0.1"
 parking_lot = "0.12"
+ouroboros = "0.15"

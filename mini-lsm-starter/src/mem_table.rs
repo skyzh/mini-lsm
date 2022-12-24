@@ -2,10 +2,12 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 use std::ops::Bound;
+use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
+use ouroboros::self_referencing;
 
 use crate::iterators::impls::StorageIterator;
 use crate::table::SsTableBuilder;
@@ -46,17 +48,16 @@ type SkipMapRangeIter<'a> =
     crossbeam_skiplist::map::Range<'a, Bytes, (Bound<Bytes>, Bound<Bytes>), Bytes, Bytes>;
 
 /// An iterator over a range of `SkipMap`.
-pub struct MemTableIterator<'a> {
-    _phantom: std::marker::PhantomData<&'a ()>,
+#[self_referencing]
+pub struct MemTableIterator {
+    map: Arc<SkipMap<Bytes, Bytes>>,
+    #[borrows(map)]
+    #[not_covariant]
+    iter: SkipMapRangeIter<'this>,
+    item: (Bytes, Bytes),
 }
 
-impl<'a> MemTableIterator<'a> {
-    fn new(iter: SkipMapRangeIter<'a>) -> Self {
-        unimplemented!()
-    }
-}
-
-impl StorageIterator for MemTableIterator<'_> {
+impl StorageIterator for MemTableIterator {
     fn value(&self) -> &[u8] {
         unimplemented!()
     }
@@ -74,6 +75,4 @@ impl StorageIterator for MemTableIterator<'_> {
     }
 }
 
-#[cfg(test)]
-#[path = "mem_table_test.rs"]
 mod tests;

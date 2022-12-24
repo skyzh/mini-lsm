@@ -1,3 +1,6 @@
+#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
+#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
+
 use std::ops::Bound;
 use std::path::Path;
 use std::sync::Arc;
@@ -6,20 +9,23 @@ use anyhow::Result;
 use arc_swap::ArcSwap;
 use bytes::Bytes;
 
-use crate::lsm_iterator::LsmIterator;
+use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::mem_table::MemTable;
-use crate::table::{SsTable, SsTableIterator};
+use crate::table::SsTable;
 
+#[derive(Clone)]
 pub struct LsmStorageInner {
+    /// MemTables, from oldest to earliest.
     memtables: Vec<Arc<MemTable>>,
-    sstables: Vec<Arc<SsTable>>,
+    /// L0 SsTables, from oldest to earliest.
+    l0_sstables: Vec<Arc<SsTable>>,
 }
 
 impl LsmStorageInner {
     fn create() -> Self {
         Self {
             memtables: vec![Arc::new(MemTable::create())],
-            sstables: vec![],
+            l0_sstables: vec![],
         }
     }
 }
@@ -37,22 +43,7 @@ impl LsmStorage {
     }
 
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        let snapshot = self.inner.load();
-        for memtable in &snapshot.memtables {
-            if let Some(value) = memtable.get(key)? {
-                if value.is_empty() {
-                    // found tomestone, return key not exists
-                    return Ok(None);
-                }
-                return Ok(Some(value));
-            }
-        }
-        let mut iters = Vec::new();
-        iters.reserve(snapshot.sstables.len());
-        for table in snapshot.sstables.iter().rev() {
-            iters.push(SsTableIterator::create_and_seek_to_key(table.clone(), key)?);
-        }
-        Ok(None)
+        unimplemented!()
     }
 
     pub fn put(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
@@ -69,7 +60,11 @@ impl LsmStorage {
         unimplemented!()
     }
 
-    pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> Result<LsmIterator> {
+    pub fn scan(
+        &self,
+        _lower: Bound<&[u8]>,
+        _upper: Bound<&[u8]>,
+    ) -> Result<FusedIterator<LsmIterator>> {
         unimplemented!()
     }
 }

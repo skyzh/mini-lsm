@@ -129,3 +129,9 @@ fn test_merge_2() {
     let iter = MergeIterator::create(vec![Box::new(i4), Box::new(i3), Box::new(i2), Box::new(i1)]);
     check_iter_result(iter, result);
 }
+
+#[test]
+fn test_merge_empty() {
+    let iter = MergeIterator::<MockIterator>::create(vec![]);
+    check_iter_result(iter, vec![]);
+}

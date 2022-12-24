@@ -37,12 +37,17 @@ impl<I: StorageIterator> Ord for HeapWrapper<I> {
 /// iterators, perfer the one with smaller index.
 pub struct MergeIterator<I: StorageIterator> {
     iters: BinaryHeap<HeapWrapper<I>>,
-    current: HeapWrapper<I>,
+    current: Option<HeapWrapper<I>>,
 }
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
-        assert!(!iters.is_empty());
+        if iters.is_empty() {
+            return Self {
+                iters: BinaryHeap::new(),
+                current: None,
+            };
+        }
 
         let mut heap = BinaryHeap::new();
 
@@ -51,7 +56,7 @@ impl<I: StorageIterator> MergeIterator<I> {
             let mut iters = iters;
             return Self {
                 iters: heap,
-                current: HeapWrapper(0, iters.pop().unwrap()),
+                current: Some(HeapWrapper(0, iters.pop().unwrap())),
             };
         }
 
@@ -64,32 +69,38 @@ impl<I: StorageIterator> MergeIterator<I> {
         let current = heap.pop().unwrap();
         Self {
             iters: heap,
-            current,
+            current: Some(current),
         }
     }
 }
 
 impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     fn key(&self) -> &[u8] {
-        self.current.1.key()
+        unsafe { self.current.as_ref().unwrap_unchecked() }.1.key()
     }
 
     fn value(&self) -> &[u8] {
-        self.current.1.value()
+        unsafe { self.current.as_ref().unwrap_unchecked() }
+            .1
+            .value()
     }
 
     fn is_valid(&self) -> bool {
-        self.current.1.is_valid()
+        self.current
+            .as_ref()
+            .map(|x| x.1.is_valid())
+            .unwrap_or(false)
     }
 
     fn next(&mut self) -> Result<()> {
+        let current = unsafe { self.current.as_mut().unwrap_unchecked() };
         // Pop the item out of the heap if they have the same value.
         while let Some(mut inner_iter) = self.iters.peek_mut() {
             debug_assert!(
-                inner_iter.1.key() >= self.current.1.key(),
+                inner_iter.1.key() >= current.1.key(),
                 "heap invariant violated"
             );
-            if inner_iter.1.key() == self.current.1.key() {
+            if inner_iter.1.key() == current.1.key() {
                 // Case 1: an error occurred when calling `next`.
                 if let e @ Err(_) = inner_iter.1.next() {
                     PeekMut::pop(inner_iter);
@@ -105,20 +116,20 @@ impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
             }
         }
 
-        self.current.1.next()?;
+        current.1.next()?;
 
         // If the current iterator is invalid, pop it out of the heap and select the next one.
-        if !self.current.1.is_valid() {
+        if !current.1.is_valid() {
             if let Some(iter) = self.iters.pop() {
-                self.current = iter;
+                *current = iter;
             }
             return Ok(());
         }
 
         // Otherwise, compare with heap top and swap if necessary.
         if let Some(mut inner_iter) = self.iters.peek_mut() {
-            if self.current < *inner_iter {
-                std::mem::swap(&mut *inner_iter, &mut self.current);
+            if *current < *inner_iter {
+                std::mem::swap(&mut *inner_iter, current);
             }
         }
 

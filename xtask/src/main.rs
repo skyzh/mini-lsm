@@ -9,6 +9,7 @@ use duct::cmd;
 enum CopyTestAction {
     Day1,
     Day2,
+    Day3,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -138,6 +139,26 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
                 "cp",
                 "mini-lsm/src/table/tests.rs",
                 "mini-lsm-starter/src/table/tests.rs"
+            )
+            .run()?;
+        }
+        CopyTestAction::Day3 => {
+            cmd!(
+                "cp",
+                "mini-lsm/src/mem_table/tests.rs",
+                "mini-lsm-starter/src/mem_table/tests.rs"
+            )
+            .run()?;
+            cmd!(
+                "cp",
+                "mini-lsm/src/iterators/tests/merge_iterator_test.rs",
+                "mini-lsm-starter/src/iterators/tests/merge_iterator_test.rs"
+            )
+            .run()?;
+            cmd!(
+                "cp",
+                "mini-lsm/src/iterators/tests/two_merge_iterator_test.rs",
+                "mini-lsm-starter/src/iterators/tests/two_merge_iterator_test.rs"
             )
             .run()?;
         }
