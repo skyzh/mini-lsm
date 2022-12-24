@@ -1,20 +1,40 @@
 use std::sync::Arc;
 
-use super::{builder::BlockBuilder, iterator::BlockIterator, *};
+use bytes::Bytes;
+
+use crate::table::SsTableBuilder;
+
+use super::{SsTable, SsTableIterator};
 
 #[test]
-fn test_block_build_single_key() {
-    let mut builder = BlockBuilder::new(16);
+fn test_sst_build_single_key() {
+    let mut builder = SsTableBuilder::new(16, 16);
     assert!(builder.add(b"233", b"233333"));
-    builder.build();
+    builder.build("").unwrap();
 }
 
 #[test]
-fn test_block_build_full() {
-    let mut builder = BlockBuilder::new(16);
+fn test_sst_build_two_blocks() {
+    let mut builder = SsTableBuilder::new(1024, 16);
     assert!(builder.add(b"11", b"11"));
-    assert!(!builder.add(b"22", b"22"));
-    builder.build();
+    assert!(builder.add(b"22", b"22"));
+    assert!(builder.add(b"33", b"11"));
+    assert!(builder.add(b"44", b"22"));
+    assert!(builder.add(b"55", b"11"));
+    assert!(builder.add(b"66", b"22"));
+    assert!(builder.meta.len() >= 2);
+    builder.build("").unwrap();
+}
+
+#[test]
+fn test_sst_build_full() {
+    let mut builder = SsTableBuilder::new(32, 16);
+    assert!(builder.add(b"11", b"11"));
+    assert!(builder.add(b"22", b"22"));
+    assert!(builder.add(b"33", b"11"));
+    assert!(builder.add(b"44", b"22"));
+    assert!(!builder.add(b"55", b"11"));
+    builder.build("").unwrap();
 }
 
 fn key_of(idx: usize) -> Vec<u8> {
@@ -29,34 +49,27 @@ fn num_of_keys() -> usize {
     100
 }
 
-fn generate_block() -> Block {
-    let mut builder = BlockBuilder::new(10000);
+fn generate_sst() -> SsTable {
+    let mut builder = SsTableBuilder::new(65536, 128);
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
         assert!(builder.add(&key[..], &value[..]));
     }
-    builder.build()
+    builder.build("").unwrap()
 }
 
 #[test]
-fn test_block_build_all() {
-    generate_block();
+fn test_sst_build_all() {
+    generate_sst();
 }
 
 #[test]
-fn test_block_encode() {
-    let block = generate_block();
-    block.encode();
-}
-
-#[test]
-fn test_block_decode() {
-    let block = generate_block();
-    let encoded = block.encode();
-    let decoded_block = Block::decode(&encoded);
-    assert_eq!(block.offsets, decoded_block.offsets);
-    assert_eq!(block.data, decoded_block.data);
+fn test_sst_decode() {
+    let sst = generate_sst();
+    let meta = sst.block_metas.clone();
+    let new_sst = SsTable::open(sst.file).unwrap();
+    assert_eq!(new_sst.block_metas, meta);
 }
 
 fn as_bytes(x: &[u8]) -> Bytes {
@@ -64,9 +77,9 @@ fn as_bytes(x: &[u8]) -> Bytes {
 }
 
 #[test]
-fn test_block_iterator() {
-    let block = Arc::new(generate_block());
-    let mut iter = BlockIterator::create_and_seek_to_first(block);
+fn test_sst_iterator() {
+    let sst = Arc::new(generate_sst());
+    let mut iter = SsTableIterator::create_and_seek_to_first(sst).unwrap();
     for _ in 0..5 {
         for i in 0..num_of_keys() {
             let key = iter.key();
@@ -85,16 +98,16 @@ fn test_block_iterator() {
                 as_bytes(&value_of(i)),
                 as_bytes(value)
             );
-            iter.next();
+            iter.next().unwrap();
         }
-        iter.seek_to_first();
+        iter.seek_to_first().unwrap();
     }
 }
 
 #[test]
-fn test_block_seek_key() {
-    let block = Arc::new(generate_block());
-    let mut iter = BlockIterator::create_and_seek_to_key(block, &key_of(0));
+fn test_sst_seek_key() {
+    let sst = Arc::new(generate_sst());
+    let mut iter = SsTableIterator::create_and_seek_to_key(sst, &key_of(0)).unwrap();
     for offset in 1..=5 {
         for i in 0..num_of_keys() {
             let key = iter.key();
@@ -113,8 +126,9 @@ fn test_block_seek_key() {
                 as_bytes(&value_of(i)),
                 as_bytes(value)
             );
-            iter.seek_to_key(&format!("key_{:03}", i * 5 + offset).into_bytes());
+            iter.seek_to_key(&format!("key_{:03}", i * 5 + offset).into_bytes())
+                .unwrap();
         }
-        iter.seek_to_key(b"k");
+        iter.seek_to_key(b"k").unwrap();
     }
 }

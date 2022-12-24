@@ -51,10 +51,6 @@ impl BlockIterator {
         self.seek_to(0);
     }
 
-    pub fn seek_to_last(&mut self) {
-        self.seek_to(self.block.offsets.len() - 1);
-    }
-
     pub fn len(&self) -> usize {
         self.block.offsets.len()
     }
@@ -106,5 +102,6 @@ impl BlockIterator {
                 std::cmp::Ordering::Equal => return,
             }
         }
+        self.seek_to(low);
     }
 }

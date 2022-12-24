@@ -10,8 +10,8 @@ pub const SIZEOF_U16: usize = std::mem::size_of::<u16>();
 
 /// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted key-value pairs.
 pub struct Block {
-    pub(self) data: Vec<u8>,
-    pub(self) offsets: Vec<u16>,
+    data: Vec<u8>,
+    offsets: Vec<u16>,
 }
 
 impl Block {

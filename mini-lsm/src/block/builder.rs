@@ -6,16 +6,16 @@ use super::{Block, SIZEOF_U16};
 pub struct BlockBuilder {
     offsets: Vec<u16>,
     data: Vec<u8>,
-    target_size: usize,
+    block_size: usize,
 }
 
 impl BlockBuilder {
     /// Creates a new block builder
-    pub fn new(target_size: usize) -> Self {
+    pub fn new(block_size: usize) -> Self {
         Self {
             offsets: Vec::new(),
             data: Vec::new(),
-            target_size,
+            block_size,
         }
     }
 
@@ -27,7 +27,8 @@ impl BlockBuilder {
     #[must_use]
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         assert!(!key.is_empty(), "key must not be empty");
-        if self.estimated_size() + key.len() + value.len() + SIZEOF_U16 * 3 > self.target_size
+        assert!(!value.is_empty(), "value must not be empty");
+        if self.estimated_size() + key.len() + value.len() + SIZEOF_U16 * 3 > self.block_size
             && !self.is_empty()
         {
             return false;

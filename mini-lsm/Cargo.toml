@@ -11,4 +11,5 @@ description = "A tutorial for building an LSM tree storage engine in a week."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1"
 bytes = "1"
