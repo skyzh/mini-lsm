@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use super::SsTable;
 use crate::block::BlockIterator;
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 
 /// An iterator over the contents of an SSTable.
 pub struct SsTableIterator {

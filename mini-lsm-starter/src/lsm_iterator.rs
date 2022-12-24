@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 
 pub struct LsmIterator {}
 

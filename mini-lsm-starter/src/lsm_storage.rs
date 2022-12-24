@@ -45,24 +45,32 @@ impl LsmStorage {
         })
     }
 
+    /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         unimplemented!()
     }
 
+    /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         assert!(!value.is_empty(), "value cannot be empty");
         assert!(!key.is_empty(), "key cannot be empty");
         unimplemented!()
     }
 
+    /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, _key: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
+    /// Persist data to disk.
+    ///
+    /// In day 3: flush the current memtable to disk as L0 SST.
+    /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         unimplemented!()
     }
 
+    /// Create an iterator over a range of keys.
     pub fn scan(
         &self,
         _lower: Bound<&[u8]>,

@@ -7,9 +7,9 @@ use bytes::Bytes;
 use parking_lot::{Mutex, RwLock};
 
 use crate::block::Block;
-use crate::iterators::impls::StorageIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
+use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::mem_table::{map_bound, MemTable};
 use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
@@ -126,6 +126,8 @@ impl LsmStorage {
         self.path.join(format!("{:05}.sst", id))
     }
 
+    /// Persist data to disk.
+    ///
     /// In day 3: flush the current memtable to disk as L0 SST.
     /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {

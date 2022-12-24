@@ -1,7 +1,7 @@
 use tempfile::tempdir;
 
 use super::MemTable;
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 use crate::table::{SsTableBuilder, SsTableIterator};
 
 #[test]

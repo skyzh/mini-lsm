@@ -9,7 +9,7 @@ use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 use crate::table::SsTableBuilder;
 
 /// A basic mem-table based on crossbeam-skiplist

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bytes::Bytes;
 
-use super::impls::StorageIterator;
+use super::StorageIterator;
 
 pub mod merge_iterator_test;
 pub mod two_merge_iterator_test;

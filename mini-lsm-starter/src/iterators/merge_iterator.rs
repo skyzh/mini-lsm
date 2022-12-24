@@ -6,7 +6,7 @@ use std::collections::BinaryHeap;
 
 use anyhow::Result;
 
-use super::impls::StorageIterator;
+use super::StorageIterator;
 
 struct HeapWrapper<I: StorageIterator>(pub usize, pub Box<I>);
 

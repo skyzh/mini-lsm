@@ -4,7 +4,7 @@ use bytes::Bytes;
 use tempfile::{tempdir, TempDir};
 
 use super::*;
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 use crate::table::SsTableBuilder;
 
 #[test]

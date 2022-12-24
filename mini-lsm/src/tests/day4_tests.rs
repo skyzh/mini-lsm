@@ -3,7 +3,7 @@ use std::ops::Bound;
 use bytes::Bytes;
 use tempfile::tempdir;
 
-use crate::iterators::impls::StorageIterator;
+use crate::iterators::StorageIterator;
 
 fn as_bytes(x: &[u8]) -> Bytes {
     Bytes::copy_from_slice(x)

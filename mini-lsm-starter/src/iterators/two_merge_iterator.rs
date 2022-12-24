@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 
-use super::impls::StorageIterator;
+use super::StorageIterator;
 
 /// Merges two iterators of different types into one. If the two iterators have the same key, only
 /// produce the key once and prefer the entry from A.
