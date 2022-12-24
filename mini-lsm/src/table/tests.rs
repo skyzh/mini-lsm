@@ -2,38 +2,27 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 
+use super::*;
+use crate::iterators::impls::StorageIterator;
 use crate::table::SsTableBuilder;
-
-use super::{SsTable, SsTableIterator};
 
 #[test]
 fn test_sst_build_single_key() {
-    let mut builder = SsTableBuilder::new(16, 16);
-    assert!(builder.add(b"233", b"233333"));
+    let mut builder = SsTableBuilder::new(16);
+    builder.add(b"233", b"233333");
     builder.build("").unwrap();
 }
 
 #[test]
 fn test_sst_build_two_blocks() {
-    let mut builder = SsTableBuilder::new(1024, 16);
-    assert!(builder.add(b"11", b"11"));
-    assert!(builder.add(b"22", b"22"));
-    assert!(builder.add(b"33", b"11"));
-    assert!(builder.add(b"44", b"22"));
-    assert!(builder.add(b"55", b"11"));
-    assert!(builder.add(b"66", b"22"));
+    let mut builder = SsTableBuilder::new(16);
+    builder.add(b"11", b"11");
+    builder.add(b"22", b"22");
+    builder.add(b"33", b"11");
+    builder.add(b"44", b"22");
+    builder.add(b"55", b"11");
+    builder.add(b"66", b"22");
     assert!(builder.meta.len() >= 2);
-    builder.build("").unwrap();
-}
-
-#[test]
-fn test_sst_build_full() {
-    let mut builder = SsTableBuilder::new(32, 16);
-    assert!(builder.add(b"11", b"11"));
-    assert!(builder.add(b"22", b"22"));
-    assert!(builder.add(b"33", b"11"));
-    assert!(builder.add(b"44", b"22"));
-    assert!(!builder.add(b"55", b"11"));
     builder.build("").unwrap();
 }
 
@@ -50,11 +39,11 @@ fn num_of_keys() -> usize {
 }
 
 fn generate_sst() -> SsTable {
-    let mut builder = SsTableBuilder::new(65536, 128);
+    let mut builder = SsTableBuilder::new(128);
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
-        assert!(builder.add(&key[..], &value[..]));
+        builder.add(&key[..], &value[..]);
     }
     builder.build("").unwrap()
 }

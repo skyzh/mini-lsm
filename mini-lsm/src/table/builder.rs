@@ -1,6 +1,7 @@
+use std::path::Path;
+
 use anyhow::Result;
 use bytes::BufMut;
-use std::path::Path;
 
 use super::{BlockMeta, FileObject, SsTable};
 use crate::block::BlockBuilder;
@@ -11,36 +12,29 @@ pub struct SsTableBuilder {
     first_key: Vec<u8>,
     data: Vec<u8>,
     pub(super) meta: Vec<BlockMeta>,
-    target_size: usize,
     block_size: usize,
 }
 
 impl SsTableBuilder {
     /// Create a builder based on target SST size and target block size.
-    pub fn new(target_size: usize, block_size: usize) -> Self {
+    pub fn new(block_size: usize) -> Self {
         Self {
             data: Vec::new(),
             meta: Vec::new(),
             first_key: Vec::new(),
-            target_size,
             block_size,
             builder: BlockBuilder::new(block_size),
         }
     }
 
-    /// Adds a key-value pair to SSTable, return false when SST full.
-    #[must_use]
-    pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
-        if self.data.len() > self.target_size {
-            return false;
-        }
-
+    /// Adds a key-value pair to SSTable
+    pub fn add(&mut self, key: &[u8], value: &[u8]) {
         if self.first_key.is_empty() {
             self.first_key = key.to_vec();
         }
 
         if self.builder.add(key, value) {
-            return true;
+            return;
         }
         // create a new block builder and append block data
         self.finish_block();
@@ -48,8 +42,11 @@ impl SsTableBuilder {
         // add the key-value pair to the next block
         assert!(self.builder.add(key, value));
         self.first_key = key.to_vec();
+    }
 
-        true
+    /// Get the estimated size of the SSTable.
+    pub fn estimated_size(&self) -> usize {
+        self.data.len()
     }
 
     fn finish_block(&mut self) {
@@ -62,7 +59,8 @@ impl SsTableBuilder {
         self.data.extend(encoded_block);
     }
 
-    /// Builds the SSTable and writes it to the given path. No need to actually write to disk until chapter 4 block cache.
+    /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
+    /// chapter 4 block cache.
     pub fn build(mut self, path: impl AsRef<Path>) -> Result<SsTable> {
         self.finish_block();
         let mut buf = self.data;

@@ -4,14 +4,15 @@
 mod builder;
 mod iterator;
 
-use std::{path::Path, sync::Arc};
+use std::path::Path;
+use std::sync::Arc;
 
+use anyhow::Result;
 pub use builder::SsTableBuilder;
 use bytes::{Buf, Bytes};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
-use anyhow::Result;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
@@ -25,7 +26,8 @@ impl BlockMeta {
     /// Encode block meta to a buffer.
     pub fn encode_block_meta(
         block_meta: &[BlockMeta],
-        #[allow(clippy::ptr_arg)] /* remove this allow after you finish */ buf: &mut Vec<u8>,
+        #[allow(clippy::ptr_arg)] // remove this allow after you finish
+        buf: &mut Vec<u8>,
     ) {
         unimplemented!()
     }

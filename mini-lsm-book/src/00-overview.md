@@ -42,6 +42,7 @@ The storage engine generally provides the following interfaces:
 * `Put(key, value)`: store a key-value pair in the LSM tree.
 * `Delete(key)`: remove a key and its corresponding value.
 * `Get(key)`: get the value corresponding to a key.
+* `Scan(range)`: get a range of key-value pairs.
 
 To ensure persistence,
 

@@ -6,4 +6,7 @@ publish = false
 
 [dependencies]
 anyhow = "1"
+arc-swap = "1"
 bytes = "1"
+crossbeam-skiplist = "0.1"
+parking_lot = "0.12"

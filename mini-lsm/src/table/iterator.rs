@@ -1,8 +1,10 @@
-use anyhow::Result;
 use std::sync::Arc;
+
+use anyhow::Result;
 
 use super::SsTable;
 use crate::block::BlockIterator;
+use crate::iterators::impls::StorageIterator;
 
 /// An iterator over the contents of an SSTable.
 pub struct SsTableIterator {
@@ -68,25 +70,22 @@ impl SsTableIterator {
         self.blk_idx = blk_idx;
         Ok(())
     }
+}
 
-    /// Get the current key.
-    pub fn key(&self) -> &[u8] {
-        self.blk_iter.key()
-    }
-
-    /// Get the current value.
-    pub fn value(&self) -> &[u8] {
+impl StorageIterator for SsTableIterator {
+    fn value(&self) -> &[u8] {
         self.blk_iter.value()
     }
 
-    /// Check if the iterator is valid.
-    pub fn is_valid(&self) -> bool {
+    fn key(&self) -> &[u8] {
+        self.blk_iter.key()
+    }
+
+    fn is_valid(&self) -> bool {
         self.blk_iter.is_valid()
     }
 
-    /// Move to the next key-value pair.
-    #[allow(clippy::should_implement_trait)]
-    pub fn next(&mut self) -> Result<()> {
+    fn next(&mut self) -> Result<()> {
         self.blk_iter.next();
         if !self.blk_iter.is_valid() {
             self.blk_idx += 1;

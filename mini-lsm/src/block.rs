@@ -1,14 +1,14 @@
 mod builder;
 mod iterator;
 
-use bytes::{Buf, BufMut, Bytes};
-
 pub use builder::BlockBuilder;
+use bytes::{Buf, BufMut, Bytes};
 pub use iterator::BlockIterator;
 
 pub const SIZEOF_U16: usize = std::mem::size_of::<u16>();
 
-/// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted key-value pairs.
+/// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted
+/// key-value pairs.
 pub struct Block {
     data: Vec<u8>,
     offsets: Vec<u16>,

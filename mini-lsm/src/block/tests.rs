@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use super::{builder::BlockBuilder, iterator::BlockIterator, *};
+use super::builder::BlockBuilder;
+use super::iterator::BlockIterator;
+use super::*;
 
 #[test]
 fn test_block_build_single_key() {

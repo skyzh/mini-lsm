@@ -12,4 +12,7 @@ description = "A tutorial for building an LSM tree storage engine in a week."
 
 [dependencies]
 anyhow = "1"
+arc-swap = "1"
 bytes = "1"
+crossbeam-skiplist = "0.1"
+parking_lot = "0.12"
