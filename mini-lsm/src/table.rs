@@ -12,11 +12,14 @@ use anyhow::Result;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
+    /// Offset of this data block.
     pub offset: usize,
+    /// The first key of the data block.
     pub first_key: Bytes,
 }
 
 impl BlockMeta {
+    /// Encode block meta to a buffer.
     pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
         let mut estimated_size = 0;
         for meta in block_meta {
@@ -34,6 +37,7 @@ impl BlockMeta {
         assert_eq!(estimated_size, buf.len() - original_len);
     }
 
+    /// Decode block meta from a buffer.
     pub fn decode_block_meta(mut buf: impl Buf) -> Vec<BlockMeta> {
         let mut block_meta = Vec::new();
         while buf.has_remaining() {
@@ -46,6 +50,7 @@ impl BlockMeta {
     }
 }
 
+/// A file object.
 pub struct FileObject(Bytes);
 
 impl FileObject {
@@ -73,6 +78,7 @@ pub struct SsTable {
 }
 
 impl SsTable {
+    /// Open SSTable from a file.
     pub fn open(file: FileObject) -> Result<Self> {
         let len = file.size();
         let raw_meta_offset = file.read(len - 4, 4)?;
@@ -85,7 +91,8 @@ impl SsTable {
         })
     }
 
-    fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
+    /// Read a block from the disk.
+    pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
         let offset = self.block_metas[block_idx].offset;
         let offset_end = self
             .block_metas
@@ -98,13 +105,15 @@ impl SsTable {
         Ok(Arc::new(Block::decode(&block_data[..])))
     }
 
-    fn find_block_idx(&self, key: &[u8]) -> usize {
+    /// Find the block that may contain `key`.
+    pub fn find_block_idx(&self, key: &[u8]) -> usize {
         self.block_metas
             .partition_point(|meta| meta.first_key <= key)
             .saturating_sub(1)
     }
 
-    fn num_of_blocks(&self) -> usize {
+    /// Get number of data blocks.
+    pub fn num_of_blocks(&self) -> usize {
         self.block_metas.len()
     }
 }

@@ -1,12 +1,9 @@
 [package]
 name = "mini-lsm-starter"
-version = { workspace = true }
-edition = { workspace = true }
-homepage = { workspace = true }
-keywords = { workspace = true }
-license = { workspace = true }
-repository = { workspace = true }
+version = "0.1.0"
+edition = "2021"
 publish = false
 
 [dependencies]
+anyhow = "1"
 bytes = "1"

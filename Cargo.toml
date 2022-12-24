@@ -1,8 +1,8 @@
 [workspace]
 members = [
   "mini-lsm",
+  "xtask",
   "mini-lsm-starter",
-  "xtask"
 ]
 
 [workspace.package]

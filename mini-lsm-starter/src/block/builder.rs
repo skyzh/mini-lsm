@@ -3,26 +3,27 @@
 
 use super::Block;
 
-/// Builds a block
+/// Builds a block.
 pub struct BlockBuilder {}
 
 impl BlockBuilder {
-    /// Creates a new block builder
-    pub fn new(target_size: usize) -> Self {
+    /// Creates a new block builder.
+    pub fn new(block_size: usize) -> Self {
         unimplemented!()
     }
 
-    /// Adds a key-value pair to the block
+    /// Adds a key-value pair to the block. Returns false when the block is full.
     #[must_use]
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         unimplemented!()
     }
 
+    /// Check if there is no key-value pair in the block.
     pub fn is_empty(&self) -> bool {
         unimplemented!()
     }
 
-    /// Builds a block
+    /// Finalize the block.
     pub fn build(self) -> Block {
         unimplemented!()
     }

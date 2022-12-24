@@ -5,6 +5,7 @@ use std::path::Path;
 use super::{BlockMeta, FileObject, SsTable};
 use crate::block::BlockBuilder;
 
+/// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     builder: BlockBuilder,
     first_key: Vec<u8>,
@@ -15,6 +16,7 @@ pub struct SsTableBuilder {
 }
 
 impl SsTableBuilder {
+    /// Create a builder based on target SST size and target block size.
     pub fn new(target_size: usize, block_size: usize) -> Self {
         Self {
             data: Vec::new(),
@@ -26,6 +28,7 @@ impl SsTableBuilder {
         }
     }
 
+    /// Adds a key-value pair to SSTable, return false when SST full.
     #[must_use]
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         if self.data.len() > self.target_size {
@@ -59,6 +62,7 @@ impl SsTableBuilder {
         self.data.extend(encoded_block);
     }
 
+    /// Builds the SSTable and writes it to the given path. No need to actually write to disk until chapter 4 block cache.
     pub fn build(mut self, path: impl AsRef<Path>) -> Result<SsTable> {
         self.finish_block();
         let mut buf = self.data;

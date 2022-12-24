@@ -17,6 +17,10 @@ enum Action {
     Show,
     /// Run CI jobs
     Ci,
+    /// Sync starter repo and reference solution.
+    Sync,
+    /// Check starter code
+    Scheck,
 }
 
 /// Simple program to greet a person
@@ -32,6 +36,16 @@ fn switch_to_workspace_root() -> Result<()> {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .ok_or_else(|| anyhow!("failed to find the workspace root"))?,
+    )?;
+    Ok(())
+}
+
+fn switch_to_starter_root() -> Result<()> {
+    std::env::set_current_dir(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .ok_or_else(|| anyhow!("failed to find the workspace root"))?
+            .join("mini-lsm-starter"),
     )?;
     Ok(())
 }
@@ -78,6 +92,28 @@ fn serve_book() -> Result<()> {
     Ok(())
 }
 
+fn sync() -> Result<()> {
+    cmd!("mkdir", "-p", "sync-tmp").run()?;
+    cmd!("cp", "-a", "mini-lsm-starter/", "sync-tmp/mini-lsm-starter").run()?;
+    let cargo_toml = "sync-tmp/mini-lsm-starter/Cargo.toml";
+    std::fs::write(
+        cargo_toml,
+        std::fs::read_to_string(cargo_toml)?.replace("mini-lsm-starter", "mini-lsm")
+            + "\n[workspace]\n",
+    )?;
+    cmd!(
+        "cargo",
+        "semver-checks",
+        "check-release",
+        "--manifest-path",
+        cargo_toml,
+        "--baseline-root",
+        "mini-lsm/Cargo.toml",
+    )
+    .run()?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
 
@@ -87,9 +123,18 @@ fn main() -> Result<()> {
             cmd!("cargo", "install", "cargo-nextest", "--locked").run()?;
             println!("{}", style("cargo install mdbook mdbook-toc").bold());
             cmd!("cargo", "install", "mdbook", "mdbook-toc", "--locked").run()?;
+            println!("{}", style("cargo install cargo-semver-checks").bold());
+            cmd!("cargo", "install", "cargo-semver-checks", "--locked").run()?;
         }
         Action::Check => {
             switch_to_workspace_root()?;
+            fmt()?;
+            check()?;
+            test()?;
+            clippy()?;
+        }
+        Action::Scheck => {
+            switch_to_starter_root()?;
             fmt()?;
             check()?;
             test()?;
@@ -110,6 +155,10 @@ fn main() -> Result<()> {
         Action::Show => {
             println!("CARGO_MANIFEST_DIR={}", env!("CARGO_MANIFEST_DIR"));
             println!("PWD={:?}", std::env::current_dir()?);
+        }
+        Action::Sync => {
+            switch_to_workspace_root()?;
+            sync()?;
         }
     }
 

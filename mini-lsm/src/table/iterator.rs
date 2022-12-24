@@ -4,6 +4,7 @@ use std::sync::Arc;
 use super::SsTable;
 use crate::block::BlockIterator;
 
+/// An iterator over the contents of an SSTable.
 pub struct SsTableIterator {
     table: Arc<SsTable>,
     blk_iter: BlockIterator,
@@ -18,6 +19,7 @@ impl SsTableIterator {
         ))
     }
 
+    /// Create a new iterator and seek to the first key-value pair.
     pub fn create_and_seek_to_first(table: Arc<SsTable>) -> Result<Self> {
         let (blk_idx, blk_iter) = Self::seek_to_first_inner(&table)?;
         let iter = Self {
@@ -28,6 +30,7 @@ impl SsTableIterator {
         Ok(iter)
     }
 
+    /// Seek to the first key-value pair.
     pub fn seek_to_first(&mut self) -> Result<()> {
         let (blk_idx, blk_iter) = Self::seek_to_first_inner(&self.table)?;
         self.blk_idx = blk_idx;
@@ -47,6 +50,7 @@ impl SsTableIterator {
         Ok((blk_idx, blk_iter))
     }
 
+    /// Create a new iterator and seek to the first key-value pair which >= `key`.
     pub fn create_and_seek_to_key(table: Arc<SsTable>, key: &[u8]) -> Result<Self> {
         let (blk_idx, blk_iter) = Self::seek_to_key_inner(&table, key)?;
         let iter = Self {
@@ -57,6 +61,7 @@ impl SsTableIterator {
         Ok(iter)
     }
 
+    /// Seek to the first key-value pair which >= `key`.
     pub fn seek_to_key(&mut self, key: &[u8]) -> Result<()> {
         let (blk_idx, blk_iter) = Self::seek_to_key_inner(&self.table, key)?;
         self.blk_iter = blk_iter;
@@ -64,18 +69,22 @@ impl SsTableIterator {
         Ok(())
     }
 
+    /// Get the current key.
     pub fn key(&self) -> &[u8] {
         self.blk_iter.key()
     }
 
+    /// Get the current value.
     pub fn value(&self) -> &[u8] {
         self.blk_iter.value()
     }
 
+    /// Check if the iterator is valid.
     pub fn is_valid(&self) -> bool {
         self.blk_iter.is_valid()
     }
 
+    /// Move to the next key-value pair.
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<()> {
         self.blk_iter.next();

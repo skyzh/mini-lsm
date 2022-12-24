@@ -4,6 +4,7 @@ use bytes::Buf;
 
 use super::Block;
 
+/// Iterates on a block.
 pub struct BlockIterator {
     block: Arc<Block>,
     key: Vec<u8>,
@@ -21,45 +22,44 @@ impl BlockIterator {
         }
     }
 
+    /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
         let mut iter = Self::new(block);
         iter.seek_to_first();
         iter
     }
 
+    /// Creates a block iterator and seek to the first key that >= `key`.
     pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
         let mut iter = Self::new(block);
         iter.seek_to_key(key);
         iter
     }
 
+    /// Returns the key of the current entry.
     pub fn key(&self) -> &[u8] {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
         &self.key
     }
 
+    /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
         &self.value
     }
 
+    /// Returns true if the iterator is valid.
     pub fn is_valid(&self) -> bool {
         !self.key.is_empty()
     }
 
+    /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
         self.seek_to(0);
     }
 
-    pub fn len(&self) -> usize {
-        self.block.offsets.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.block.offsets.is_empty()
-    }
-
-    pub fn seek_to(&mut self, idx: usize) {
+    /// Seeks to the idx-th key in the block.
+    fn seek_to(&mut self, idx: usize) {
         if idx >= self.block.offsets.len() {
             self.key.clear();
             self.value.clear();
@@ -70,6 +70,7 @@ impl BlockIterator {
         self.idx = idx;
     }
 
+    /// Move to the next key in the block.
     pub fn next(&mut self) {
         self.idx += 1;
         self.seek_to(self.idx);
@@ -89,6 +90,7 @@ impl BlockIterator {
         self.value.extend(value);
     }
 
+    /// Seek to the first key that >= `key`.
     pub fn seek_to_key(&mut self, key: &[u8]) {
         let mut low = 0;
         let mut high = self.block.offsets.len();

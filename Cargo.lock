@@ -183,6 +183,7 @@ dependencies = [
 name = "mini-lsm-starter"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bytes",
 ]
 
