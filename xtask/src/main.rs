@@ -10,6 +10,7 @@ enum CopyTestAction {
     Day1,
     Day2,
     Day3,
+    Day4,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -165,6 +166,14 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
                 "cp",
                 "mini-lsm/src/iterators/tests.rs",
                 "mini-lsm-starter/src/iterators/tests.rs"
+            )
+            .run()?;
+        }
+        CopyTestAction::Day4 => {
+            cmd!(
+                "cp",
+                "mini-lsm/src/tests/day4_tests.rs",
+                "mini-lsm-starter/src/tests/day4_tests.rs"
             )
             .run()?;
         }

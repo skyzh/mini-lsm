@@ -39,7 +39,7 @@ pub struct LsmStorage {
 }
 
 impl LsmStorage {
-    pub fn open(_path: &Path) -> Result<Self> {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
             inner: ArcSwap::from_pointee(LsmStorageInner::create()),
         })
@@ -49,17 +49,17 @@ impl LsmStorage {
         unimplemented!()
     }
 
-    pub fn put(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         assert!(!value.is_empty(), "value cannot be empty");
         assert!(!key.is_empty(), "key cannot be empty");
         unimplemented!()
     }
 
-    pub fn delete(&mut self, _key: &[u8]) -> Result<()> {
+    pub fn delete(&self, _key: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
-    pub fn sync(&mut self) -> Result<()> {
+    pub fn sync(&self) -> Result<()> {
         unimplemented!()
     }
 
