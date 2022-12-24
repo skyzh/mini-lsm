@@ -8,6 +8,7 @@ use duct::cmd;
 #[derive(clap::Subcommand, Debug)]
 enum CopyTestAction {
     Day1,
+    Day2,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -129,6 +130,14 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
                 "cp",
                 "mini-lsm/src/block/tests.rs",
                 "mini-lsm-starter/src/block/tests.rs"
+            )
+            .run()?;
+        }
+        CopyTestAction::Day2 => {
+            cmd!(
+                "cp",
+                "mini-lsm/src/table/tests.rs",
+                "mini-lsm-starter/src/table/tests.rs"
             )
             .run()?;
         }

@@ -9,6 +9,7 @@ use super::{BlockMeta, SsTable};
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     pub(super) meta: Vec<BlockMeta>,
+    // Add other fields you need.
 }
 
 impl SsTableBuilder {

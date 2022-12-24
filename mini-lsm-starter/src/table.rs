@@ -57,7 +57,11 @@ impl FileObject {
     }
 }
 
-pub struct SsTable {}
+pub struct SsTable {
+    file: FileObject,
+    block_metas: Vec<BlockMeta>,
+    block_meta_offset: usize,
+}
 
 impl SsTable {
     /// Open SSTable from a file.

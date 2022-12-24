@@ -1,5 +1,7 @@
 # Block Builder and Block Iterator
 
+<!-- toc -->
+
 In this part, you will need to modify:
 
 * `src/block/builder.rs`
