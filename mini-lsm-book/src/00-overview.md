@@ -89,6 +89,10 @@ In this tutorial, we will build the LSM tree structure in 7 days:
 * Day 6: Recovery. We will implement WAL and manifest so that the engine can recover after restart.
 * Day 7: Bloom filter and key compression. They are widely-used optimizations in LSM tree structures.
 
+## Development Guide
+
 We provide you starter code (see `mini-lsm-starter` crate), where we simply replace all function body with
 `unimplemented!()`. You can start your project based on this starter code. We provide test cases, but they are very
 simple. We recommend you to think carefully about your implementation and write test cases by yourself.
+
+You can use `cargo x scheck` to run all test cases and do style check in your codebase.

@@ -16,3 +16,6 @@ cargo x install-tools
 cargo x check
 cargo x book
 ```
+
+If you changed public API in the reference solution, you might also need to synchronize it to the starter crate.
+To do this, use `cargo x sync`.
