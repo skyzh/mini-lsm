@@ -97,7 +97,7 @@ In this tutorial, we will build the LSM tree structure in 7 days:
 * Day 2: SST encoding.
 * Day 3: MemTable and Merge Iterators.
 * Day 4: Block cache and Engine. To reduce disk I/O and maximize performance, we will use moka-rs to build a block cache
-* for the LSM tree. In this day we will get a functional (but not persistent) key-value engine with `get`, `put`, `scan`,
+  for the LSM tree. In this day we will get a functional (but not persistent) key-value engine with `get`, `put`, `scan`,
   `delete` API.
 * Day 5: Compaction. Now it's time to maintain a leveled structure for SSTs.
 * Day 6: Recovery. We will implement WAL and manifest so that the engine can recover after restart.
