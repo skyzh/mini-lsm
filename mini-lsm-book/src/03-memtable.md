@@ -88,6 +88,9 @@ In this design, you might have noticed that as long as we have the iterator obje
 the memory. In this tutorial, we assume user operations are short, so that this will not cause big problems. See extra
 task for possible improvements.
 
+You can also consider using [AgateDB's skiplist](https://github.com/tikv/agatedb/tree/master/skiplist) implementation,
+which avoids the problem of creating a self-referential struct.
+
 ## Task 3 - Merge Iterator
 
 Now that you have a lot of mem-tables and SSTs, you might want to merge them to get the latest occurence of a key.
@@ -139,5 +142,6 @@ common optimization in LSM storage engines.
   engine. You might find some lifetime related problems and need to workaround them.
 * Foreground iterator. In this tutorial we assumed that all operations are short, so that we can hold reference to
   mem-table in the iterator. If an iterator is held by users for a long time, the whole mem-table (which might be 256MB)
-  will not stay in the memory. To solve this, we can provide a `ForegroundIterator` / `LongIterator` to our user. The
-  iterator will periodically create new underlying storage iterator so as to allow garbage collection of the resources.
+  will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` /
+  `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow
+  garbage collection of the resources.
