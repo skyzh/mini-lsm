@@ -6,8 +6,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
-use arc_swap::ArcSwap;
 use bytes::Bytes;
+use parking_lot::RwLock;
 
 use crate::block::Block;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
@@ -18,30 +18,40 @@ pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
 #[derive(Clone)]
 pub struct LsmStorageInner {
-    /// MemTables, from oldest to earliest.
-    memtables: Vec<Arc<MemTable>>,
-    /// L0 SsTables, from oldest to earliest.
+    /// The current memtable.
+    memtable: Arc<MemTable>,
+    /// Immutable memTables, from earliest to latest.
+    imm_memtables: Vec<Arc<MemTable>>,
+    /// L0 SsTables, from earliest to latest.
     l0_sstables: Vec<Arc<SsTable>>,
+    /// L1 - L6 SsTables, sorted by key range.
+    #[allow(dead_code)]
+    levels: Vec<Vec<Arc<SsTable>>>,
+    /// The next SSTable ID.
+    next_sst_id: usize,
 }
 
 impl LsmStorageInner {
     fn create() -> Self {
         Self {
-            memtables: vec![Arc::new(MemTable::create())],
+            memtable: Arc::new(MemTable::create()),
+            imm_memtables: vec![],
             l0_sstables: vec![],
+            levels: vec![],
+            next_sst_id: 1,
         }
     }
 }
 
 /// The storage interface of the LSM tree.
 pub struct LsmStorage {
-    inner: ArcSwap<LsmStorageInner>,
+    inner: Arc<RwLock<Arc<LsmStorageInner>>>,
 }
 
 impl LsmStorage {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
-            inner: ArcSwap::from_pointee(LsmStorageInner::create()),
+            inner: Arc::new(RwLock::new(Arc::new(LsmStorageInner::create()))),
         })
     }
 

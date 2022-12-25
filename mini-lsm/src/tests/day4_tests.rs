@@ -161,6 +161,7 @@ fn test_storage_scan_memtable_2_after_sync() {
     let storage = LsmStorage::open(&dir).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
+    storage.sync().unwrap();
     storage.put(b"3", b"23333").unwrap();
     storage.sync().unwrap();
     storage.delete(b"1").unwrap();

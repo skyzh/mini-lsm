@@ -84,6 +84,10 @@ the inner iter to the next position.
 
 </details>
 
+In this design, you might have noticed that as long as we have the iterator object, the mem-table cannot be freed from
+the memory. In this tutorial, we assume user operations are short, so that this will not cause big problems. See extra
+task for possible improvements.
+
 ## Task 3 - Merge Iterator
 
 Now that you have a lot of mem-tables and SSTs, you might want to merge them to get the latest occurence of a key.

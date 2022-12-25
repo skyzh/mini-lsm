@@ -34,4 +34,4 @@ The tutorial has 8 parts (which can be finished in 7 days):
 * Day 6: Recovery. We will implement WAL and manifest so that the engine can recover after restart.
 * Day 7: Bloom filter and key compression. They are widely-used optimizations in LSM tree structures.
 
-We have reference solution up to day 4 and tutorial up to day 3 for now.
+We have reference solution up to day 4 and tutorial up to day 4 for now.
