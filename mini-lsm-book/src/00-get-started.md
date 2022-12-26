@@ -19,6 +19,12 @@ cd mini-lsm/mini-lsm-starter
 code .
 ```
 
+## Install Tools
+
+```
+cargo x install-tools
+```
+
 ## Run tests
 
 ```
