@@ -93,7 +93,7 @@ which avoids the problem of creating a self-referential struct.
 
 ## Task 3 - Merge Iterator
 
-Now that you have a lot of mem-tables and SSTs, you might want to merge them to get the latest occurence of a key.
+Now that you have a lot of mem-tables and SSTs, you might want to merge them to get the latest occurrence of a key.
 In `merge_iterator.rs`, we have `MergeIterator`, which is an iterator that merges all iterators *of the same type*.
 The iterator at the lower index position of the `new` function has higher priority, that is to say, if we have:
 
