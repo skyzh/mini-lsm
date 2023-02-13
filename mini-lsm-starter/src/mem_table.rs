@@ -75,4 +75,5 @@ impl StorageIterator for MemTableIterator {
     }
 }
 
+#[cfg(test)]
 mod tests;
