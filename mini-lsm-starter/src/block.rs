@@ -6,7 +6,8 @@ use bytes::{Buf, BufMut, Bytes};
 pub use iterator::BlockIterator;
 
 /// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted
-/// key-value pairs.
+/// key-value pairs. The creator is responsible for sorting the key value pairs when building the block.
+/// A block serializes to less than or equal to a given size in bytes.
 pub struct Block {
     data: Vec<u8>,
     offsets: Vec<u16>,

@@ -5,19 +5,49 @@ use super::iterator::BlockIterator;
 use super::*;
 
 #[test]
-fn test_block_build_single_key() {
+fn block_build_single_key() {
     let mut builder = BlockBuilder::new(16);
     assert!(builder.add(b"233", b"233333"));
     builder.build();
 }
 
 #[test]
-fn test_block_build_full() {
+#[should_panic]
+fn empty_block_fails_to_build() {
+    let builder = BlockBuilder::new(16);
+    builder.build();
+}
+
+#[test]
+#[should_panic]
+fn cannot_add_gigantic_key() {
     let mut builder = BlockBuilder::new(16);
+    let _ = builder.add(&[0u8; u16::MAX as usize + 1], b"11");
+}
+
+#[test]
+#[should_panic]
+fn cannot_add_empty_key() {
+    let mut builder = BlockBuilder::new(16);
+    let _ = builder.add(b"", b"11");
+}
+
+#[test]
+#[should_panic]
+fn cannot_add_gigantic_value() {
+    let mut builder = BlockBuilder::new(16);
+    let _ = builder.add(b"11", &[0u8; u16::MAX as usize + 1]);
+}
+
+#[test]
+fn block_build_full() {
+    // set a block size just a bit too small to fit both entries
+    let mut builder = BlockBuilder::new(21);
     assert!(builder.add(b"11", b"11"));
     assert!(!builder.add(b"22", b"22"));
     builder.build();
 
+    // set a block size exactly large enough to fit both entries
     let mut builder = BlockBuilder::new(22);
     assert!(builder.add(b"11", b"11"));
     assert!(builder.add(b"22", b"22"));
@@ -47,23 +77,31 @@ fn generate_block() -> Block {
 }
 
 #[test]
-fn test_block_build_all() {
+fn block_build_all() {
     generate_block();
 }
 
 #[test]
-fn test_block_encode() {
-    let block = generate_block();
-    block.encode();
-}
-
-#[test]
-fn test_block_decode() {
+fn block_encode_decode_idempotence() {
     let block = generate_block();
     let encoded = block.encode();
     let decoded_block = Block::decode(&encoded);
     assert_eq!(block.offsets, decoded_block.offsets);
     assert_eq!(block.data, decoded_block.data);
+}
+
+#[test]
+fn test_encode() {
+    let mut bb = BlockBuilder::new(4000);
+    assert!(bb.add(b"key1", b"mergez"));
+    assert!(bb.add(b"key2", b"sausage"));
+    let block = bb.build();
+
+    let encoded = block.encode();
+    assert_eq!(
+        encoded,
+        as_bytes(b"\0\x04key1\0\x06mergez\0\x04key2\0\x07sausage\0\0\0\x0e\0\x02")
+    );
 }
 
 fn as_bytes(x: &[u8]) -> Bytes {

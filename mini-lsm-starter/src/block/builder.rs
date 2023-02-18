@@ -20,6 +20,8 @@ impl BlockBuilder {
     }
 
     /// Adds a key-value pair to the block. Returns false when the block is full.
+    /// The caller needs to uphold the assumption that entries are added in sorted order since the code iterating
+    /// over entries in a block will rely on this assumption to efficiently find a given key.
     #[must_use]
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         assert!(!key.is_empty(), "Cannot add an entry for an empty key");
@@ -30,7 +32,7 @@ impl BlockBuilder {
         let value_len: u16 = value
             .len()
             .try_into()
-            .expect("Cannot add key bigger than max length of 65536");
+            .expect("Cannot add value bigger than max length of 65536");
 
         if self.current_block_size() + key_len as usize + value_len as usize + 3 * U16_SIZE
             > self.block_size
@@ -55,7 +57,7 @@ impl BlockBuilder {
 
     /// Finalize the block.
     pub fn build(self) -> Block {
-        assert!(!self.is_empty(), "Cannot buiold block with no entry");
+        assert!(!self.is_empty(), "Cannot build block with no entry");
 
         Block {
             data: self.data,
@@ -65,6 +67,6 @@ impl BlockBuilder {
 
     /// Utility function to get the current block size in serialized form, in number of bytes
     fn current_block_size(&self) -> usize {
-        self.data.len() + self.offsets.len() * U16_SIZE + U16_SIZE
+        self.data.len() + (self.offsets.len() + 1) * U16_SIZE
     }
 }
