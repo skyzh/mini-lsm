@@ -100,8 +100,15 @@ fn test_encode() {
     let encoded = block.encode();
     assert_eq!(
         encoded,
-        as_bytes(b"\0\x04key1\0\x06mergez\0\x04key2\0\x07sausage\0\0\0\x0e\0\x02")
+        as_bytes(b"\0\x04key1\0\x06mergez\0\x04key2\0\x07sausage\0\0\0\x0e\0\x02b\x9b\xc6H")
     );
+}
+
+#[test]
+#[should_panic]
+fn test_decode_bad_crc_fails() {
+    let encoded = b"\0\x04key1\0\x06mergez\0\x04key2\0\x07kebab\0\0\0\x0e\0\x02b\x9b\xc6H";
+    let _ = Block::decode(encoded);
 }
 
 fn as_bytes(x: &[u8]) -> Bytes {
