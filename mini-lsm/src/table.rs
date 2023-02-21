@@ -140,8 +140,7 @@ impl SsTable {
         let offset_end = self
             .block_metas
             .get(block_idx + 1)
-            .map(|x| x.offset)
-            .unwrap_or(self.block_meta_offset);
+            .map_or(self.block_meta_offset, |x| x.offset);
         let block_data = self
             .file
             .read(offset as u64, (offset_end - offset) as u64)?;
