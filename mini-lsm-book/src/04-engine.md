@@ -77,9 +77,10 @@ Remember to change `SsTableIterator` to use the block cache.
 
 ## Extra Tasks
 
-* As you might have seen, each time we do a put or deletion, we will need to take a write lock protecting the LSM
-  structure. This can cause a lot of problems. Some lock implementations are fair, which means as long as there is a
-  writer waiting on the lock, no reader can take the lock. Therefore, the writer will wait until the slowest reader
-  finishes its operation before it can actually do some work. One possible optimization is to implement `WriteBatch`.
-  We don't need to immediately write users' requests into mem-table + WAL. We can allow users to do a batch of writes.
+* As you might have seen, each time we do a get, put or deletion, we will need to take a read lock protecting the LSM
+  structure; and if we want to flush, we will need to take a write lock. This can cause a lot of problems. Some
+  lock implementations are fair, which means as long as there is a writer waiting on the lock, no reader can take
+  the lock. Therefore, the writer will wait until the slowest reader finishes its operation before it can actually
+  do some work. One possible optimization is to implement `WriteBatch`. We don't need to immediately write users'
+  requests into mem-table + WAL. We can allow users to do a batch of writes.
 * Align blocks to 4K and use direct I/O.
