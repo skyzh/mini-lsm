@@ -30,7 +30,7 @@ When user adds a key-value pair to a block (which is an entry), we will need to 
 
 ```
 |                             entry1                            |
-| key_len (2B) | key (varlen) | value_len (2B) | value (varlen) | ... |
+| key_len (2B) | key (keylen) | value_len (2B) | value (varlen) | ... |
 ```
 
 Key length and value length are 2B, which means their maximum length is 65536.
