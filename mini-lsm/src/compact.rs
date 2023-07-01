@@ -11,6 +11,7 @@ use crate::{
 struct CompactOptions {
     block_size: usize,
     target_sst_size: usize,
+    compact_to_bottom_level: bool,
 }
 
 impl LsmStorage {
@@ -35,8 +36,16 @@ impl LsmStorage {
             if builder.is_none() {
                 builder = Some(SsTableBuilder::new(options.block_size));
             }
-            let mut builder_inner = builder.as_mut().unwrap();
-            builder_inner.add(iter.key(), iter.value());
+            let builder_inner = builder.as_mut().unwrap();
+            if options.compact_to_bottom_level {
+                if !iter.value().is_empty() {
+                    builder_inner.add(iter.key(), iter.value());
+                }
+            } else {
+                builder_inner.add(iter.key(), iter.value());
+            }
+            iter.next()?;
+
             if builder_inner.estimated_size() >= options.target_sst_size {
                 let sst_id = self.next_sst_id(); // lock dropped here
                 let builder = builder.take().unwrap();
