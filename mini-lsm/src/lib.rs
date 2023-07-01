@@ -1,4 +1,5 @@
 pub mod block;
+mod compact;
 pub mod iterators;
 pub mod lsm_iterator;
 pub mod lsm_storage;

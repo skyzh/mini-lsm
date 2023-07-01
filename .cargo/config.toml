@@ -1,3 +1,4 @@
 [alias]
 xtask = "run --package mini-lsm-xtask --"
 x = "run --package mini-lsm-xtask --"
+test = "nextest run"
