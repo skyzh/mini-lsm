@@ -21,6 +21,7 @@ impl Block {
         for offset in &self.offsets {
             buf.put_u16(*offset);
         }
+        // Adds number of elements at the end of the block
         buf.put_u16(offsets_len as u16);
         buf.into()
     }
