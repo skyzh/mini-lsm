@@ -18,22 +18,28 @@ test cases, write a new module `#[cfg(test)] mod user_tests { /* your test cases
 Block is the minimum read unit in LSM. It is of 4KB size in general, similar database pages. In each block, we will
 store a sequence of sorted key value pairs.
 
-You will need to modify `BlockBuilder` to build the encoded data and the offset array. The block contains two parts:
-data and offsets.
+You will need to modify `BlockBuilder` in `src/block/builder.rs` to build the encoded data and the offset array.
+The block contains two parts: data and offsets.
 
 ```
-|          data         |           offsets         |
+---------------------------------------------------------------------
+|          data         |           offsets         |     meta      |
+|-----------------------|---------------------------|---------------|
 |entry|entry|entry|entry|offset|offset|offset|offset|num_of_elements|
+---------------------------------------------------------------------
 ```
 
 When user adds a key-value pair to a block (which is an entry), we will need to serialize it into the following format:
 
 ```
+-----------------------------------------------------------------
 |                             entry1                            |
+-----------------------------------------------------------------
 | key_len (2B) | key (keylen) | value_len (2B) | value (varlen) | ... |
+-----------------------------------------------------------------
 ```
 
-Key length and value length are 2B, which means their maximum length is 65536.
+Key length and value length are both 2 bytes, which means their maximum lengths are 65535. (Internally stored as `u16`)
 
 We assume that keys will never be empty, and values can be empty. An empty value means that the corresponding key has
 been deleted in the view of other parts of the system. For the block builder and iterator, we just treat empty value
@@ -43,22 +49,29 @@ At the end of the block, we will store the offsets of each entry and the total n
 the first entry is at 0th position of the block, and the second is at 12th position,
 
 ```
+-------------------------------
 |offset|offset|num_of_elements|
+-------------------------------
 |   0  |  12  |       2       |
+-------------------------------
 ```
 
 The footer of the block will be as above. Each of the number is stored as `u16`.
 
 The block has a size limit, which is `target_size`. Unless the first key-value pair exceeds the target block size, you
 should ensure that the encoded block size is always less than or equal to `target_size`.
+(In the actual code, the `target_size` here is essentially the input `block_size`)
 
 The `BlockBuilder` will produce the data part and unencoded entry offsets when `build` is called. The information will
 be stored in the `Block` struct. As key-value entries are stored in the raw format and offsets are stored in a separate
-vector, this reduces unnecessary memory allocations and processing overhead when decoding data -- what you need to do
+vector, this reduces unnecessary memory allocations and processing overhead when decoding data —— what you need to do
 is to simply copy the raw block data to the `data` vector and decode the entry offsets every 2 bytes, *instead of*
 creating something like `Vec<(Vec<u8>, Vec<u8>)>` to store all the key value pairs in one block in memory. This compact
-memory layout is very efficient. `Block::encode` and `Block::decode` will encode to / decode from the data layout
-illustrated in the above figures.
+memory layout is very efficient.
+
+For the encoding and decoding part, you'll need to modify `Block` in `src/block.rs`.
+Specifically, you are required to implement `Block::encode` and `Block::decode`,
+which will encode to / decode from the data layout illustrated in the above figures.
 
 ## Task 2 - Block Iterator
 
@@ -74,7 +87,8 @@ let mut iter = BlockIterator::create_and_seek_to_key(block, b"2");
 assert_eq!(iter.key(), b"3");
 ```
 
-`seek 2` will make the iterator to be positioned at the next available key of `2`, which is `3`.
+The above `create_and_seek_to_key "2"` will make the iterator to be positioned at the next available key of `2`,
+which is `3`.
 
 The iterator should copy `key` and `value` from the block and store them inside the iterator, so that users can access
 the key and the value without any extra copy with `fn key(&self) -> &[u8]`, which directly returns the reference of the
@@ -92,4 +106,4 @@ Here is a list of extra tasks you can do to make the block encoding more robust 
 *Note: Some test cases might not pass after implementing this part. You might need to write your own test cases.*
 
 * Implement block checksum. Verify checksum when decoding the block.
-* Compress / uncompress block. Compress on `build` and uncompress on decoding.
+* Compress / Decompress block. Compress on `build` and decompress on decoding.
