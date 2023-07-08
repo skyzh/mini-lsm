@@ -11,6 +11,13 @@ pub use iterator::BlockIterator;
 
 /// A block is the smallest unit of read and caching in LSM tree.
 /// It is a collection of sorted key-value pairs.
+/// The `actual` storage format is as below (After `Block::encode`):
+///
+/// ----------------------------------------------------------------------------------------------------
+/// |             Data Section             |              Offset Section             |      Extra      |
+/// ----------------------------------------------------------------------------------------------------
+/// | Entry #1 | Entry #2 | ... | Entry #N | Offset #1 | Offset #2 | ... | Offset #N | num_of_elements |
+/// ----------------------------------------------------------------------------------------------------
 pub struct Block {
     data: Vec<u8>,
     offsets: Vec<u16>,
