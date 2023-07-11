@@ -48,10 +48,10 @@ The recommend sequence to finish **Task 1** is as below:
 
 - Implement `SsTableBuilder` in `src/table/builder.rs`
   - Before implementing `SsTableBuilder`, you may want to take a look in `src/table.rs`, for `FileObject` & `BlockMeta`.
-  - For `FileObject`, you should at least implement `read`, `size` and `create`(No need for Disk I/O) before day 4.
+  - For `FileObject`, you should at least implement `read`, `size` and `create` (No need for Disk I/O) before day 4.
   - For `BlockMeta`, you may want to add some extra fields when encoding / decoding the `BlockMeta` to / from a buffer.
 - Implement `SsTable` in `src/table.rs`
-  - Same as above, you don't need to worry about `BlockCache` until day 4.
+  - Same as above, you do not need to worry about `BlockCache` until day 4.
 
 After finishing **Task 1**, you should be able to pass all the current tests except two iterator tests.
 
