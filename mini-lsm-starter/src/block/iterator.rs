@@ -7,9 +7,13 @@ use super::Block;
 
 /// Iterates on a block.
 pub struct BlockIterator {
+    /// The internal `Block`, wrapped by an `Arc`
     block: Arc<Block>,
+    /// The current key, empty represents the iterator is invalid
     key: Vec<u8>,
+    /// The corresponding value, can be empty
     value: Vec<u8>,
+    /// Current index of the key-value pair, should be in range of [0, num_of_elements)
     idx: usize,
 }
 
@@ -44,6 +48,7 @@ impl BlockIterator {
     }
 
     /// Returns true if the iterator is valid.
+    /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
         unimplemented!()
     }
@@ -59,6 +64,7 @@ impl BlockIterator {
     }
 
     /// Seek to the first key that >= `key`.
+    /// Note: You should assume the key-value pairs in the block are sorted when being added by callers.
     pub fn seek_to_key(&mut self, key: &[u8]) {
         unimplemented!()
     }
