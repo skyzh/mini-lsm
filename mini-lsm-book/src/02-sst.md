@@ -24,12 +24,17 @@ The SST builder is similar to block builder -- users will call `add` on the buil
 inside SST builder and split block when necessary. Also, you will need to maintain block metadata `BlockMeta`, which
 includes the first key in each block and the offset of each block. The `build` function will encode the SST, write
 everything to disk using `FileObject::create`, and return an `SsTable` object. Note that in part 2, you don't need to
-actually write the data to the disk. Just store everything in memory as a vector until we implement a block cache.
+actually write the data to the disk.
+Just store everything in memory as a vector until we implement a block cache (Day 4, Task 5).
 
 The encoding of SST is like:
 
 ```
-| data block | data block | data block | data block | meta block | meta block offset (u32) |
+-------------------------------------------------------------------------------------------
+|         Block Section         |          Meta Section         |          Extra          |
+-------------------------------------------------------------------------------------------
+| data block | ... | data block | meta block | ... | meta block | meta block offset (u32) |
+-------------------------------------------------------------------------------------------
 ```
 
 You also need to implement `estimated_size` function of `SsTableBuilder`, so that the caller can know when can it start
@@ -38,6 +43,17 @@ more data than meta block, we can simply return the size of data blocks for `est
 
 You can also align blocks to 4KB boundary so as to make it possible to do direct I/O in the future. This is an optional
 optimization.
+
+The recommend sequence to finish **Task 1** is as below:
+
+- Implement `SsTableBuilder` in `src/table/builder.rs`
+  - Before implementing `SsTableBuilder`, you may want to take a look in `src/table.rs`, for `FileObject` & `BlockMeta`.
+  - For `FileObject`, you should at least implement `read`, `size` and `create` (No need for Disk I/O) before day 4.
+  - For `BlockMeta`, you may want to add some extra fields when encoding / decoding the `BlockMeta` to / from a buffer.
+- Implement `SsTable` in `src/table.rs`
+  - Same as above, you do not need to worry about `BlockCache` until day 4.
+
+After finishing **Task 1**, you should be able to pass all the current tests except two iterator tests.
 
 ## Task 2 - SST Iterator
 
@@ -53,15 +69,18 @@ which block might possibly contain the key. It is possible that the key doesn't 
 block iterator will be invalid immediately after a seek. For example,
 
 ```
-| block 1 | block 2 | block meta |  
+----------------------------------
+| block 1 | block 2 | block meta |
+----------------------------------
 | a, b, c | e, f, g | 1: a, 2: e |
+----------------------------------
 ```
 
 If we do `seek(b)` in this SST, it is quite simple -- using binary search, we can know block 1 contains keys `a <= keys
 < e`. Therefore, we load block 1 and seek the block iterator to the corresponding position.
 
 But if we do `seek(d)`, we will position to block 1, but seeking `d` in block 1 will reach the end of the block.
-Therefore, we should check if the iterator is invalid after seek, and switch to the next block if necessary.
+Therefore, we should check if the iterator is invalid after the seek, and switch to the next block if necessary.
 
 ## Extra Tasks
 
