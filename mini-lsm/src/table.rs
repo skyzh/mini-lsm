@@ -26,10 +26,14 @@ impl BlockMeta {
     pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
         let mut estimated_size = 0;
         for meta in block_meta {
+            // The size of offset
             estimated_size += std::mem::size_of::<u32>();
+            // The size of key length
             estimated_size += std::mem::size_of::<u16>();
+            // The size of actual key
             estimated_size += meta.first_key.len();
         }
+        // Reserve the space to improve performance, especially when the size of incoming data is large
         buf.reserve(estimated_size);
         let original_len = buf.len();
         for meta in block_meta {

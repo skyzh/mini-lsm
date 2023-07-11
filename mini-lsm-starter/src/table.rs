@@ -19,12 +19,14 @@ use crate::lsm_storage::BlockCache;
 pub struct BlockMeta {
     /// Offset of this data block.
     pub offset: usize,
-    /// The first key of the data block.
+    /// The first key of the data block, mainly used for index purpose.
     pub first_key: Bytes,
 }
 
 impl BlockMeta {
     /// Encode block meta to a buffer.
+    /// You may add extra fields to the buffer,
+    /// in order to help keep track of `first_key` when decoding from the same buffer in the future.
     pub fn encode_block_meta(
         block_meta: &[BlockMeta],
         #[allow(clippy::ptr_arg)] // remove this allow after you finish
@@ -61,9 +63,17 @@ impl FileObject {
     }
 }
 
+/// -------------------------------------------------------------------------------------------------------
+/// |              Data Block             |             Meta Block              |          Extra          |
+/// -------------------------------------------------------------------------------------------------------
+/// | Data Block #1 | ... | Data Block #N | Meta Block #1 | ... | Meta Block #N | Meta Block Offset (u32) |
+/// -------------------------------------------------------------------------------------------------------
 pub struct SsTable {
+    /// The actual storage unit of SsTable, the format is as above.
     file: FileObject,
+    /// The meta blocks that hold info for data blocks.
     block_metas: Vec<BlockMeta>,
+    /// The offset that indicates the start point of meta blocks in `file`.
     block_meta_offset: usize,
 }
 
@@ -89,6 +99,8 @@ impl SsTable {
     }
 
     /// Find the block that may contain `key`.
+    /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
+    /// You may also assume the key-value pairs stored in each consecutive block are sorted.
     pub fn find_block_idx(&self, key: &[u8]) -> usize {
         unimplemented!()
     }

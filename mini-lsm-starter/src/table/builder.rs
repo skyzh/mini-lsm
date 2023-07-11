@@ -21,12 +21,14 @@ impl SsTableBuilder {
         unimplemented!()
     }
 
-    /// Adds a key-value pair to SSTable
+    /// Adds a key-value pair to SSTable.
+    /// Note: You should split a new block when the current block is full.(`std::mem::replace` may be of help here)
     pub fn add(&mut self, key: &[u8], value: &[u8]) {
         unimplemented!()
     }
 
     /// Get the estimated size of the SSTable.
+    /// Since the data blocks contain much more data than meta blocks, just return the size of data blocks here.
     pub fn estimated_size(&self) -> usize {
         unimplemented!()
     }
