@@ -4,12 +4,13 @@
 mod builder;
 mod iterator;
 
+use std::f32::consts::E;
 use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
 pub use builder::SsTableBuilder;
-use bytes::{Buf, Bytes};
+use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -29,15 +30,41 @@ impl BlockMeta {
     /// in order to help keep track of `first_key` when decoding from the same buffer in the future.
     pub fn encode_block_meta(
         block_meta: &[BlockMeta],
-        #[allow(clippy::ptr_arg)] // remove this allow after you finish
         buf: &mut Vec<u8>,
     ) {
-        unimplemented!()
+        let mut  estimated_size = 0 ;
+        for block_m in  block_meta {
+            // the length of  size
+            estimated_size += std::mem::size_of::<u32>();
+            // the length of the key lenght
+            estimated_size += std::mem::size_of::<u16>();
+            // the size of the acutal key 
+            estimated_size += block_m.first_key.len();
+
+        }
+         // Reserve the space to improve performance, especially when the size of incoming data is large
+        buf.reserve(estimated_size);
+
+        for meta in block_meta{
+            buf.put_u32(meta.offset as u32);
+            buf.put_u16(meta.first_key.len() as u16);
+            //每次key都是和lenth 绑定在一起的
+            buf.put_slice(&meta.first_key);
+
+        }
+       
     }
 
     /// Decode block meta from a buffer.
-    pub fn decode_block_meta(buf: impl Buf) -> Vec<BlockMeta> {
-        unimplemented!()
+    pub fn decode_block_meta(mut buf: impl Buf) -> Vec<BlockMeta> {
+        let mut block_meta = Vec::new();
+        while buf.has_remaining() {
+            let offset = buf.get_u32() as usize;
+            let first_key_len = buf.get_u16() as usize;
+            let first_key = buf.copy_to_bytes(first_key_len);
+            block_meta.push(BlockMeta { offset, first_key });
+        }
+        block_meta
     }
 }
 
@@ -55,7 +82,7 @@ impl FileObject {
 
     /// Create a new file object (day 2) and write the file to the disk (day 4).
     pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
-        unimplemented!()
+        Ok(FileObject(data.into()))
     }
 
     pub fn open(path: &Path) -> Result<Self> {

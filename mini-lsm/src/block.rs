@@ -16,7 +16,7 @@ pub struct Block {
 
 impl Block {
     pub fn encode(&self) -> Bytes {
-        let mut buf = self.data.clone();
+        let mut buf: Vec<u8> = self.data.clone();
         let offsets_len = self.offsets.len();
         for offset in &self.offsets {
             buf.put_u16(*offset);
