@@ -39,7 +39,7 @@ impl SsTableBuilder {
             return;
         }
         // create a new block builder and append block data
-        self.finish_block();
+        self.create_block();
 
         // add the key-value pair to the next block
         assert!(self.builder.add(key, value));
@@ -51,7 +51,7 @@ impl SsTableBuilder {
         self.data.len()
     }
 
-    fn finish_block(&mut self) {
+    fn create_block(&mut self) {
         let builder = std::mem::replace(&mut self.builder, BlockBuilder::new(self.block_size));
         let encoded_block = builder.build().encode();
         self.meta.push(BlockMeta {
@@ -69,7 +69,7 @@ impl SsTableBuilder {
         block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
-        self.finish_block();
+        self.create_block();
         let mut buf = self.data;
         let meta_offset = buf.len();
         BlockMeta::encode_block_meta(&self.meta, &mut buf);
