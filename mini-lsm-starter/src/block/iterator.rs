@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::sync::Arc;
 
 use super::Block;
@@ -29,43 +26,93 @@ impl BlockIterator {
 
     /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
-        unimplemented!()
+        let mut block_iterator = BlockIterator::new(block);
+        block_iterator.seek_to_first();
+        block_iterator
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
     pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
-        unimplemented!()
+        let mut block_iterator = BlockIterator::new(block);
+        block_iterator.seek_to_key(key);
+        block_iterator
     }
 
     /// Returns the key of the current entry.
     pub fn key(&self) -> &[u8] {
-        unimplemented!()
+        assert!(self.is_valid());
+        &self.key
     }
 
     /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
-        unimplemented!()
+        assert!(self.is_valid());
+        &self.value
     }
 
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.key.is_empty()
     }
 
     /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
-        unimplemented!()
+        self.seek_to(0);
     }
 
     /// Move to the next key in the block.
     pub fn next(&mut self) {
-        unimplemented!()
+        self.seek_to(self.idx + 1);
     }
 
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by callers.
     pub fn seek_to_key(&mut self, key: &[u8]) {
-        unimplemented!()
+        // Binary Search
+        let mut low = 0;
+        let mut high = self.block.offsets.len();
+        while low < high {
+            let mid = low + (high - low) / 2;
+            self.seek_to(mid);
+            assert!(self.is_valid());
+            match self.key().cmp(key) {
+                std::cmp::Ordering::Less => low = mid + 1,
+                std::cmp::Ordering::Greater => high = mid,
+                std::cmp::Ordering::Equal => high = mid,
+            }
+        }
+        self.seek_to(low);
+    }
+
+    fn seek_to(&mut self, index: usize) {
+        self.idx = index;
+        self.key.clear();
+        self.value.clear();
+
+        if index >= self.block.offsets.len() {
+            return;
+        }
+
+        // get offset
+        let offset = self.block.offsets[index] as usize;
+
+        // first 2 bytes key len
+        let key_len =
+            (self.block.data[offset] as usize) << 8 | self.block.data[offset + 1] as usize;
+
+        // next key_len bytes is key
+        for i in (offset + 2)..(key_len + offset + 2) {
+            self.key.push(self.block.data[i]);
+        }
+
+        // next 2 bytes value len
+        let value_len = (self.block.data[key_len + offset + 2] as usize) << 8
+            | self.block.data[key_len + offset + 3] as usize;
+
+        // next value_len bytes is value
+        for i in (key_len + offset + 4)..(key_len + offset + 4 + value_len) {
+            self.value.push(self.block.data[i]);
+        }
     }
 }
