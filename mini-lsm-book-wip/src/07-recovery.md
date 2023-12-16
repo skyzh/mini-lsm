@@ -1,0 +1,1 @@
+# Write-Ahead Log (WAL)
