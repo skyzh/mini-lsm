@@ -26,7 +26,7 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 
 * Week 1: Storage Format + Engine Skeleton
 * Week 2: Compaction and Persistence
-* Week 3: Week 3 -- Multi-Version Concurrency Control
+* Week 3: Multi-Version Concurrency Control
 
 | Week + Chapter  | Topic              | Solution         | Starter Code      | Writeup   |
 | ----            | ------------------ | ---------------  | ----------------- | --------- |
