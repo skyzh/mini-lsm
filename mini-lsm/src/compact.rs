@@ -15,6 +15,7 @@ struct CompactOptions {
 }
 
 impl LsmStorage {
+    #[allow(dead_code)]
     fn compact(
         &self,
         tables: Vec<Arc<SsTable>>,
