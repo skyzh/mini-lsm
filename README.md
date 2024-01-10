@@ -22,16 +22,29 @@ To do this, use `cargo x sync`.
 
 ## Progress
 
-The tutorial has 8 parts (which can be finished in 7 days):
+We are working on a new version of the mini-lsm tutorial that is split into 3 weeks.
 
-* Day 1: Block encoding. SSTs are composed of multiple data blocks. We will implement the block encoding.
-* Day 2: SST encoding.
-* Day 3: MemTable and Merge Iterators.
-* Day 4: Block cache and Engine. To reduce disk I/O and maximize performance, we will use moka-rs to build a block cache
-  for the LSM tree. In this day we will get a functional (but not persistent) key-value engine with `get`, `put`, `scan`,
-  `delete` API.
-* Day 5: Compaction. Now it's time to maintain a leveled structure for SSTs.
-* Day 6: Recovery. We will implement WAL and manifest so that the engine can recover after restart.
-* Day 7: Bloom filter and key compression. They are widely-used optimizations in LSM tree structures.
+* Week 1: Storage Format + Engine Skeleton
+* Week 2: Compaction and Persistence
+* Week 3: Week 3 -- Multi-Version Concurrency Control
 
-We have reference solution up to day 4 and tutorial up to day 4 for now.
+| Week + Chapter  | Topic              | Solution         | Starter Code      | Writeup   |
+| ----            | ------------------ | ---------------  | ----------------- | --------- |
+| 1.1 | Block Format       | ✅ | ✅ | ✅ |
+| 1.2 | Table Format       | ✅ | ✅ | ✅ |  |
+| 1.3 | Memtables          | ✅ | ✅ | ✅ |  |
+| 1.4 | Merge Iterators    | ✅ | ✅ | ✅ |
+| 1.5 | Storage Engine - Read Path    | ✅ | ✅ | ✅ |
+| 1.6 | Storage Engine - Write Path   | ✅ | ✅ | ✅ |
+| 2.1 | Compaction Framework    | ✅ | 🚧 | 🚧 |
+| 2.2 | Compaction Strategy    | 🚧 |   |   |
+| 2.3 | Write-Ahead Log    |   |   |   |
+| 2.4 | Manifest    |   |   |   |
+| 2.5 | Bloom Filter    |   |   |   |
+| 2.6 | Key Compression    |   |   |   |
+| 3.1 | Timestamp Encoding    |   |   |   |
+| 3.2 | Prefix Bloom Filter    |   |   |   |
+| 3.3 | Snapshot Read    |   |   |   |
+| 3.4 | Watermark    |   |   |   |
+| 3.5 | Garbage Collection    |   |   |   |
+| 3.6 | Serializable Snapshot Isolation    |   |   |   |

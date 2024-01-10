@@ -1,5 +1,6 @@
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -27,8 +28,6 @@ pub struct LsmStorageInner {
     /// L1 - L6 SsTables, sorted by key range.
     #[allow(dead_code)]
     levels: Vec<Vec<Arc<SsTable>>>,
-    /// The next SSTable ID.
-    next_sst_id: usize,
 }
 
 impl LsmStorageInner {
@@ -38,26 +37,32 @@ impl LsmStorageInner {
             imm_memtables: vec![],
             l0_sstables: vec![],
             levels: vec![],
-            next_sst_id: 1,
         }
     }
 }
 
 /// The storage interface of the LSM tree.
 pub struct LsmStorage {
-    inner: Arc<RwLock<Arc<LsmStorageInner>>>,
+    pub(crate) inner: Arc<RwLock<Arc<LsmStorageInner>>>,
     flush_lock: Mutex<()>,
     path: PathBuf,
-    block_cache: Arc<BlockCache>,
+    pub(crate) block_cache: Arc<BlockCache>,
+    next_sst_id: AtomicUsize,
 }
 
 impl LsmStorage {
+    pub(crate) fn next_sst_id(&self) -> usize {
+        self.next_sst_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
+
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
             inner: Arc::new(RwLock::new(Arc::new(LsmStorageInner::create()))),
             flush_lock: Mutex::new(()),
             path: path.as_ref().to_path_buf(),
-            block_cache: Arc::new(BlockCache::new(1 << 20)), // 4GB block cache
+            block_cache: Arc::new(BlockCache::new(1 << 20)), // 4GB block cache,
+            next_sst_id: AtomicUsize::new(1),
         })
     }
 
@@ -121,7 +126,7 @@ impl LsmStorage {
         Ok(())
     }
 
-    fn path_of_sst(&self, id: usize) -> PathBuf {
+    pub(crate) fn path_of_sst(&self, id: usize) -> PathBuf {
         self.path.join(format!("{:05}.sst", id))
     }
 
@@ -142,7 +147,7 @@ impl LsmStorage {
             let mut snapshot = guard.as_ref().clone();
             let memtable = std::mem::replace(&mut snapshot.memtable, Arc::new(MemTable::create()));
             flush_memtable = memtable.clone();
-            sst_id = snapshot.next_sst_id;
+            sst_id = self.next_sst_id();
             // Add the memtable to the immutable memtables.
             snapshot.imm_memtables.push(memtable);
             // Update the snapshot.
@@ -169,8 +174,6 @@ impl LsmStorage {
             snapshot.imm_memtables.pop();
             // Add L0 table
             snapshot.l0_sstables.push(sst);
-            // Update SST ID
-            snapshot.next_sst_id += 1;
             // Update the snapshot.
             *guard = Arc::new(snapshot);
         }
