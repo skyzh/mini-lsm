@@ -86,8 +86,7 @@ impl LsmStorage {
                 return Ok(Some(value));
             }
         }
-        let mut iters = Vec::new();
-        iters.reserve(snapshot.l0_sstables.len());
+        let mut iters = Vec::with_capacity(snapshot.l0_sstables.len());
         for table in snapshot.l0_sstables.iter().rev() {
             iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
                 table.clone(),
@@ -190,16 +189,14 @@ impl LsmStorage {
             Arc::clone(&guard)
         }; // drop global lock here
 
-        let mut memtable_iters = Vec::new();
-        memtable_iters.reserve(snapshot.imm_memtables.len() + 1);
+        let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
         memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)));
         for memtable in snapshot.imm_memtables.iter().rev() {
             memtable_iters.push(Box::new(memtable.scan(lower, upper)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
 
-        let mut table_iters = Vec::new();
-        table_iters.reserve(snapshot.l0_sstables.len());
+        let mut table_iters = Vec::with_capacity(snapshot.l0_sstables.len());
         for table in snapshot.l0_sstables.iter().rev() {
             let iter = match lower {
                 Bound::Included(key) => {

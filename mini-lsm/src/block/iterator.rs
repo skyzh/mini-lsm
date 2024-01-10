@@ -6,9 +6,13 @@ use super::Block;
 
 /// Iterates on a block.
 pub struct BlockIterator {
+    /// reference to the block
     block: Arc<Block>,
+    /// the current key at the iterator position
     key: Vec<u8>,
+    /// the current value at the iterator position
     value: Vec<u8>,
+    /// the current index at the iterator position
     idx: usize,
 }
 
