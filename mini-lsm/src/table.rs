@@ -33,7 +33,8 @@ impl BlockMeta {
             // The size of actual key
             estimated_size += meta.first_key.len();
         }
-        // Reserve the space to improve performance, especially when the size of incoming data is large
+        // Reserve the space to improve performance, especially when the size of incoming data is
+        // large
         buf.reserve(estimated_size);
         let original_len = buf.len();
         for meta in block_meta {

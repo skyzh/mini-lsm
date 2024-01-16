@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
@@ -20,14 +21,17 @@ pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 #[derive(Clone)]
 pub struct LsmStorageInner {
     /// The current memtable.
-    memtable: Arc<MemTable>,
+    pub memtable: Arc<MemTable>,
     /// Immutable memTables, from earliest to latest.
-    imm_memtables: Vec<Arc<MemTable>>,
+    pub imm_memtables: Vec<Arc<MemTable>>,
     /// L0 SsTables, from earliest to latest.
-    l0_sstables: Vec<Arc<SsTable>>,
-    /// L1 - L6 SsTables, sorted by key range.
+    pub l0_sstables: Vec<usize>,
+    /// SsTables sorted by key range; L1 - L6 for leveled compaction, or tiers for tiered
+    /// compaction.
     #[allow(dead_code)]
-    levels: Vec<Vec<Arc<SsTable>>>,
+    pub levels: Vec<(usize, Vec<usize>)>,
+    /// SsTable objects.
+    pub sstables: HashMap<usize, Arc<SsTable>>,
 }
 
 impl LsmStorageInner {
@@ -37,6 +41,7 @@ impl LsmStorageInner {
             imm_memtables: vec![],
             l0_sstables: vec![],
             levels: vec![],
+            sstables: Default::default(),
         }
     }
 }
@@ -94,7 +99,7 @@ impl LsmStorage {
         let mut iters = Vec::with_capacity(snapshot.l0_sstables.len());
         for table in snapshot.l0_sstables.iter().rev() {
             iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
-                table.clone(),
+                snapshot.sstables[table].clone(),
                 key,
             )?));
         }
@@ -173,7 +178,8 @@ impl LsmStorage {
             // Remove the memtable from the immutable memtables.
             snapshot.imm_memtables.pop();
             // Add L0 table
-            snapshot.l0_sstables.push(sst);
+            snapshot.l0_sstables.push(sst_id);
+            snapshot.sstables.insert(sst_id, sst);
             // Update the snapshot.
             *guard = Arc::new(snapshot);
         }
@@ -200,19 +206,18 @@ impl LsmStorage {
         let memtable_iter = MergeIterator::create(memtable_iters);
 
         let mut table_iters = Vec::with_capacity(snapshot.l0_sstables.len());
-        for table in snapshot.l0_sstables.iter().rev() {
+        for table_id in snapshot.l0_sstables.iter().rev() {
+            let table = snapshot.sstables[table_id].clone();
             let iter = match lower {
-                Bound::Included(key) => {
-                    SsTableIterator::create_and_seek_to_key(table.clone(), key)?
-                }
+                Bound::Included(key) => SsTableIterator::create_and_seek_to_key(table, key)?,
                 Bound::Excluded(key) => {
-                    let mut iter = SsTableIterator::create_and_seek_to_key(table.clone(), key)?;
+                    let mut iter = SsTableIterator::create_and_seek_to_key(table, key)?;
                     if iter.is_valid() && iter.key() == key {
                         iter.next()?;
                     }
                     iter
                 }
-                Bound::Unbounded => SsTableIterator::create_and_seek_to_first(table.clone())?,
+                Bound::Unbounded => SsTableIterator::create_and_seek_to_first(table)?,
             };
 
             table_iters.push(Box::new(iter));

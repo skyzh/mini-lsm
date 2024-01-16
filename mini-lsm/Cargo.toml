@@ -17,6 +17,7 @@ crossbeam-skiplist = "0.1"
 parking_lot = "0.12"
 ouroboros = "0.15"
 moka = "0.9"
+clap = { version = "4.4.17", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3"

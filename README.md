@@ -38,10 +38,11 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 1.5            | Storage Engine - Read Path                      | ✅        | ✅            | ✅       |
 | 1.6            | Storage Engine - Write Path                     | ✅        | ✅            | ✅       |
 | 2.1            | Compaction Framework                            | ✅        | 🚧            | 🚧       |
-| 2.2            | Compaction Strategy                             | 🚧        |              |         |
-| 2.3            | Manifest                                        |          |              |         |
-| 2.4            | Write-Ahead Log                                 |          |              |         |
-| 2.5            | Bloom Filter and Key Compression                |          |              |         |
+| 2.2            | Compaction Strategy - Tiered                    | 🚧        |              |         |
+| 2.3            | Compaction Strategy - Leveled                   | 🚧        |              |         |
+| 2.4            | Manifest                                        |          |              |         |
+| 2.5            | Write-Ahead Log                                 |          |              |         |
+| 2.6            | Bloom Filter and Key Compression                |          |              |         |
 | 3.1            | Timestamp Encoding + Prefix Bloom Filter        |          |              |         |
 | 3.2            | Snapshot Read                                   |          |              |         |
 | 3.3            | Watermark and Garbage Collection                |          |              |         |

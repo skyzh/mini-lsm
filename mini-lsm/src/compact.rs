@@ -1,12 +1,21 @@
+mod leveled;
+mod tiered;
+
 use std::sync::Arc;
 
 use anyhow::Result;
+pub use leveled::{LeveledCompactionController, LeveledCompactionTask};
+pub use tiered::{TieredCompactionController, TieredCompactionTask};
 
-use crate::{
-    iterators::{merge_iterator::MergeIterator, StorageIterator},
-    lsm_storage::LsmStorage,
-    table::{SsTable, SsTableBuilder, SsTableIterator},
-};
+use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::StorageIterator;
+use crate::lsm_storage::LsmStorage;
+use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
+
+pub enum CompactionTask {
+    Leveled(LeveledCompactionTask),
+    Tiered(TieredCompactionTask),
+}
 
 struct CompactOptions {
     block_size: usize,

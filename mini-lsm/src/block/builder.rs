@@ -24,7 +24,7 @@ impl BlockBuilder {
 
     fn estimated_size(&self) -> usize {
         SIZEOF_U16 /* number of key-value pairs in the block */ +  self.offsets.len() * SIZEOF_U16 /* offsets */ + self.data.len()
-        /* key-value pairs */
+        // key-value pairs
     }
 
     /// Adds a key-value pair to the block. Returns false when the block is full.
