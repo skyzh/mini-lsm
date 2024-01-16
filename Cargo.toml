@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "mini-lsm",
+  "mini-lsm-week-1",
   "xtask",
   "mini-lsm-starter",
 ]

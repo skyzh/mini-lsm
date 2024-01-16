@@ -421,6 +421,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "mini-lsm-week-1"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bytes",
+ "crossbeam-epoch",
+ "crossbeam-skiplist",
+ "moka",
+ "ouroboros",
+ "parking_lot",
+ "tempfile",
+]
+
+[[package]]
 name = "mini-lsm-xtask"
 version = "0.1.0"
 dependencies = [
