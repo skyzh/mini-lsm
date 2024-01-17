@@ -1,7 +1,8 @@
 use crate::lsm_storage::LsmStorageInner;
 
 pub struct LeveledCompactionTask {
-    upper_level: usize,
+    // if upper_level is `None`, then it is L0 compaction
+    upper_level: Option<usize>,
     upper_level_sst_ids: Vec<usize>,
     lower_level: usize,
     lower_level_sst_ids: Vec<usize>,

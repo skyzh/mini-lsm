@@ -37,7 +37,7 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 1.4            | Merge Iterators                                 | ✅        | ✅            | ✅       |
 | 1.5            | Storage Engine - Read Path                      | ✅        | ✅            | ✅       |
 | 1.6            | Storage Engine - Write Path                     | ✅        | ✅            | ✅       |
-| 2.1            | Compaction Framework                            | ✅        | 🚧            | 🚧       |
+| 2.1            | Simple Compaction Strategy                      | ✅        | 🚧            | 🚧       |
 | 2.2            | Compaction Strategy - Tiered                    | ✅        |              |         |
 | 2.3            | Compaction Strategy - Leveled                   | 🚧        |              |         |
 | 2.4            | Manifest                                        |          |              |         |
