@@ -1,1 +1,0 @@
-# Compaction Strategy

@@ -1,1 +1,0 @@
-# Serializable Snapshot Isolation

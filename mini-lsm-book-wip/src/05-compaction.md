@@ -1,1 +1,3 @@
-# Compaction Task
+# Let's do something in the background
+
+<!--hidden-->

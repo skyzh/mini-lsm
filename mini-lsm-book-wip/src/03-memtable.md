@@ -1,1 +1,3 @@
-# Merge Iterators
+# Now it's time to merge everything
+
+<!--hidden-->

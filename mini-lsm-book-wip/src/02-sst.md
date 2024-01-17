@@ -1,1 +1,3 @@
-# Sorted String Table (SST)
+# And make them into an SST
+
+<!--hidden-->
