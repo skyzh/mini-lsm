@@ -119,6 +119,9 @@ impl TieredCompactionController {
                 levels.push((output[0], output.to_vec()));
             }
         }
+        if !tier_to_remove.is_empty() {
+            unreachable!("some tiers not found??");
+        }
         snapshot.levels = levels;
         (snapshot, files_to_remove)
     }

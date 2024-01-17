@@ -26,7 +26,7 @@ impl SimpleLeveledCompactionController {
     }
 
     pub fn generate_compaction_task(
-        &mut self,
+        &self,
         snapshot: &LsmStorageInner,
     ) -> Option<SimpleLeveledCompactionTask> {
         let mut level_sizes = Vec::new();

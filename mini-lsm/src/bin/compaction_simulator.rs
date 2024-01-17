@@ -138,7 +138,7 @@ fn main() {
             level0_file_num_compaction_trigger,
             max_levels,
         } => {
-            let mut controller =
+            let controller =
                 SimpleLeveledCompactionController::new(SimpleLeveledCompactionOptions {
                     size_ratio_percent,
                     level0_file_num_compaction_trigger,
@@ -293,6 +293,16 @@ fn main() {
                     max_space,
                     storage.total_flushes,
                     max_space as f64 / storage.total_flushes as f64
+                );
+                println!(
+                    "Read Amplification: {}x",
+                    storage.snapshot.l0_sstables.len()
+                        + storage
+                            .snapshot
+                            .levels
+                            .iter()
+                            .filter(|(_, f)| !f.is_empty())
+                            .count()
                 );
                 println!();
             }
