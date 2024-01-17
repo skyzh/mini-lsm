@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use leveled::{LeveledCompactionController, LeveledCompactionTask};
-pub use tiered::{TieredCompactionController, TieredCompactionTask};
+pub use tiered::{TieredCompactionController, TieredCompactionOptions, TieredCompactionTask};
 
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::StorageIterator;
