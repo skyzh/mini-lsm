@@ -64,7 +64,8 @@ impl BlockIterator {
     }
 
     /// Seek to the first key that >= `key`.
-    /// Note: You should assume the key-value pairs in the block are sorted when being added by callers.
+    /// Note: You should assume the key-value pairs in the block are sorted when being added by
+    /// callers.
     pub fn seek_to_key(&mut self, key: &[u8]) {
         unimplemented!()
     }

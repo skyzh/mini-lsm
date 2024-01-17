@@ -28,7 +28,8 @@ impl SsTableIterator {
     }
 
     /// Seek to the first key-value pair which >= `key`.
-    /// Note: You probably want to review the handout for detailed explanation when implementing this function.
+    /// Note: You probably want to review the handout for detailed explanation when implementing
+    /// this function.
     pub fn seek_to_key(&mut self, key: &[u8]) -> Result<()> {
         unimplemented!()
     }

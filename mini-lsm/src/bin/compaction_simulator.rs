@@ -160,7 +160,6 @@ fn main() {
                 }
                 let mut num_compactions = 0;
                 while let Some(task) = controller.generate_compaction_task(&storage.snapshot) {
-                    num_compactions += 1;
                     println!("--- Compaction Task ---");
                     let mut sst_ids = Vec::new();
                     for file in task
@@ -193,6 +192,10 @@ fn main() {
                         storage.dump_real_id(true);
                     } else {
                         storage.dump_original_id(true);
+                    }
+                    num_compactions += 1;
+                    if num_compactions >= max_levels * 2 {
+                        panic!("compaction does not converge?");
                     }
                 }
                 if num_compactions == 0 {
