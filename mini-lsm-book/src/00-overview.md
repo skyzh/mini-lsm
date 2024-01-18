@@ -112,6 +112,12 @@ simple. We recommend you to think carefully about your implementation and write 
 * You can use `cargo x scheck` to run all test cases and do style check in your codebase.
 * You can use `cargo x copy-test dayX` to copy test cases to the starter code.
 
+## Community
+
+You may join skyzh's Discord server and study with the mini-lsm community.
+
+[![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
+
 ## About the Author
 
 As of writing (at the end of 2022), Chi is a first-year master's student in Carnegie Mellon University. He has 5 years'

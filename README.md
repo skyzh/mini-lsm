@@ -9,6 +9,8 @@ Build a simple key-value storage engine in a week!
 The tutorial is available at [https://skyzh.github.io/mini-lsm](https://skyzh.github.io/mini-lsm). You can use the provided starter
 code to kick off your project, and follow the tutorial to implement the LSM tree.
 
+Join the mini-lsm community: [![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
+
 ## Development
 
 ```
