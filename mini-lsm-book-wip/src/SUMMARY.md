@@ -5,23 +5,25 @@
 
 # Week 1: Mini-LSM
 
-- [Overview](./week1-overview.md)
-  - [Blocks](./week1-01-block.md)
-  - [Sorted String Table (SST)](./week1-02-sst.md)
-  - [Memtables](./week1-03-memtable.md)
+- [Week 1 Overview](./week1-overview.md)
+  - [Memtables](./week1-01-memtable.md)
+  - [Blocks](./week1-02-block.md)
+  - [Sorted String Table (SST)](./week1-03-sst.md)
   - [Merge Iterators](./week1-04-merge-iterator.md)
   - [Read Path](./week1-05-read-path.md)
   - [Write Path](./week1-06-write-path.md)
+  - [Snack Time: SST Optimizations](./week1-07-sst-optimizations.md)
 
 # Week 2: Compaction and Persistence
 
-- [Overview](./week2-overview.md)
-  - [Simple Compaction](./week2-01-compaction.md)
-  - [Tiered Compaction](./week2-02-tiered.md)
-  - [Leveled Compaction](./week2-03-leveled.md)
-  - [Manifest](./week2-04-manifest.md)
-  - [Write-Ahead Log (WAL)](./week2-05-wal.md)
-  - [SST Optimizations](./week2-06-sst-optimizations.md)
+- [Week 2 Overview](./week2-overview.md)
+  - [Compaction Implementation](./week2-01-compaction.md)
+  - [Simple Compaction Strategy](./week2-02-simple.md)
+  - [Tiered Compaction Strategy](./week2-03-tiered.md)
+  - [Leveled Compaction Strategy](./week2-04-leveled.md)
+  - [Manifest](./week2-05-manifest.md)
+  - [Write-Ahead Log (WAL)](./week2-06-wal.md)
+  - [Snack Time: Batch Write](./week2-07-batch-write.md)
 
 # Week 3: MVCC
 
