@@ -323,7 +323,7 @@ fn main() {
             iterations,
         } => {
             let controller = TieredCompactionController::new(TieredCompactionOptions {
-                level0_file_num_compaction_trigger,
+                num_tiers: level0_file_num_compaction_trigger,
                 max_size_amplification_percent,
                 size_ratio,
                 min_merge_width,

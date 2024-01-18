@@ -64,9 +64,9 @@ impl LsmStorageState {
 }
 
 pub struct LsmStorageOptions {
-    block_size: usize,
-    target_sst_size: usize,
-    compaction_options: CompactionOptions,
+    pub block_size: usize,
+    pub target_sst_size: usize,
+    pub compaction_options: CompactionOptions,
 }
 
 impl LsmStorageOptions {
@@ -82,17 +82,17 @@ impl LsmStorageOptions {
 /// The storage interface of the LSM tree.
 pub(crate) struct LsmStorageInner {
     pub(crate) state: Arc<RwLock<Arc<LsmStorageState>>>,
-    state_lock: Mutex<()>,
+    pub(crate) state_lock: Mutex<()>,
     path: PathBuf,
     pub(crate) block_cache: Arc<BlockCache>,
     next_sst_id: AtomicUsize,
-    options: Arc<LsmStorageOptions>,
-    compaction_controller: CompactionController,
+    pub(crate) options: Arc<LsmStorageOptions>,
+    pub(crate) compaction_controller: CompactionController,
 }
 
 pub struct MiniLsm {
     inner: Arc<LsmStorageInner>,
-    compaction_notifier: std::sync::mpsc::Sender<()>,
+    compaction_notifier: crossbeam_channel::Sender<()>,
     compaction_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -116,7 +116,7 @@ impl MiniLsm {
 
     pub fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Arc<Self>> {
         let inner = Arc::new(LsmStorageInner::open(path, options)?);
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = crossbeam_channel::unbounded();
         let compaction_thread = inner.spawn_compaction_thread(rx)?;
         Ok(Arc::new(Self {
             inner,
@@ -144,6 +144,10 @@ impl MiniLsm {
     ) -> Result<FusedIterator<LsmIterator>> {
         self.inner.scan(lower, upper)
     }
+
+    pub fn force_flush_imm_memtables(&self) -> Result<()> {
+        self.inner.force_flush_imm_memtables()
+    }
 }
 
 impl LsmStorageInner {
@@ -153,10 +157,14 @@ impl LsmStorageInner {
     }
 
     pub(crate) fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Self> {
+        let path = path.as_ref();
+        if !path.exists() {
+            std::fs::create_dir_all(path)?;
+        }
         Ok(Self {
             state: Arc::new(RwLock::new(Arc::new(LsmStorageState::create(&options)))),
             state_lock: Mutex::new(()),
-            path: path.as_ref().to_path_buf(),
+            path: path.to_path_buf(),
             block_cache: Arc::new(BlockCache::new(1 << 20)), // 4GB block cache,
             next_sst_id: AtomicUsize::new(1),
             compaction_controller: match &options.compaction_options {
@@ -291,6 +299,7 @@ impl LsmStorageInner {
                 // In tiered compaction, create a new tier
                 snapshot.levels.insert(0, (sst_id, vec![sst_id]));
             }
+            println!("flushed {}.sst with size={}", sst_id, sst.table_size());
             snapshot.sstables.insert(sst_id, sst);
             // Update the snapshot.
             *guard = Arc::new(snapshot);

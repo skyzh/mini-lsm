@@ -37,7 +37,7 @@ impl BlockMeta {
             // The size of key length
             estimated_size += std::mem::size_of::<u16>();
             // The size of actual key
-            estimated_size += meta.first_key.len();
+            estimated_size += meta.last_key.len();
         }
         // Reserve the space to improve performance, especially when the size of incoming data is
         // large

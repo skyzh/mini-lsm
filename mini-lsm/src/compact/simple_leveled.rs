@@ -13,6 +13,7 @@ pub struct SimpleLeveledCompactionTask {
     pub upper_level_sst_ids: Vec<usize>,
     pub lower_level: usize,
     pub lower_level_sst_ids: Vec<usize>,
+    pub is_lower_level_bottom_level: bool,
 }
 
 pub struct SimpleLeveledCompactionController {
@@ -57,6 +58,7 @@ impl SimpleLeveledCompactionController {
                     },
                     lower_level,
                     lower_level_sst_ids: snapshot.levels[lower_level - 1].1.clone(),
+                    is_lower_level_bottom_level: lower_level == self.options.max_levels,
                 });
             }
         }

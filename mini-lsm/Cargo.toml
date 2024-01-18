@@ -19,6 +19,7 @@ ouroboros = "0.15"
 moka = "0.9"
 clap = { version = "4.4.17", features = ["derive"] }
 rand = "0.8.5"
+crossbeam-channel = "0.5.11"
 
 [dev-dependencies]
 tempfile = "3"

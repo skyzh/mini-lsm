@@ -4,11 +4,12 @@ use crate::lsm_storage::LsmStorageState;
 
 pub struct TieredCompactionTask {
     pub tiers: Vec<(usize, Vec<usize>)>,
+    pub bottom_tier_included: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct TieredCompactionOptions {
-    pub level0_file_num_compaction_trigger: usize,
+    pub num_tiers: usize,
     pub max_size_amplification_percent: usize,
     pub size_ratio: usize,
     pub min_merge_width: usize,
@@ -31,7 +32,7 @@ impl TieredCompactionController {
             snapshot.l0_sstables.is_empty(),
             "should not add l0 ssts in tiered compaction"
         );
-        if snapshot.levels.len() < self.options.level0_file_num_compaction_trigger {
+        if snapshot.levels.len() < self.options.num_tiers {
             return None;
         }
         // compaction triggered by space amplification ratio
@@ -48,6 +49,7 @@ impl TieredCompactionController {
             );
             return Some(TieredCompactionTask {
                 tiers: snapshot.levels.clone(),
+                bottom_tier_included: true,
             });
         }
         let size_ratio_trigger = (100.0 + self.options.size_ratio as f64) / 100.0;
@@ -69,12 +71,12 @@ impl TieredCompactionController {
                         .take(id + 2)
                         .cloned()
                         .collect::<Vec<_>>(),
+                    bottom_tier_included: id + 2 >= snapshot.levels.len(),
                 });
             }
         }
         // trying to reduce sorted runs without respecting size ratio
-        let num_tiers_to_take =
-            snapshot.levels.len() - self.options.level0_file_num_compaction_trigger + 2;
+        let num_tiers_to_take = snapshot.levels.len() - self.options.num_tiers + 2;
         println!("compaction triggered by reducing sorted runs");
         return Some(TieredCompactionTask {
             tiers: snapshot
@@ -83,6 +85,7 @@ impl TieredCompactionController {
                 .take(num_tiers_to_take)
                 .cloned()
                 .collect::<Vec<_>>(),
+            bottom_tier_included: snapshot.levels.len() >= num_tiers_to_take,
         });
     }
 

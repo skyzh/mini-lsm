@@ -8,6 +8,7 @@ pub struct LeveledCompactionTask {
     pub upper_level_sst_ids: Vec<usize>,
     pub lower_level: usize,
     pub lower_level_sst_ids: Vec<usize>,
+    pub is_lower_level_bottom_level: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +116,7 @@ impl LeveledCompactionController {
                     &snapshot.l0_sstables,
                     base_level,
                 ),
+                is_lower_level_bottom_level: base_level == self.options.max_levels,
             });
         }
 
@@ -143,6 +145,7 @@ impl LeveledCompactionController {
                     &[selected_sst],
                     level + 1,
                 ),
+                is_lower_level_bottom_level: level + 1 == self.options.max_levels,
             });
         }
         None
