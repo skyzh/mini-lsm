@@ -54,9 +54,13 @@ fn main() -> Result<()> {
             }
         } else if line == "flush" {
             lsm.force_flush_imm_memtables()?;
+        } else if line == "quit" {
+            lsm.close()?;
+            break;
         } else {
             println!("invalid command: {}", line);
         }
         epoch += 1;
     }
+    Ok(())
 }
