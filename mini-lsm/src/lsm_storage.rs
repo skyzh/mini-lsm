@@ -223,6 +223,9 @@ impl LsmStorage {
 
         let iter = TwoMergeIterator::create(memtable_iter, table_iter)?;
 
-        Ok(FusedIterator::new(LsmIterator::new(iter, map_bound(upper))?))
+        Ok(FusedIterator::new(LsmIterator::new(
+            iter,
+            map_bound(upper),
+        )?))
     }
 }

@@ -166,17 +166,16 @@ impl LeveledCompactionController {
             .copied()
             .collect::<HashSet<_>>();
         if let Some(upper_level) = task.upper_level {
-            let new_upper_level_ssts =
-                snapshot.levels[upper_level - 1]
-                    .1
-                    .iter()
-                    .filter_map(|x| {
-                        if upper_level_sst_ids_set.remove(x) {
-                            return None;
-                        }
-                        Some(*x)
-                    })
-                    .collect::<Vec<_>>();
+            let new_upper_level_ssts = snapshot.levels[upper_level - 1]
+                .1
+                .iter()
+                .filter_map(|x| {
+                    if upper_level_sst_ids_set.remove(x) {
+                        return None;
+                    }
+                    Some(*x)
+                })
+                .collect::<Vec<_>>();
             assert!(upper_level_sst_ids_set.is_empty());
             snapshot.levels[upper_level - 1].1 = new_upper_level_ssts;
         } else {
