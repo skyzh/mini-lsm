@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::lsm_storage::LsmStorageInner;
+use crate::lsm_storage::LsmStorageState;
 
 pub struct LeveledCompactionTask {
     // if upper_level is `None`, then it is L0 compaction
@@ -10,6 +10,7 @@ pub struct LeveledCompactionTask {
     pub lower_level_sst_ids: Vec<usize>,
 }
 
+#[derive(Debug, Clone)]
 pub struct LeveledCompactionOptions {
     pub level_size_multiplier: usize,
     pub level0_file_num_compaction_trigger: usize,
@@ -28,7 +29,7 @@ impl LeveledCompactionController {
 
     fn find_overlapping_ssts(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
         sst_ids: &[usize],
         in_level: usize,
     ) -> Vec<usize> {
@@ -58,7 +59,7 @@ impl LeveledCompactionController {
 
     pub fn generate_compaction_task(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
     ) -> Option<LeveledCompactionTask> {
         // step 1: compute target level size
         let mut target_level_size = (0..self.options.max_levels).map(|_| 0).collect::<Vec<_>>(); // exclude level 0
@@ -149,10 +150,10 @@ impl LeveledCompactionController {
 
     pub fn apply_compaction_result(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
         task: &LeveledCompactionTask,
         output: &[usize],
-    ) -> (LsmStorageInner, Vec<usize>) {
+    ) -> (LsmStorageState, Vec<usize>) {
         let mut snapshot = snapshot.clone();
         let mut files_to_remove = Vec::new();
         let mut upper_level_sst_ids_set = task

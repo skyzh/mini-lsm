@@ -4,6 +4,7 @@ use bytes::Bytes;
 use tempfile::tempdir;
 
 use crate::iterators::StorageIterator;
+use crate::lsm_storage::{LsmStorageInner, LsmStorageOptions};
 
 fn as_bytes(x: &[u8]) -> Bytes {
     Bytes::copy_from_slice(x)
@@ -32,11 +33,16 @@ fn check_iter_result(iter: impl StorageIterator, expected: Vec<(Bytes, Bytes)>) 
     assert!(!iter.is_valid());
 }
 
+fn sync(storage: &LsmStorageInner) {
+    storage.force_freeze_memtable().unwrap();
+    storage.force_flush_imm_memtables().unwrap();
+}
+
 #[test]
 fn test_storage_get() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
     storage.put(b"3", b"23333").unwrap();
@@ -49,9 +55,9 @@ fn test_storage_get() {
 
 #[test]
 fn test_storage_scan_memtable_1() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
     storage.put(b"3", b"23333").unwrap();
@@ -79,9 +85,9 @@ fn test_storage_scan_memtable_1() {
 
 #[test]
 fn test_storage_scan_memtable_2() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
     storage.put(b"3", b"23333").unwrap();
@@ -109,12 +115,12 @@ fn test_storage_scan_memtable_2() {
 
 #[test]
 fn test_storage_get_after_sync() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
-    storage.sync().unwrap();
+    sync(&storage);
     storage.put(b"3", b"23333").unwrap();
     assert_eq!(&storage.get(b"1").unwrap().unwrap()[..], b"233");
     assert_eq!(&storage.get(b"2").unwrap().unwrap()[..], b"2333");
@@ -125,12 +131,12 @@ fn test_storage_get_after_sync() {
 
 #[test]
 fn test_storage_scan_memtable_1_after_sync() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
-    storage.sync().unwrap();
+    sync(&storage);
     storage.put(b"3", b"23333").unwrap();
     storage.delete(b"2").unwrap();
     check_iter_result(
@@ -156,14 +162,14 @@ fn test_storage_scan_memtable_1_after_sync() {
 
 #[test]
 fn test_storage_scan_memtable_2_after_sync() {
-    use crate::lsm_storage::LsmStorage;
+    use crate::lsm_storage::LsmStorageInner;
     let dir = tempdir().unwrap();
-    let storage = LsmStorage::open(&dir).unwrap();
+    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
-    storage.sync().unwrap();
+    sync(&storage);
     storage.put(b"3", b"23333").unwrap();
-    storage.sync().unwrap();
+    sync(&storage);
     storage.delete(b"1").unwrap();
     check_iter_result(
         storage.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),

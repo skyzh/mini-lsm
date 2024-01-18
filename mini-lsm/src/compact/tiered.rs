@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use crate::lsm_storage::LsmStorageInner;
+use crate::lsm_storage::LsmStorageState;
 
 pub struct TieredCompactionTask {
     pub tiers: Vec<(usize, Vec<usize>)>,
 }
 
+#[derive(Debug, Clone)]
 pub struct TieredCompactionOptions {
     pub level0_file_num_compaction_trigger: usize,
     pub max_size_amplification_percent: usize,
@@ -24,7 +25,7 @@ impl TieredCompactionController {
 
     pub fn generate_compaction_task(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
     ) -> Option<TieredCompactionTask> {
         assert!(
             snapshot.l0_sstables.is_empty(),
@@ -87,10 +88,10 @@ impl TieredCompactionController {
 
     pub fn apply_compaction_result(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
         task: &TieredCompactionTask,
         output: &[usize],
-    ) -> (LsmStorageInner, Vec<usize>) {
+    ) -> (LsmStorageState, Vec<usize>) {
         assert!(
             snapshot.l0_sstables.is_empty(),
             "should not add l0 ssts in tiered compaction"

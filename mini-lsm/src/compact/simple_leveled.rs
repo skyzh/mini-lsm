@@ -1,5 +1,6 @@
-use crate::lsm_storage::LsmStorageInner;
+use crate::lsm_storage::LsmStorageState;
 
+#[derive(Debug, Clone)]
 pub struct SimpleLeveledCompactionOptions {
     pub size_ratio_percent: usize,
     pub level0_file_num_compaction_trigger: usize,
@@ -25,7 +26,7 @@ impl SimpleLeveledCompactionController {
 
     pub fn generate_compaction_task(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
     ) -> Option<SimpleLeveledCompactionTask> {
         let mut level_sizes = Vec::new();
         level_sizes.push(snapshot.l0_sstables.len());
@@ -64,10 +65,10 @@ impl SimpleLeveledCompactionController {
 
     pub fn apply_compaction_result(
         &self,
-        snapshot: &LsmStorageInner,
+        snapshot: &LsmStorageState,
         task: &SimpleLeveledCompactionTask,
         output: &[usize],
-    ) -> (LsmStorageInner, Vec<usize>) {
+    ) -> (LsmStorageState, Vec<usize>) {
         let mut snapshot = snapshot.clone();
         let mut files_to_remove = Vec::new();
         if let Some(upper_level) = task.upper_level {

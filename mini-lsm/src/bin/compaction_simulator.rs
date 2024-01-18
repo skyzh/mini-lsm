@@ -7,7 +7,7 @@ use mini_lsm::compact::{
     LeveledCompactionController, LeveledCompactionOptions, SimpleLeveledCompactionController,
     SimpleLeveledCompactionOptions, TieredCompactionController, TieredCompactionOptions,
 };
-use mini_lsm::lsm_storage::LsmStorageInner;
+use mini_lsm::lsm_storage::LsmStorageState;
 use mini_lsm::mem_table::MemTable;
 use mini_lsm::table::SsTable;
 
@@ -59,7 +59,7 @@ enum Args {
 }
 
 pub struct MockStorage {
-    snapshot: LsmStorageInner,
+    snapshot: LsmStorageState,
     next_sst_id: usize,
     /// Maps SST ID to the original flushed SST ID
     file_list: HashMap<usize, usize>,
@@ -69,7 +69,7 @@ pub struct MockStorage {
 
 impl MockStorage {
     pub fn new() -> Self {
-        let snapshot = LsmStorageInner {
+        let snapshot = LsmStorageState {
             memtable: Arc::new(MemTable::create()),
             imm_memtables: Vec::new(),
             l0_sstables: Vec::new(),
