@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use anyhow::Result;
 use mini_lsm::compact::{CompactionOptions, SimpleLeveledCompactionOptions};
 use mini_lsm::lsm_storage::{LsmStorageOptions, MiniLsm};
