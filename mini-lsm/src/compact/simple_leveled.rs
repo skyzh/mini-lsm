@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::lsm_storage::LsmStorageInner;
 
 pub struct SimpleLeveledCompactionOptions {

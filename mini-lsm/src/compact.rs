@@ -5,7 +5,7 @@ mod tiered;
 use std::sync::Arc;
 
 use anyhow::Result;
-pub use leveled::{LeveledCompactionController, LeveledCompactionTask};
+pub use leveled::{LeveledCompactionController, LeveledCompactionOptions, LeveledCompactionTask};
 pub use simple_leveled::{
     SimpleLeveledCompactionController, SimpleLeveledCompactionOptions, SimpleLeveledCompactionTask,
 };
@@ -37,9 +37,7 @@ impl LsmStorage {
         let mut iters = Vec::new();
         iters.reserve(tables.len());
         for table in tables.iter() {
-            iters.push(Box::new(SsTableIterator::create_and_seek_to_first(
-                table.clone(),
-            )?));
+            iters.push(Box::new(SsTableIterator::create_and_seek_to_first(table.clone())?));
         }
         let mut iter = MergeIterator::create(iters);
 

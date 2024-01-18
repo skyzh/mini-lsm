@@ -131,9 +131,6 @@ impl LsmStorage {
     }
 
     /// Persist data to disk.
-    ///
-    /// In day 3: flush the current memtable to disk as L0 SST.
-    /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         let _flush_lock = self.flush_lock.lock();
 
@@ -221,9 +218,6 @@ impl LsmStorage {
 
         let iter = TwoMergeIterator::create(memtable_iter, table_iter)?;
 
-        Ok(FusedIterator::new(LsmIterator::new(
-            iter,
-            map_bound(upper),
-        )?))
+        Ok(FusedIterator::new(LsmIterator::new(iter, map_bound(upper))?))
     }
 }

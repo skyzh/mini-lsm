@@ -10,7 +10,7 @@ pub use builder::SsTableBuilder;
 use bytes::{Buf, BufMut, Bytes};
 pub use iterator::SsTableIterator;
 
-use crate::block::{self, Block};
+use crate::block::Block;
 use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -75,27 +75,6 @@ impl BlockMeta {
 /// A file object.
 ///
 /// Before day 4, it should look like:
-///
-/// ```ignore
-/// pub struct FileObject(Bytes);
-///
-/// impl FileObject {
-///     pub fn read(&self, offset: u64, len: u64) -> Result<Vec<u8>> {
-///         Ok(self.0[offset as usize..(offset + len) as usize].to_vec())
-///    }
-///     pub fn size(&self) -> u64 {
-///         self.0.len() as u64
-///     }
-///
-///     pub fn create(_path: &Path, data: Vec<u8>) -> Result<Self> {
-///         Ok(FileObject(data.into()))
-///     }
-///
-///     pub fn open(_path: &Path) -> Result<Self> {
-///         unimplemented!()
-///     }
-/// }
-/// ```
 pub struct FileObject(Option<File>, u64);
 
 impl FileObject {
@@ -162,13 +141,8 @@ impl SsTable {
     }
 
     /// Create a mock SST with only first key + last key metadata
-    pub fn create_meta_only(
-        id: usize,
-        file_size: u64,
-        first_key: Bytes,
-        last_key: Bytes,
-    ) -> Result<Self> {
-        Ok(Self {
+    pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
+        Self {
             file: FileObject(None, file_size),
             block_metas: vec![],
             block_meta_offset: 0,
@@ -176,7 +150,7 @@ impl SsTable {
             block_cache: None,
             first_key,
             last_key,
-        })
+        }
     }
 
     /// Read a block from the disk.
@@ -214,6 +188,22 @@ impl SsTable {
     /// Get number of data blocks.
     pub fn num_of_blocks(&self) -> usize {
         self.block_metas.len()
+    }
+
+    pub fn first_key(&self) -> &Bytes {
+        &self.first_key
+    }
+
+    pub fn last_key(&self) -> &Bytes {
+        &self.last_key
+    }
+
+    pub fn table_size(&self) -> u64 {
+        self.file.1
+    }
+
+    pub fn sst_id(&self) -> usize {
+        self.id
     }
 }
 

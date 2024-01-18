@@ -61,27 +61,6 @@ impl BlockMeta {
 /// A file object.
 ///
 /// Before day 4, it should look like:
-///
-/// ```ignore
-/// pub struct FileObject(Bytes);
-///
-/// impl FileObject {
-///     pub fn read(&self, offset: u64, len: u64) -> Result<Vec<u8>> {
-///         Ok(self.0[offset as usize..(offset + len) as usize].to_vec())
-///    }
-///     pub fn size(&self) -> u64 {
-///         self.0.len() as u64
-///     }
-///
-///     pub fn create(_path: &Path, data: Vec<u8>) -> Result<Self> {
-///         Ok(FileObject(data.into()))
-///     }
-///
-///     pub fn open(_path: &Path) -> Result<Self> {
-///         unimplemented!()
-///     }
-/// }
-/// ```
 pub struct FileObject(File, u64);
 
 impl FileObject {

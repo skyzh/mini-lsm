@@ -73,7 +73,7 @@ impl TieredCompactionController {
         }
         // trying to reduce sorted runs without respecting size ratio
         let num_tiers_to_take =
-            snapshot.levels.len() - self.options.level0_file_num_compaction_trigger + 1;
+            snapshot.levels.len() - self.options.level0_file_num_compaction_trigger + 2;
         println!("compaction triggered by reducing sorted runs");
         return Some(TieredCompactionTask {
             tiers: snapshot
