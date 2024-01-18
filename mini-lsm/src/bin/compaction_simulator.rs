@@ -241,8 +241,10 @@ fn main() {
                     storage.dump_original_id(true, false);
                 }
                 let mut num_compactions = 0;
-                while let Some(task) = controller.generate_compaction_task(&storage.snapshot) {
+                while let Some(task) = {
                     println!("--- Compaction Task ---");
+                    controller.generate_compaction_task(&storage.snapshot)
+                } {
                     let mut sst_ids = Vec::new();
                     for file in task
                         .upper_level_sst_ids
@@ -339,7 +341,10 @@ fn main() {
                 }
                 println!("--- Compaction Task ---");
                 let mut num_compactions = 0;
-                while let Some(task) = controller.generate_compaction_task(&storage.snapshot) {
+                while let Some(task) = {
+                    println!("--- Compaction Task ---");
+                    controller.generate_compaction_task(&storage.snapshot)
+                } {
                     let mut sst_ids = Vec::new();
                     for (tier_id, files) in &task.tiers {
                         for file in files {
@@ -440,7 +445,10 @@ fn main() {
                     storage.dump_original_id(false, true);
                 }
                 let mut num_compactions = 0;
-                while let Some(task) = controller.generate_compaction_task(&storage.snapshot) {
+                while let Some(task) = {
+                    println!("--- Compaction Task ---");
+                    controller.generate_compaction_task(&storage.snapshot)
+                } {
                     let mut sst_ids = Vec::new();
                     let split_num = task.upper_level_sst_ids.len() + task.lower_level_sst_ids.len();
                     let mut first_keys = Vec::new();
@@ -529,7 +537,7 @@ fn main() {
                         storage.dump_original_id(true, true);
                     }
                     num_compactions += 1;
-                    if num_compactions >= storage.file_list.len() * max_levels {
+                    if num_compactions >= level0_file_num_compaction_trigger * max_levels * 2 {
                         panic!("compaction does not converge?");
                     }
                 }
