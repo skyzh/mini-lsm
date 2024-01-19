@@ -179,17 +179,19 @@ impl LsmStorageInner {
 
         if !path.exists() {
             std::fs::create_dir_all(path).context("failed to create DB dir")?;
+        }
+        let manifest_path = path.join("MANIFEST");
+        if !manifest_path.exists() {
             if options.enable_wal {
                 state.memtable = Arc::new(MemTable::create_with_wal(
                     state.memtable.id(),
                     Self::path_of_wal_static(path, state.memtable.id()),
                 )?);
             }
-            manifest =
-                Manifest::create(path.join("MANIFEST")).context("failed to create manifest")?;
+            manifest = Manifest::create(&manifest_path).context("failed to create manifest")?;
             manifest.add_record_when_init(ManifestRecord::NewMemtable(state.memtable.id()))?;
         } else {
-            let (m, records) = Manifest::recover(path.join("MANIFEST"))?;
+            let (m, records) = Manifest::recover(&manifest_path)?;
             let mut memtables = BTreeSet::new();
             for record in records {
                 match record {
