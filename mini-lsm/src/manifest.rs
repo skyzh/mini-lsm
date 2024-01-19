@@ -67,7 +67,7 @@ impl Manifest {
     pub fn add_record_when_init(&self, record: ManifestRecord) -> Result<()> {
         let mut file = self.file.lock();
         let buf = serde_json::to_vec(&record)?;
-        file.write(&buf)?;
+        file.write_all(&buf)?;
         file.sync_all()?;
         Ok(())
     }

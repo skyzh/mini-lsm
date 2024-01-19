@@ -58,7 +58,7 @@ impl Wal {
         buf.put_slice(key);
         buf.put_u16(value.len() as u16);
         buf.put_slice(value);
-        file.write(&buf)?;
+        file.write_all(&buf)?;
         Ok(())
     }
 

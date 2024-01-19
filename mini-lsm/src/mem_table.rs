@@ -1,6 +1,5 @@
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use anyhow::Result;
