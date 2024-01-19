@@ -90,7 +90,7 @@ pub(crate) struct LsmStorageInner {
 }
 
 pub struct MiniLsm {
-    inner: Arc<LsmStorageInner>,
+    pub(crate) inner: Arc<LsmStorageInner>,
     compaction_notifier: crossbeam_channel::Sender<()>,
     compaction_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
@@ -105,7 +105,7 @@ impl MiniLsm {
     pub fn close(&self) -> Result<()> {
         self.compaction_notifier.send(()).ok();
         let mut compaction_thread = self.compaction_thread.lock();
-        if let Some(mut compaction_thread) = compaction_thread.take() {
+        if let Some(compaction_thread) = compaction_thread.take() {
             compaction_thread
                 .join()
                 .map_err(|e| anyhow::anyhow!("{:?}", e))?;
@@ -211,7 +211,7 @@ impl LsmStorageInner {
         }
 
         // Search on immutable memtables.
-        for memtable in snapshot.imm_memtables.iter().rev() {
+        for memtable in snapshot.imm_memtables.iter() {
             if let Some(value) = memtable.get(key) {
                 if value.is_empty() {
                     // found tomestone, return key not exists
@@ -221,7 +221,11 @@ impl LsmStorageInner {
             }
         }
         let mut iters = Vec::with_capacity(snapshot.l0_sstables.len());
-        for table in snapshot.l0_sstables.iter().rev() {
+        for table in snapshot
+            .l0_sstables
+            .iter()
+            .chain(snapshot.levels.iter().map(|(_, files)| files).flatten())
+        {
             iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
                 snapshot.sstables[table].clone(),
                 key,
@@ -292,7 +296,7 @@ impl LsmStorageInner {
             let mut snapshot = guard.as_ref().clone();
             old_memtable = std::mem::replace(&mut snapshot.memtable, memtable);
             // Add the memtable to the immutable memtables.
-            snapshot.imm_memtables.push(old_memtable.clone());
+            snapshot.imm_memtables.insert(0, old_memtable.clone());
             // Update the snapshot.
             *guard = Arc::new(snapshot);
         }
@@ -311,10 +315,10 @@ impl LsmStorageInner {
         let flush_memtable;
 
         {
-            let mut guard = self.state.read();
+            let guard = self.state.read();
             flush_memtable = guard
                 .imm_memtables
-                .first()
+                .last()
                 .expect("no imm memtables!")
                 .clone();
         }
@@ -333,12 +337,12 @@ impl LsmStorageInner {
             let mut guard = self.state.write();
             let mut snapshot = guard.as_ref().clone();
             // Remove the memtable from the immutable memtables.
-            let mem = snapshot.imm_memtables.remove(0);
+            let mem = snapshot.imm_memtables.pop().unwrap();
             assert_eq!(mem.id(), sst_id);
             // Add L0 table
             if self.compaction_controller.flush_to_l0() {
                 // In leveled compaction or no compaction, simply flush to L0
-                snapshot.l0_sstables.push(sst_id);
+                snapshot.l0_sstables.insert(0, sst_id);
             } else {
                 // In tiered compaction, create a new tier
                 snapshot.levels.insert(0, (sst_id, vec![sst_id]));
@@ -374,13 +378,17 @@ impl LsmStorageInner {
 
         let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
         memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)));
-        for memtable in snapshot.imm_memtables.iter().rev() {
+        for memtable in snapshot.imm_memtables.iter() {
             memtable_iters.push(Box::new(memtable.scan(lower, upper)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
 
         let mut table_iters = Vec::with_capacity(snapshot.l0_sstables.len());
-        for table_id in snapshot.l0_sstables.iter().rev() {
+        for table_id in snapshot
+            .l0_sstables
+            .iter()
+            .chain(snapshot.levels.iter().map(|(_, files)| files).flatten())
+        {
             let table = snapshot.sstables[table_id].clone();
             let iter = match lower {
                 Bound::Included(key) => SsTableIterator::create_and_seek_to_key(table, key)?,
@@ -396,6 +404,7 @@ impl LsmStorageInner {
 
             table_iters.push(Box::new(iter));
         }
+
         let table_iter = MergeIterator::create(table_iters);
 
         let iter = TwoMergeIterator::create(memtable_iter, table_iter)?;

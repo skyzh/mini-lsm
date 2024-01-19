@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::lsm_storage::LsmStorageState;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LeveledCompactionTask {
     // if upper_level is `None`, then it is L0 compaction
     pub upper_level: Option<usize>,
@@ -94,19 +94,6 @@ impl LeveledCompactionController {
             }
         }
 
-        println!(
-            "target level sizes: {:?}, real level sizes: {:?}, base_level: {}",
-            target_level_size
-                .iter()
-                .map(|x| format!("{}MB", x / 1024 / 1024))
-                .collect::<Vec<_>>(),
-            real_level_size
-                .iter()
-                .map(|x| format!("{}MB", x / 1024 / 1024))
-                .collect::<Vec<_>>(),
-            base_level,
-        );
-
         // Flush L0 SST is the top priority
         if snapshot.l0_sstables.len() >= self.options.level0_file_num_compaction_trigger {
             println!("flush L0 SST to base level {}", base_level);
@@ -133,6 +120,19 @@ impl LeveledCompactionController {
         priorities.sort_by(|a, b| a.partial_cmp(b).unwrap().reverse());
         let priority = priorities.first();
         if let Some((_, level)) = priority {
+            println!(
+                "target level sizes: {:?}, real level sizes: {:?}, base_level: {}",
+                target_level_size
+                    .iter()
+                    .map(|x| format!("{}MB", x / 1024 / 1024))
+                    .collect::<Vec<_>>(),
+                real_level_size
+                    .iter()
+                    .map(|x| format!("{}MB", x / 1024 / 1024))
+                    .collect::<Vec<_>>(),
+                base_level,
+            );
+
             let level = *level;
             let selected_sst = snapshot.levels[level - 1].1.iter().min().copied().unwrap(); // select the oldest sst to compact
             println!(

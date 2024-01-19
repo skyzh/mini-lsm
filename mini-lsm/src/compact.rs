@@ -19,7 +19,7 @@ use crate::lsm_storage::{LsmStorageInner, LsmStorageState};
 use crate::manifest::ManifestRecord;
 use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum CompactionTask {
     Leveled(LeveledCompactionTask),
     Tiered(TieredCompactionTask),
@@ -195,7 +195,8 @@ impl LsmStorageInner {
             let state = self.state.read();
             state.clone()
         };
-        let original_sstables = snapshot.l0_sstables.clone();
+        let mut original_sstables = snapshot.l0_sstables.clone();
+        original_sstables.reverse();
         let sstables = self.compact(&CompactionTask::ForceFullCompaction(
             original_sstables.clone(),
         ))?;
@@ -232,7 +233,7 @@ impl LsmStorageInner {
         let Some(task) = task else {
             return Ok(());
         };
-        println!("running compaction task");
+        println!("running compaction task: {:?}", task);
         let sstables = self.compact(&task)?;
         let output = sstables.iter().map(|x| x.sst_id()).collect::<Vec<_>>();
         let ssts_to_remove = {

@@ -30,7 +30,7 @@ enum Args {
         #[clap(long)]
         dump_real_id: bool,
         #[clap(long, default_value = "3")]
-        level0_file_num_compaction_trigger: usize,
+        num_tiers: usize,
         #[clap(long, default_value = "200")]
         max_size_amplification_percent: usize,
         #[clap(long, default_value = "1")]
@@ -316,7 +316,7 @@ fn main() {
         }
         Args::Tiered {
             dump_real_id,
-            level0_file_num_compaction_trigger,
+            num_tiers: level0_file_num_compaction_trigger,
             max_size_amplification_percent,
             size_ratio,
             min_merge_width,

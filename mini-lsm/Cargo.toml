@@ -8,6 +8,7 @@ license = { workspace = true }
 repository = { workspace = true }
 description = "A tutorial for building an LSM tree storage engine in a week."
 
+
 [dependencies]
 anyhow = "1"
 arc-swap = "1"
@@ -25,3 +26,7 @@ serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "mini-lsm-cli"
+path = "src/bin/mini_lsm_cli.rs"
