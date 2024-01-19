@@ -1,5 +1,11 @@
 # Block Builder and Block Iterator
 
+<div class="warning">
+
+This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We are working on a new version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 2: Blocks](./week1-02-block.md).
+
+</div>
+
 <!-- toc -->
 
 In this part, you will need to modify:
@@ -23,9 +29,9 @@ The block contains two parts: data and offsets.
 
 ```
 ---------------------------------------------------------------------
-|          data         |          offsets          |      meta     |
-|-----------------------|---------------------------|---------------|
-|entry|entry|entry|entry|offset|offset|offset|offset|num_of_elements|
+| data  | offsets | meta  |
+| ----- | ------- | ----- |
+| entry | entry   | entry | entry | offset | offset | offset | offset | num_of_elements |
 ---------------------------------------------------------------------
 ```
 

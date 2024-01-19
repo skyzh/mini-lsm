@@ -1,3 +1,0 @@
-# What's next
-
-<!--hidden-->

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="6 213 693 136" width="693" height="136">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
+      <g>
+        <path d="M 8 0 L 0 -3 L 0 3 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="week1-01-overview" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1" stroke-opacity="1">
+    <title>week1-01-overview</title>
+    <rect fill="white" x="6" y="213" width="693" height="136"/>
+    <g id="week1-01-overview_Layer_1">
+      <title>Layer 1</title>
+      <g id="Graphic_57">
+        <rect x="196" y="214" width="437" height="79.5" fill="white"/>
+        <path d="M 196 214 L 633 214 L 633 293.5 L 196 293.5 Z" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Line_37">
+        <line x1="7" y1="319" x2="697.696" y2="319" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_36">
+        <text transform="translate(12 325)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">On Disk</tspan>
+        </text>
+      </g>
+      <g id="Graphic_35">
+        <text transform="translate(12 296.552)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">In Memory</tspan>
+        </text>
+      </g>
+      <g id="Graphic_34">
+        <rect x="128.5" y="245.974" width="62.81032" height="41.5" fill="white"/>
+        <rect x="128.5" y="245.974" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(133.5 248.276)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="8.317159" y="15">Mem </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="7.589159" y="33.448">Table</tspan>
+        </text>
+      </g>
+      <g id="Graphic_33">
+        <rect x="201.09484" y="245.974" width="62.81032" height="41.5" fill="white"/>
+        <rect x="201.09484" y="245.974" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(206.09484 248.276)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="8.317159" y="15">Mem </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="7.589159" y="33.448">Table</tspan>
+        </text>
+      </g>
+      <g id="Graphic_32">
+        <rect x="273.68968" y="245.974" width="62.81032" height="41.5" fill="white"/>
+        <rect x="273.68968" y="245.974" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(278.68968 248.276)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="8.317159" y="15">Mem </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="7.589159" y="33.448">Table</tspan>
+        </text>
+      </g>
+      <g id="Graphic_30">
+        <rect x="500.31726" y="252.052" width="124.08348" height="28.447998" fill="white"/>
+        <rect x="500.31726" y="252.052" width="124.08348" height="28.447998" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(505.31726 257.052)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="16.52974" y="15">key + value</tspan>
+        </text>
+      </g>
+      <g id="Line_27">
+        <line x1="500.31726" y1="266.38404" x2="346.4" y2="266.65207" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_64">
+        <text transform="translate(483.12874 224.1179)" fill="black">
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="0" y="16">Day 1: Memtables</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,1 +1,0 @@
-# Sorted String Table (SST)
