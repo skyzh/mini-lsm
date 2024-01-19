@@ -48,8 +48,8 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 2.2            | Compaction Strategy - Simple                    | ✅        | 🚧            | 🚧       |
 | 2.3            | Compaction Strategy - Tiered                    | ✅        |              |         |
 | 2.4            | Compaction Strategy - Leveled                   | ✅        |              |         |
-| 2.5            | Manifest                                        |          |              |         |
-| 2.6            | Write-Ahead Log                                 |          |              |         |
+| 2.5            | Manifest                                        | 🚧        |              |         |
+| 2.6            | Write-Ahead Log                                 | 🚧        |              |         |
 | 2.7            | Batch Write (and preparations for MVCC)         |          |              |         |
 | 3.1            | Timestamp Encoding + Prefix Bloom Filter        |          |              |         |
 | 3.2            | Snapshot Read                                   |          |              |         |
