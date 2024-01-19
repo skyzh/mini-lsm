@@ -24,9 +24,9 @@
 
 - [Week 1: Mini-LSM](./week1-overview.md)
   - [Memtable](./week1-01-memtable.md)
-  - [Block](./week1-02-block.md)
-  - [Sorted String Table (SST)](./week1-03-sst.md)
-  - [Merge Iterator](./week1-04-merge-iterator.md)
+  - [Merge Iterator](./week1-02-merge-iterator.md)
+  - [Block](./week1-03-block.md)
+  - [Sorted String Table (SST)](./week1-04-sst.md)
   - [Read Path](./week1-05-read-path.md)
   - [Write Path](./week1-06-write-path.md)
   - [Snack Time: SST Optimizations](./week1-07-sst-optimizations.md)

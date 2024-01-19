@@ -1,3 +1,3 @@
 # Write Path
 
-![Chapter Overview](./lsm-tutorial/week1-04-overview.svg)
+![Chapter Overview](./lsm-tutorial/week1-05-overview.svg)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="-5 170 784 599" width="784" height="599">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="-5 170 784 599" width="784" height="599">
   <defs>
     <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
       <g>
@@ -13,7 +13,7 @@
       </g>
     </marker>
   </defs>
-  <g id="week1-overview" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1" stroke-opacity="1">
+  <g id="week1-overview" stroke="none" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none" fill="none">
     <title>week1-overview</title>
     <rect fill="white" x="-5" y="170" width="784" height="599"/>
     <g id="week1-overview_Layer_1">
@@ -32,7 +32,7 @@
       </g>
       <g id="Graphic_51">
         <text transform="translate(373.76584 626.01794)" fill="black">
-          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="0" y="16">Day 3: SST Encoding</tspan>
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="0" y="16">Day 4: SST Encoding</tspan>
         </text>
       </g>
       <g id="Graphic_48">
@@ -297,7 +297,7 @@
       </g>
       <g id="Graphic_49">
         <text transform="translate(361.15398 743.552)" fill="black">
-          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="32969183e-19" y="16">Day 2: Block Encoding</tspan>
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="32969183e-19" y="16">Day 3: Block Encoding</tspan>
         </text>
       </g>
       <g id="Graphic_59">
@@ -308,13 +308,13 @@
         </text>
       </g>
       <g id="Graphic_64">
-        <text transform="translate(483.12874 224.1179)" fill="black">
-          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="0" y="16">Day 1: Memtables</tspan>
+        <text transform="translate(464.63274 224.1179)" fill="black">
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="0" y="16">Day 1+2: Memtables</tspan>
         </text>
       </g>
       <g id="Graphic_68">
-        <text transform="translate(265.42568 182)" fill="black">
-          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="17905677e-19" y="16">Day 4+5+6: Storage Engine</tspan>
+        <text transform="translate(283.92168 182)" fill="black">
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="25863756e-19" y="16">Day 5+6: Storage Engine</tspan>
         </text>
       </g>
       <g id="Graphic_72">
