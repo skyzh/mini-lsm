@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 pub use leveled::{LeveledCompactionController, LeveledCompactionOptions, LeveledCompactionTask};
+use serde::{Deserialize, Serialize};
 pub use simple_leveled::{
     SimpleLeveledCompactionController, SimpleLeveledCompactionOptions, SimpleLeveledCompactionTask,
 };
@@ -15,8 +16,10 @@ pub use tiered::{TieredCompactionController, TieredCompactionOptions, TieredComp
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::StorageIterator;
 use crate::lsm_storage::{LsmStorageInner, LsmStorageState};
+use crate::manifest::ManifestRecord;
 use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
+#[derive(Serialize, Deserialize)]
 pub(crate) enum CompactionTask {
     Leveled(LeveledCompactionTask),
     Tiered(TieredCompactionTask),
@@ -233,7 +236,7 @@ impl LsmStorageInner {
         let sstables = self.compact(&task)?;
         let output = sstables.iter().map(|x| x.sst_id()).collect::<Vec<_>>();
         let ssts_to_remove = {
-            let _state_lock = self.state_lock.lock();
+            let state_lock = self.state_lock.lock();
             let (mut snapshot, files_to_remove) = self
                 .compaction_controller
                 .apply_compaction_result(&self.state.read(), &task, &output);
@@ -249,6 +252,8 @@ impl LsmStorageInner {
             }
             let mut state = self.state.write();
             *state = Arc::new(snapshot);
+            self.manifest
+                .add_record(&state_lock, ManifestRecord::Compaction(task))?;
             ssts_to_remove
         };
         for sst in ssts_to_remove {

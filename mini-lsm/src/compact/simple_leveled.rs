@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::lsm_storage::LsmStorageState;
 
 #[derive(Debug, Clone)]
@@ -7,6 +9,7 @@ pub struct SimpleLeveledCompactionOptions {
     pub max_levels: usize,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SimpleLeveledCompactionTask {
     // if upper_level is `None`, then it is L0 compaction
     pub upper_level: Option<usize>,

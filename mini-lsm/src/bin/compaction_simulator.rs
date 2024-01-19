@@ -70,7 +70,7 @@ pub struct MockStorage {
 impl MockStorage {
     pub fn new() -> Self {
         let snapshot = LsmStorageState {
-            memtable: Arc::new(MemTable::create()),
+            memtable: Arc::new(MemTable::create(0)),
             imm_memtables: Vec::new(),
             l0_sstables: Vec::new(),
             levels: Vec::new(),
@@ -78,7 +78,7 @@ impl MockStorage {
         };
         Self {
             snapshot,
-            next_sst_id: 0,
+            next_sst_id: 1,
             file_list: Default::default(),
             total_flushes: 0,
             total_writes: 0,

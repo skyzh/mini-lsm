@@ -99,7 +99,7 @@ impl LsmStorage {
             )?));
         }
         let iter = MergeIterator::create(iters);
-        if iter.is_valid() {
+        if iter.is_valid() && iter.key() == key {
             return Ok(Some(Bytes::copy_from_slice(iter.value())));
         }
         Ok(None)

@@ -13,6 +13,7 @@ fn main() -> Result<()> {
                 level0_file_num_compaction_trigger: 2,
                 max_levels: 4,
             }),
+            enable_wal: false,
         },
     )?;
     let mut epoch = 0;
@@ -51,7 +52,7 @@ fn main() -> Result<()> {
                 println!("{} not exist", key);
             }
         } else if line == "flush" {
-            lsm.force_flush_imm_memtables()?;
+            lsm.force_flush()?;
         } else if line == "quit" {
             lsm.close()?;
             break;

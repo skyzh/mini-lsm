@@ -35,7 +35,7 @@ fn check_iter_result(iter: impl StorageIterator, expected: Vec<(Bytes, Bytes)>) 
 
 fn sync(storage: &LsmStorageInner) {
     storage.force_freeze_memtable().unwrap();
-    storage.force_flush_imm_memtables().unwrap();
+    storage.force_flush_next_imm_memtable().unwrap();
 }
 
 #[test]
