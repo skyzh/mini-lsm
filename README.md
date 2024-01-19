@@ -50,7 +50,7 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 2.4            | Compaction Strategy - Leveled                   | ✅        |              |         |
 | 2.5            | Manifest                                        | 🚧        |              |         |
 | 2.6            | Write-Ahead Log                                 | 🚧        |              |         |
-| 2.7            | Batch Write (and preparations for MVCC)         |          |              |         |
+| 2.7            | Batch Write + Checksum                          |          |              |         |
 | 3.1            | Timestamp Encoding + Prefix Bloom Filter        |          |              |         |
 | 3.2            | Snapshot Read                                   |          |              |         |
 | 3.3            | Watermark and Garbage Collection                |          |              |         |

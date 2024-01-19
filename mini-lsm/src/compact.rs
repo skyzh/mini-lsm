@@ -46,7 +46,7 @@ pub(crate) enum CompactionController {
 }
 
 impl CompactionController {
-    fn generate_compaction_task(&self, snapshot: &LsmStorageState) -> Option<CompactionTask> {
+    pub fn generate_compaction_task(&self, snapshot: &LsmStorageState) -> Option<CompactionTask> {
         match self {
             CompactionController::Leveled(ctrl) => ctrl
                 .generate_compaction_task(&snapshot)
@@ -61,7 +61,7 @@ impl CompactionController {
         }
     }
 
-    fn apply_compaction_result(
+    pub fn apply_compaction_result(
         &self,
         snapshot: &LsmStorageState,
         task: &CompactionTask,
@@ -247,14 +247,16 @@ impl LsmStorageInner {
                 assert!(result.is_some());
                 ssts_to_remove.push(result.unwrap());
             }
+            let mut new_sst_ids = Vec::new();
             for file_to_add in sstables {
+                new_sst_ids.push(file_to_add.sst_id());
                 let result = snapshot.sstables.insert(file_to_add.sst_id(), file_to_add);
                 assert!(result.is_none());
             }
             let mut state = self.state.write();
             *state = Arc::new(snapshot);
             self.manifest
-                .add_record(&state_lock, ManifestRecord::Compaction(task))?;
+                .add_record(&state_lock, ManifestRecord::Compaction(task, new_sst_ids))?;
             ssts_to_remove
         };
         for sst in ssts_to_remove {

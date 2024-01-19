@@ -47,8 +47,14 @@ impl MemTable {
         })
     }
 
+    /// Create a memtable from WAL
     pub fn recover_from_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
-        unimplemented!()
+        let map = Arc::new(SkipMap::new());
+        Ok(Self {
+            id,
+            wal: Some(Wal::recover(path.as_ref(), &map)?),
+            map,
+        })
     }
 
     /// Get a value by key.

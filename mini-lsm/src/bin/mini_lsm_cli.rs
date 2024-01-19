@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use anyhow::Result;
 use bytes::Bytes;
 use clap::{Parser, ValueEnum};
-
 use mini_lsm::compact::{
     CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
     TieredCompactionOptions,
@@ -21,11 +20,11 @@ enum CompactionStrategy {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long, default_value = "mini-lsm.db")]
+    #[arg(long, default_value = "lsm.db")]
     path: PathBuf,
     #[arg(long, default_value = "leveled")]
     compaction: CompactionStrategy,
-    #[arg(long)]
+    #[arg(long, default_value = "true")]
     enable_wal: bool,
 }
 

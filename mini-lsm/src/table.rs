@@ -102,8 +102,10 @@ impl FileObject {
         ))
     }
 
-    pub fn open(_path: &Path) -> Result<Self> {
-        unimplemented!()
+    pub fn open(path: &Path) -> Result<Self> {
+        let file = File::options().read(true).write(false).open(path)?;
+        let size = file.metadata()?.len();
+        Ok(FileObject(Some(file), size))
     }
 }
 
