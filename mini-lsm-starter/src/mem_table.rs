@@ -1,25 +1,45 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::ops::Bound;
+use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
+use crossbeam_skiplist::map::Entry;
 use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
 use crate::table::SsTableBuilder;
+use crate::wal::Wal;
 
 /// A basic mem-table based on crossbeam-skiplist
 pub struct MemTable {
-    map: SkipMap<Bytes, Bytes>,
+    map: Arc<SkipMap<Bytes, Bytes>>,
+    wal: Option<Wal>,
+    id: usize,
+}
+
+pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
+    match bound {
+        Bound::Included(x) => Bound::Included(Bytes::copy_from_slice(x)),
+        Bound::Excluded(x) => Bound::Excluded(Bytes::copy_from_slice(x)),
+        Bound::Unbounded => Bound::Unbounded,
+    }
 }
 
 impl MemTable {
     /// Create a new mem-table.
-    pub fn create() -> Self {
+    pub fn create(id: usize) -> Self {
+        unimplemented!()
+    }
+
+    /// Create a new mem-table with WAL
+    pub fn create_with_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+        unimplemented!()
+    }
+
+    /// Create a memtable from WAL
+    pub fn recover_from_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
@@ -29,8 +49,15 @@ impl MemTable {
     }
 
     /// Put a key-value pair into the mem-table.
-    pub fn put(&self, key: &[u8], value: &[u8]) {
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         unimplemented!()
+    }
+
+    pub fn sync_wal(&self) -> Result<()> {
+        if let Some(ref wal) = self.wal {
+            wal.sync()?;
+        }
+        Ok(())
     }
 
     /// Get an iterator over a range of keys.
@@ -41,6 +68,10 @@ impl MemTable {
     /// Flush the mem-table to SSTable.
     pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
         unimplemented!()
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
     }
 }
 

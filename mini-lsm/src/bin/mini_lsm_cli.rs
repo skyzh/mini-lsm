@@ -35,6 +35,7 @@ fn main() -> Result<()> {
         LsmStorageOptions {
             block_size: 4096,
             target_sst_size: 2 << 20, // 2MB
+            num_memtable_limit: 3,
             compaction_options: match args.compaction {
                 CompactionStrategy::Simple => {
                     CompactionOptions::Simple(SimpleLeveledCompactionOptions {

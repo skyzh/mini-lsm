@@ -62,7 +62,8 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 4.4            | Alternative Block Encodings                     |          |              |         |
 | 4.5            | Rate Limiter and I/O Optimizations              |          |              |         |
 | 4.6            | Build Your Own Block Cache                      |          |              |         |
-| 4.7            | Async Engine                                    |          |              |         |
-| 4.8            | Key-Value Separation                            |          |              |         |
-| 4.9            | Column Families                                 |          |              |         |
-| 4.10           | SQL over Mini-LSM                               |          |              |         |
+| 4.7            | Build Your Own SkipList                         |          |              |         |
+| 4.8            | Async Engine                                    |          |              |         |
+| 4.9            | Key-Value Separation                            |          |              |         |
+| 4.10           | Column Families                                 |          |              |         |
+| 4.11           | SQL over Mini-LSM                               |          |              |         |

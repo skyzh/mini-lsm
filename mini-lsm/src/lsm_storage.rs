@@ -62,6 +62,7 @@ impl LsmStorageState {
 pub struct LsmStorageOptions {
     pub block_size: usize,
     pub target_sst_size: usize,
+    pub num_memtable_limit: usize,
     pub compaction_options: CompactionOptions,
     pub enable_wal: bool,
 }
@@ -73,6 +74,7 @@ impl LsmStorageOptions {
             target_sst_size: 2 << 20,
             compaction_options: CompactionOptions::NoCompaction,
             enable_wal: false,
+            num_memtable_limit: 3,
         }
     }
 }
