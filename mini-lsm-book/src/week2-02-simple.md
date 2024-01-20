@@ -7,4 +7,8 @@ In this chapter, you will:
 * Implement a simple leveled compaction strategy and simulate it on the compaction simulator.
 * Start compaction as a background task and implement a compaction trigger in the system.
 
+## Test Your Understanding
+
+* What is your favorite boba shop in your city? (If you answered yes in week 1 day 3...)
+
 {{#include copyright.md}}
