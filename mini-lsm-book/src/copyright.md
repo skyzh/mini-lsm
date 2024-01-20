@@ -1,1 +1,1 @@
-<p style="text-color: grey; text-align: center; margin-top: 3em"><small>Copyright © 2022 - 2024 Alex Chi Z. All Rights Reserved.</small></p>
+<p style="text-align: center; margin-top: 3em"><small>Your feedback is greatly appreciated. Welcome to join our <a href="https://skyzh.dev/join/discord">Discord Community</a>.<br>Copyright © 2022 - 2024 Alex Chi Z. All Rights Reserved.</small></p>

@@ -1,4 +1,4 @@
-# Get Started
+# Environment Setup
 
 The starter code and reference solution is available at [https://github.com/skyzh/mini-lsm](https://github.com/skyzh/mini-lsm).
 

@@ -10,8 +10,8 @@ In this chapter, you will:
 
 ## Task 1: Two Merge Iterator
 
-## Task 2: Read Path - Get
+## Task 3: Read Path - Get
 
-## Task 3: Read Path - Scan
+## Task 4: Read Path - Scan
 
 {{#include copyright.md}}
