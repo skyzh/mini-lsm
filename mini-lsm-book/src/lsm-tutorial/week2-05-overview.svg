@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="6 245 765 268" width="765" height="268">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="6 245 765 268" width="765" height="268">
   <defs>
     <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
       <g>
@@ -13,7 +13,7 @@
       </g>
     </marker>
   </defs>
-  <g id="week2-05-overview" fill-opacity="1" stroke-dasharray="none" fill="none" stroke-opacity="1" stroke="none">
+  <g id="week2-05-overview" stroke-dasharray="none" fill="none" fill-opacity="1" stroke="none" stroke-opacity="1">
     <title>week2-05-overview</title>
     <rect fill="white" x="6" y="245" width="765" height="268"/>
     <g id="week2-05-overview_Layer_1">

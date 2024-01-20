@@ -37,7 +37,9 @@ Now, we will add our first data structure, the memtable, to the LSM state. In `L
 
 Taking a look at `lsm_storage.rs`, you will find there are two structures that represents a storage engine: `MiniLSM` and `LsmStorageInner`. `MiniLSM` is a thin wrapper for `LsmStorageInner`. You will implement most of the functionalities in `LsmStorageInner`, until week 2 compaction.
 
-`LsmStorageState` stores the current structure of the LSM storage engine. For now, we will only use the `memtable` field, which stores the current memtable. In this task, you will need to implement `LsmStorageInner::get`, `LsmStorageInner::put`, and `LsmStorageInner::delete`. All of them should directly dispatch the request to the current memtable.
+`LsmStorageState` stores the current structure of the LSM storage engine. For now, we will only use the `memtable` field, which stores the current mutable memtable. In this task, you will need to implement `LsmStorageInner::get`, `LsmStorageInner::put`, and `LsmStorageInner::delete`. All of them should directly dispatch the request to the current memtable.
+
+![one memtable LSM](./lsm-tutorial/week1-01-single.svg)
 
 Your `delete` implementation should simply put an empty slice for that key, and we call it a *delete tombstone*. Your `get` implementation should handle this case correspondingly.
 
@@ -51,6 +53,8 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 src/mem_table.rs
 ```
+
+![one memtable LSM](./lsm-tutorial/week1-01-frozen.svg)
 
 A memtable cannot continuously grow in size, and we will need to freeze them (and later flush to the disk) when it reaches the size limit. You may find the memtable size limit, which is equal to the SST size limit, in the `LsmStorageOptions`. This is not a hard limit and you should freeze the memtable at best effort.
 
