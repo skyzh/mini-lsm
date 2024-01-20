@@ -8,3 +8,5 @@ In this chapter, you will:
 
 * Implement the batch write interface.
 * Add checksums to the blocks, SST metadata, manifest, and WALs.
+
+{{#include copyright.md}}

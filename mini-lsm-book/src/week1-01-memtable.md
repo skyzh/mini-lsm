@@ -13,3 +13,5 @@ In this chapter, you will:
 ## Task 2: Write Path - Freezing a Memtable
 
 ## Task 3: Read Path - Get
+
+{{#include copyright.md}}

@@ -4,3 +4,4 @@
 
 key functionalities index
 
+{{#include copyright.md}}

@@ -13,3 +13,5 @@ In this chapter, you will:
 ## Task 2: Merge Iterator
 
 ## Task 3: Read Path - Scan
+
+{{#include copyright.md}}

@@ -89,3 +89,5 @@ Remember to change `SsTableIterator` to use the block cache.
   do some work. One possible optimization is to implement `WriteBatch`. We don't need to immediately write users'
   requests into mem-table + WAL. We can allow users to do a batch of writes.
 * Align blocks to 4K and use direct I/O.
+
+{{#include copyright.md}}

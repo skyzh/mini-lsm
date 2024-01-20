@@ -97,3 +97,5 @@ Here is a list of extra tasks you can do to make the block encoding more robust 
 * Implement index checksum. Verify checksum when decoding.
 * Explore different SST encoding and layout. For example, in the [Lethe](https://disc-projects.bu.edu/lethe/) paper,
   the author adds secondary key support to SST.
+
+{{#include copyright.md}}

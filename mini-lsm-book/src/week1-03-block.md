@@ -10,3 +10,5 @@ In this chapter, you will:
 ## Task 1: Block Builder
 
 ## Task 2: Block Iterator
+
+{{#include copyright.md}}

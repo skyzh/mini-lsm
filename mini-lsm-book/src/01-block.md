@@ -112,3 +112,5 @@ Here is a list of extra tasks you can do to make the block encoding more robust 
 
 * Implement block checksum. Verify checksum when decoding the block.
 * Compress / Decompress block. Compress on `build` and decompress on decoding.
+
+{{#include copyright.md}}

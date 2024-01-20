@@ -10,3 +10,5 @@ In this chapter, you will:
 ## Task 1: SST Builder
 
 ## Task 2: SST Iterator
+
+{{#include copyright.md}}

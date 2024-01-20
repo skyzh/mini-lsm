@@ -151,3 +151,5 @@ common optimization in LSM storage engines.
   will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` /
   `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow
   garbage collection of the resources.
+
+{{#include copyright.md}}

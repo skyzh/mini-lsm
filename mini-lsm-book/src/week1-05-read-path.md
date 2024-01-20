@@ -13,3 +13,5 @@ In this chapter, you will:
 ## Task 2: Read Path - Get
 
 ## Task 3: Read Path - Scan
+
+{{#include copyright.md}}

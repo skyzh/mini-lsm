@@ -6,3 +6,5 @@ In this chapter, you will:
 
 * Implement a tiered compaction strategy and simulate it on the compaction simulator.
 * Incorporate tiered compaction strategy into the system.
+
+{{#include copyright.md}}

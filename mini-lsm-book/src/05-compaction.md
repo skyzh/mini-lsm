@@ -14,3 +14,5 @@ and this chapter is now part of:
 </div>
 
 We did not finish this chapter as part of Mini-LSM v1.
+
+{{#include copyright.md}}

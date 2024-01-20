@@ -8,3 +8,5 @@ and this chapter is now part of [Mini LSM Week 1 Day 7: SST Optimizations](./wee
 </div>
 
 We did not finish this chapter as part of Mini-LSM v1.
+
+{{#include copyright.md}}

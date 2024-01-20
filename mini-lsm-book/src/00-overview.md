@@ -155,3 +155,5 @@ should have a separate preface (before you start) chapter? and what's new with v
 
 ## What will you get after taking this course...
 -->
+
+{{#include copyright.md}}

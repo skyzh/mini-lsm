@@ -8,3 +8,5 @@ In this chapter, you will:
 
 * Implement bloom filter on SSTs and integrate into the LSM read path `get`.
 * Implement key compression in SST block format.
+
+{{#include copyright.md}}

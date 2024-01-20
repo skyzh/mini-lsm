@@ -31,3 +31,5 @@ cargo x install-tools
 cargo x copy-test day1
 cargo x scheck
 ```
+
+{{#include copyright.md}}

@@ -10,3 +10,5 @@ In this chapter, you will:
 ## Task 1: Flush Memtable to SST
 
 ## Task 2: Update the LSM State
+
+{{#include copyright.md}}
