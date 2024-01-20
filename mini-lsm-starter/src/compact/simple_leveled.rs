@@ -30,16 +30,16 @@ impl SimpleLeveledCompactionController {
 
     pub fn generate_compaction_task(
         &self,
-        snapshot: &LsmStorageState,
+        _snapshot: &LsmStorageState,
     ) -> Option<SimpleLeveledCompactionTask> {
         unimplemented!()
     }
 
     pub fn apply_compaction_result(
         &self,
-        snapshot: &LsmStorageState,
-        task: &SimpleLeveledCompactionTask,
-        output: &[usize],
+        _snapshot: &LsmStorageState,
+        _task: &SimpleLeveledCompactionTask,
+        _output: &[usize],
     ) -> (LsmStorageState, Vec<usize>) {
         unimplemented!()
     }

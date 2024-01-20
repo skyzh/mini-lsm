@@ -1,3 +1,5 @@
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
 use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
@@ -12,15 +14,15 @@ pub struct Wal {
 }
 
 impl Wal {
-    pub fn create(path: impl AsRef<Path>) -> Result<Self> {
+    pub fn create(_path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
-    pub fn recover(path: impl AsRef<Path>, skiplist: &SkipMap<Bytes, Bytes>) -> Result<Self> {
+    pub fn recover(_path: impl AsRef<Path>, _skiplist: &SkipMap<Bytes, Bytes>) -> Result<Self> {
         unimplemented!()
     }
 
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 

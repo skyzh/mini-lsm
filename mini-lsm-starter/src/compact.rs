@@ -1,3 +1,5 @@
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
 mod leveled;
 mod simple_leveled;
 mod tiered;
@@ -13,11 +15,8 @@ pub use simple_leveled::{
 };
 pub use tiered::{TieredCompactionController, TieredCompactionOptions, TieredCompactionTask};
 
-use crate::iterators::merge_iterator::MergeIterator;
-use crate::iterators::StorageIterator;
 use crate::lsm_storage::{LsmStorageInner, LsmStorageState};
-use crate::manifest::ManifestRecord;
-use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
+use crate::table::SsTable;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CompactionTask {
@@ -105,7 +104,7 @@ pub enum CompactionOptions {
 }
 
 impl LsmStorageInner {
-    fn compact(&self, task: &CompactionTask) -> Result<Vec<Arc<SsTable>>> {
+    fn compact(&self, _task: &CompactionTask) -> Result<Vec<Arc<SsTable>>> {
         unimplemented!()
     }
 

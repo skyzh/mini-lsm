@@ -151,6 +151,10 @@ impl MiniLsm {
         self.inner.force_freeze_memtable()?;
         self.inner.force_flush_next_imm_memtable()
     }
+
+    pub fn force_full_compaction(&self) -> Result<()> {
+        self.inner.force_full_compaction()
+    }
 }
 
 impl LsmStorageInner {

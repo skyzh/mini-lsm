@@ -1,10 +1,11 @@
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
 use std::ops::Bound;
 use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
-use crossbeam_skiplist::map::Entry;
 use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
@@ -29,27 +30,27 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 
 impl MemTable {
     /// Create a new mem-table.
-    pub fn create(id: usize) -> Self {
+    pub fn create(_id: usize) -> Self {
         unimplemented!()
     }
 
     /// Create a new mem-table with WAL
-    pub fn create_with_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+    pub fn create_with_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
     /// Create a memtable from WAL
-    pub fn recover_from_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+    pub fn recover_from_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
     /// Get a value by key.
-    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
+    pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
         unimplemented!()
     }
 
     /// Put a key-value pair into the mem-table.
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
@@ -61,12 +62,12 @@ impl MemTable {
     }
 
     /// Get an iterator over a range of keys.
-    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
+    pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
         unimplemented!()
     }
 
     /// Flush the mem-table to SSTable.
-    pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
+    pub fn flush(&self, _builder: &mut SsTableBuilder) -> Result<()> {
         unimplemented!()
     }
 

@@ -1,26 +1,24 @@
-use std::collections::{BTreeSet, HashMap};
-use std::fs::File;
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
+use std::collections::HashMap;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use bytes::Bytes;
 use parking_lot::{Mutex, RwLock};
 
 use crate::block::Block;
 use crate::compact::{
-    CompactionController, CompactionOptions, LeveledCompactionController, LeveledCompactionOptions,
-    SimpleLeveledCompactionController, SimpleLeveledCompactionOptions, TieredCompactionController,
+    CompactionController, CompactionOptions, LeveledCompactionOptions,
+    SimpleLeveledCompactionOptions,
 };
-use crate::iterators::merge_iterator::MergeIterator;
-use crate::iterators::two_merge_iterator::TwoMergeIterator;
-use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
-use crate::manifest::{Manifest, ManifestRecord};
-use crate::mem_table::{map_bound, MemTable};
-use crate::table::{FileObject, SsTable, SsTableBuilder, SsTableIterator};
+use crate::manifest::Manifest;
+use crate::mem_table::MemTable;
+use crate::table::SsTable;
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
@@ -108,7 +106,7 @@ impl MiniLsm {
         unimplemented!()
     }
 
-    pub fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Arc<Self>> {
+    pub fn open(_path: impl AsRef<Path>, _options: LsmStorageOptions) -> Result<Arc<Self>> {
         unimplemented!()
     }
 
@@ -136,6 +134,10 @@ impl MiniLsm {
         self.inner.force_freeze_memtable()?;
         self.inner.force_flush_next_imm_memtable()
     }
+
+    pub fn force_full_compaction(&self) -> Result<()> {
+        self.inner.force_full_compaction()
+    }
 }
 
 impl LsmStorageInner {
@@ -144,22 +146,22 @@ impl LsmStorageInner {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 
-    pub(crate) fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Self> {
+    pub(crate) fn open(_path: impl AsRef<Path>, _options: LsmStorageOptions) -> Result<Self> {
         unimplemented!()
     }
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
-    pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
+    pub fn get(&self, _key: &[u8]) -> Result<Option<Bytes>> {
         unimplemented!()
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
     /// Remove a key from the storage by writing an empty value.
-    pub fn delete(&self, key: &[u8]) -> Result<()> {
+    pub fn delete(&self, _key: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
@@ -196,8 +198,8 @@ impl LsmStorageInner {
     /// Create an iterator over a range of keys.
     pub fn scan(
         &self,
-        lower: Bound<&[u8]>,
-        upper: Bound<&[u8]>,
+        _lower: Bound<&[u8]>,
+        _upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
         unimplemented!()
     }

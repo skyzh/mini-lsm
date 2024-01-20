@@ -1,3 +1,5 @@
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
 use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
@@ -20,11 +22,11 @@ pub enum ManifestRecord {
 }
 
 impl Manifest {
-    pub fn create(path: impl AsRef<Path>) -> Result<Self> {
+    pub fn create(_path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
-    pub fn recover(path: impl AsRef<Path>) -> Result<(Self, Vec<ManifestRecord>)> {
+    pub fn recover(_path: impl AsRef<Path>) -> Result<(Self, Vec<ManifestRecord>)> {
         unimplemented!()
     }
 
@@ -36,7 +38,7 @@ impl Manifest {
         self.add_record_when_init(record)
     }
 
-    pub fn add_record_when_init(&self, record: ManifestRecord) -> Result<()> {
+    pub fn add_record_when_init(&self, _record: ManifestRecord) -> Result<()> {
         unimplemented!()
     }
 }

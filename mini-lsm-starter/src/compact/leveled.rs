@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
 
 use crate::lsm_storage::LsmStorageState;
@@ -33,25 +31,25 @@ impl LeveledCompactionController {
 
     fn find_overlapping_ssts(
         &self,
-        snapshot: &LsmStorageState,
-        sst_ids: &[usize],
-        in_level: usize,
+        _snapshot: &LsmStorageState,
+        _sst_ids: &[usize],
+        _in_level: usize,
     ) -> Vec<usize> {
         unimplemented!()
     }
 
     pub fn generate_compaction_task(
         &self,
-        snapshot: &LsmStorageState,
+        _snapshot: &LsmStorageState,
     ) -> Option<LeveledCompactionTask> {
         unimplemented!()
     }
 
     pub fn apply_compaction_result(
         &self,
-        snapshot: &LsmStorageState,
-        task: &LeveledCompactionTask,
-        output: &[usize],
+        _snapshot: &LsmStorageState,
+        _task: &LeveledCompactionTask,
+        _output: &[usize],
     ) -> (LsmStorageState, Vec<usize>) {
         unimplemented!()
     }
