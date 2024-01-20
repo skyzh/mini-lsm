@@ -45,6 +45,13 @@ To access the memtable, you will need to take the `state` lock. As our memtable 
 
 ## Task 3: Write Path - Freezing a Memtable
 
+In this task, you will need to modify:
+
+```
+src/lsm_storage.rs
+src/mem_table.rs
+```
+
 A memtable cannot continuously grow in size, and we will need to freeze them (and later flush to the disk) when it reaches the size limit. You may find the memtable size limit, which is equal to the SST size limit, in the `LsmStorageOptions`. This is not a hard limit and you should freeze the memtable at best effort.
 
 In this task, you will need to compute the approximate memtable size when put/delete a key in the memtable. This can be computed by simply adding the total number of bytes of keys and values when `put` is called. Is a key is put twice, though the skiplist only contains the latest value, you may count it twice in the approximate memtable size. Once a memtable reaches the limit, you should call `force_freeze_memtable` to freeze the memtable and create a new one.
@@ -123,6 +130,12 @@ You can simply assign the next memtable id as `self.next_sst_id()`. Note that th
 
 ## Task 4: Read Path - Get
 
+In this task, you will need to modify:
+
+```
+src/lsm_storage.rs
+```
+
 Now that you have multiple memtables, you may modify your read path `get` function to get the latest version of a key. Ensure that you probe the memtables from the latest one to the earliest one.
 
 ## Test Your Understanding
@@ -133,5 +146,9 @@ Now that you have multiple memtables, you may modify your read path `get` functi
 * Why does the order to store and to probe the memtables matter?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+
+## Bonus Tasks
+
+* You may implement other memtable formats. For example, BTree memtable, vector memtable, and ART memtable.
 
 {{#include copyright.md}}
