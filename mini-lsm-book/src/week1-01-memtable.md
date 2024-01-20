@@ -24,6 +24,8 @@ You will also notice that the `MemTable` structure does not have a `delete` inte
 
 In this task, you will need to implement `MemTable::get` and `MemTable::put` to enable modifications of the memtable.
 
+We use the `bytes` crate for storing the data in the memtable. `bytes::Byte` is similar to `Arc<[u8]>`. When you clone the `Bytes`, or get a slice of `Bytes`, the underlying data will not be copied, and therefore cloning it is cheap. Instead, it simply creates a new reference to the storage area and the storage area will be freed when there are no reference to that area.
+
 ## Task 2: A Single Memtable in the Engine
 
 In this task, you will need to modify:
@@ -148,11 +150,13 @@ Now that you have multiple memtables, you may modify your read path `get` functi
 * Is it possible to use other data structures as the memtable in LSM? What are the pros/cons of using the skiplist?
 * Why do we need a combination of `state` and `state_lock`? Can we only use `state.read()` and `state.write()`?
 * Why does the order to store and to probe the memtables matter?
+* Is the memory layout of the memtable efficient / does it have good data locality? (Think of how `Byte` is implemented...) What are the possible optimizations to make the memtable more efficient?
+* So we are using `parking_lot` locks in this tutorial. Is its read-write lock a fair lock? What might happen to the readers trying to acquire the lock if there is one writer waiting for existing readers to stop?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
 ## Bonus Tasks
 
-* You may implement other memtable formats. For example, BTree memtable, vector memtable, and ART memtable.
+* **More Memtable Formats.** You may implement other memtable formats. For example, BTree memtable, vector memtable, and ART memtable.
 
 {{#include copyright.md}}
