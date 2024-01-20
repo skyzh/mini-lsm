@@ -20,8 +20,10 @@ use crate::lsm_storage::BlockCache;
 pub struct BlockMeta {
     /// Offset of this data block.
     pub offset: usize,
-    /// The first key of the data block, mainly used for index purpose.
+    /// The first key of the data block.
     pub first_key: Bytes,
+    /// The last key of the data block.
+    pub last_key: Bytes,
 }
 
 impl BlockMeta {
@@ -138,7 +140,23 @@ impl SsTable {
 
     /// Get number of data blocks.
     pub fn num_of_blocks(&self) -> usize {
-        unimplemented!()
+        self.block_metas.len()
+    }
+
+    pub fn first_key(&self) -> &Bytes {
+        &self.first_key
+    }
+
+    pub fn last_key(&self) -> &Bytes {
+        &self.last_key
+    }
+
+    pub fn table_size(&self) -> u64 {
+        self.file.1
+    }
+
+    pub fn sst_id(&self) -> usize {
+        self.id
     }
 }
 
