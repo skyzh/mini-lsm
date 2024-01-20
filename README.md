@@ -51,11 +51,13 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 2.5            | Manifest                                        | ✅        |              |         |
 | 2.6            | Write-Ahead Log                                 | ✅        |              |         |
 | 2.7            | Batch Write + Checksum                          |          |              |         |
-| 3.1            | Timestamp Encoding + Prefix Bloom Filter        |          |              |         |
-| 3.2            | Snapshot Read                                   |          |              |         |
-| 3.3            | Watermark and Garbage Collection                |          |              |         |
-| 3.4            | Transactions and Optimistic Concurrency Control |          |              |         |
-| 3.5            | Serializable Snapshot Isolation                 |          |              |         |
+| 3.1            | Timestamp Key Encoding + New Block Format       |          |              |         |
+| 3.2            | Prefix Bloom Filter                             |          |              |         |
+| 3.3            | Snapshot Read                                   |          |              |         |
+| 3.4            | Watermark and Garbage Collection                |          |              |         |
+| 3.5            | Transactions and Optimistic Concurrency Control |          |              |         |
+| 3.6            | Serializable Snapshot Isolation                 |          |              |         |
+| 3.7            | TTL (Time-to-Live) Entries                      |          |              |         |
 | 4.1            | Benchmarking                                    |          |              |         |
 | 4.2            | Block Compression                               |          |              |         |
 | 4.3            | Trivial Move and Parallel Compaction            |          |              |         |
