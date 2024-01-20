@@ -4,25 +4,6 @@
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
----
-
-# Mini-LSM v1
-
-- [Overview](./00-v1.md)
-  - [Store key-value pairs in little blocks](./01-block.md)
-  - [And make them into an SST](./02-sst.md)
-  - [Now it's time to merge everything](./03-memtable.md)
-  - [The engine is on fire](./04-engine.md)
-  - [Let's do something in the background](./05-compaction.md)
-  - [Be careful when the system crashes](./06-recovery.md)
-  - [A good bloom filter makes life easier](./07-bloom-filter.md)
-  - [Save some space, hopefully](./08-key-compression.md)
-  - [What's next](./09-whats-next.md)
-
----
-
-# Mini-LSM v2
-
 - [Week 1 Overview: Mini-LSM](./week1-overview.md)
   - [Memtable](./week1-01-memtable.md)
   - [Merge Iterator](./week1-02-merge-iterator.md)
@@ -42,6 +23,19 @@
   - [Snack Time: Batch Write and Checksums](./week2-07-snacks.md)
 
 - [Week 3 Overview: MVCC](./week3-overview.md)
+- [The Rest of Your Life (TBD)](./week4-overview.md)
 
-# The Rest of Your Life (TBD)
+---
 
+# Mini-LSM v1
+
+- [Overview](./00-v1.md)
+  - [Store key-value pairs in little blocks](./01-block.md)
+  - [And make them into an SST](./02-sst.md)
+  - [Now it's time to merge everything](./03-memtable.md)
+  - [The engine is on fire](./04-engine.md)
+  - [Let's do something in the background](./05-compaction.md)
+  - [Be careful when the system crashes](./06-recovery.md)
+  - [A good bloom filter makes life easier](./07-bloom-filter.md)
+  - [Save some space, hopefully](./08-key-compression.md)
+  - [What's next](./09-whats-next.md)
