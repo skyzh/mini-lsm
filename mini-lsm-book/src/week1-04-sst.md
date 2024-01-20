@@ -11,4 +11,7 @@ In this chapter, you will:
 
 ## Task 2: SST Iterator
 
+## Task 3: Block Cache
+
 {{#include copyright.md}}
+``
