@@ -12,6 +12,6 @@ In the first week of the tutorial, you will build necessary storage formats for 
 * Day 6: Write path. In day 5, the test harness generates the structures, and in day 6, you will control the SST flushes by yourself. You will implement flush to level-0 SST and the storage engine is complete.
 * Day 7: SST optimizations. We will implement several SST format optimizations and improve the performance of the system.
 
-At the end of the week, your storage engine should be able to handle all get/scan/put requests. The only missing parts are persisting the LSM state to disk and a more efficient way of organizing the SSTs on the disk. You will have a working *Mini-LSM* storage engine.
+At the end of the week, your storage engine should be able to handle all get/scan/put requests. The only missing parts are persisting the LSM state to disk and a more efficient way of organizing the SSTs on the disk. You will have a working **Mini-LSM** storage engine.
 
 {{#include copyright.md}}

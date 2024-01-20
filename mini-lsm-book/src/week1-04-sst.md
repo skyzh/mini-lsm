@@ -17,5 +17,16 @@ In this chapter, you will:
 
 * An SST is usually large (i.e., 256MB). In this case, the cost of copying/expanding the `Vec` would be significant. Does your implementation allocate enough space for your SST builder in advance? How did you implement it?
 * Looking at the `moka` block cache, why does it return `Arc<Error>` instead of the original `Error`?
+* Does the usage of a block cache guarantee that there will be at most a fixed number of blocks in memory? For example, if you have a `moka` block cache of 4GB and block size of 4KB, will there be more than 4GB/4KB number of blocks in memory at the same time?
+* Is it possible to store columnar data (i.e., a table of 100 integer columns) in an LSM engine? Is the current SST format still a good choice?
+* Consider the case that the LSM engine is built on object store services (S3). How would you optimize/change the SST format/parameters and the block cache to make it suitable for such services?
+
+We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+
+## Bonus Tasks
+
+* **Explore different SST encoding and layout.** For example, in the [Lethe](https://disc-projects.bu.edu/lethe/) paper, the author adds secondary key support to SST. Or you can use B+ Tree as the SST format instead of sorted blocks.
+* **Index Blocks.**
+* **Index Cache.**
 
 {{#include copyright.md}}

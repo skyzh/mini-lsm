@@ -11,6 +11,6 @@ In this chapter, you will:
 
 ## Task 2: Update the LSM State
 
-## Task 3: Filtering the SSTs
+## Task 3: Filter the SSTs
 
 {{#include copyright.md}}
