@@ -2,6 +2,7 @@
 
 use std::ops::Bound;
 use std::path::Path;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -13,13 +14,18 @@ use crate::iterators::StorageIterator;
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
-/// A basic mem-table based on crossbeam-skiplist
+/// A basic mem-table based on crossbeam-skiplist.
+///
+/// An initial implementation of memtable is part of week 1, day 1. It will be incrementally implemented in other
+/// chapters of week 1 and week 2.
 pub struct MemTable {
     map: Arc<SkipMap<Bytes, Bytes>>,
     wal: Option<Wal>,
     id: usize,
+    approximate_size: Arc<AtomicUsize>,
 }
 
+/// Create a bound of `Bytes` from a bound of `&[u8]`.
 pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
     match bound {
         Bound::Included(x) => Bound::Included(Bytes::copy_from_slice(x)),
@@ -50,6 +56,9 @@ impl MemTable {
     }
 
     /// Put a key-value pair into the mem-table.
+    ///
+    /// In week 1, day 1, simply put the key-value pair into the skipmap.
+    /// In week 2, day 6, also flush the data to WAL.
     pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
@@ -74,18 +83,29 @@ impl MemTable {
     pub fn id(&self) -> usize {
         self.id
     }
+
+    pub fn approximate_size(&self) -> usize {
+        self.approximate_size
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
 }
 
 type SkipMapRangeIter<'a> =
     crossbeam_skiplist::map::Range<'a, Bytes, (Bound<Bytes>, Bound<Bytes>), Bytes, Bytes>;
 
-/// An iterator over a range of `SkipMap`.
+/// An iterator over a range of `SkipMap`. This is a self-referential structure and please refer to week 1, day 2
+/// chapter for more information.
+///
+/// This is part of week 1, day 2.
 #[self_referencing]
 pub struct MemTableIterator {
+    /// Stores a reference to the skipmap.
     map: Arc<SkipMap<Bytes, Bytes>>,
+    /// Stores a skipmap iterator that refers to the lifetime of `MemTableIterator` itself.
     #[borrows(map)]
     #[not_covariant]
     iter: SkipMapRangeIter<'this>,
+    /// Stores the current key-value pair.
     item: (Bytes, Bytes),
 }
 
@@ -106,6 +126,3 @@ impl StorageIterator for MemTableIterator {
         unimplemented!()
     }
 }
-
-#[cfg(test)]
-mod tests;
