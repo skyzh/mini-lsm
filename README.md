@@ -69,3 +69,7 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | 4.9            | Key-Value Separation                            |          |              |         |
 | 4.10           | Column Families                                 |          |              |         |
 | 4.11           | SQL over Mini-LSM                               |          |              |         |
+
+## License
+
+The Mini-LSM starter code and solution are under Apache 2.0 license. The author reserves the full copyright of the tutorial materials (markdown files and figures).
