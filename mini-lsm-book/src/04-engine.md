@@ -2,7 +2,7 @@
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We are working on a new version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 5: Read Path](./week1-05-read-path.md) and [Mini-LSM Week 1 Day 6: Write Path](./week1-06-write-path.md)
+This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 5: Read Path](./week1-05-read-path.md) and [Mini-LSM Week 1 Day 6: Write Path](./week1-06-write-path.md)
 
 </div>
 

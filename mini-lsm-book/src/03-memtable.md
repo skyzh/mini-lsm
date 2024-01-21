@@ -2,7 +2,7 @@
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We are working on a new version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 1: Memtable](./week1-01-memtable.md) and [Mini-LSM Week 1 Day 2: Merge Iterator](./week1-02-merge-iterator.md)
+This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 1: Memtable](./week1-01-memtable.md) and [Mini-LSM Week 1 Day 2: Merge Iterator](./week1-02-merge-iterator.md)
 
 </div>
 
