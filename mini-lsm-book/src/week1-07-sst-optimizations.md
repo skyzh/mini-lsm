@@ -9,6 +9,14 @@ In this chapter, you will:
 * Implement bloom filter on SSTs and integrate into the LSM read path `get`.
 * Implement key compression in SST block format.
 
+
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 7
+cargo x scheck
+```
+
 ## Task 1: Bloom Filters
 
 ## Task 2: Integrate Bloom Filter on the Read Path

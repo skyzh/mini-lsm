@@ -8,6 +8,14 @@ In this chapter, you will:
 * Implement LSM read path `get` with SSTs.
 * Implement LSM read path `scan` with SSTs.
 
+
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 5
+cargo x scheck
+```
+
 ## Task 1: Two Merge Iterator
 
 ## Task 2: Read Path - Get

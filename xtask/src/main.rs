@@ -1,16 +1,16 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use console::style;
 use duct::cmd;
 
-#[derive(clap::Subcommand, Debug)]
-enum CopyTestAction {
-    Day1,
-    Day2,
-    Day3,
-    Day4,
+#[derive(clap::Parser, Debug)]
+struct CopyTestAction {
+    #[arg(long)]
+    week: usize,
+    #[arg(long)]
+    day: usize,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -30,7 +30,6 @@ enum Action {
     /// Check starter code
     Scheck,
     /// Copy test cases
-    #[command(subcommand)]
     CopyTest(CopyTestAction),
 }
 
@@ -126,58 +125,44 @@ fn sync() -> Result<()> {
 }
 
 fn copy_test_case(test: CopyTestAction) -> Result<()> {
-    match test {
-        CopyTestAction::Day1 => {
-            cmd!(
-                "cp",
-                "mini-lsm/src/block/tests.rs",
-                "mini-lsm-starter/src/block/tests.rs"
-            )
-            .run()?;
-        }
-        CopyTestAction::Day2 => {
-            cmd!(
-                "cp",
-                "mini-lsm/src/table/tests.rs",
-                "mini-lsm-starter/src/table/tests.rs"
-            )
-            .run()?;
-        }
-        CopyTestAction::Day3 => {
-            cmd!(
-                "cp",
-                "mini-lsm/src/mem_table/tests.rs",
-                "mini-lsm-starter/src/mem_table/tests.rs"
-            )
-            .run()?;
-            cmd!(
-                "cp",
-                "mini-lsm/src/iterators/tests/merge_iterator_test.rs",
-                "mini-lsm-starter/src/iterators/tests/merge_iterator_test.rs"
-            )
-            .run()?;
-            cmd!(
-                "cp",
-                "mini-lsm/src/iterators/tests/two_merge_iterator_test.rs",
-                "mini-lsm-starter/src/iterators/tests/two_merge_iterator_test.rs"
-            )
-            .run()?;
-            cmd!(
-                "cp",
-                "mini-lsm/src/iterators/tests.rs",
-                "mini-lsm-starter/src/iterators/tests.rs"
-            )
-            .run()?;
-        }
-        CopyTestAction::Day4 => {
-            cmd!(
-                "cp",
-                "mini-lsm/src/tests/day4_tests.rs",
-                "mini-lsm-starter/src/tests/day4_tests.rs"
-            )
-            .run()?;
+    use std::fmt::Write;
+    let src_dir = "mini-lsm/src/tests";
+    let target_dir = "mini-lsm-starter/src/tests";
+    if !Path::new(target_dir).exists() {
+        std::fs::create_dir(target_dir)?;
+    }
+    let test_filename = format!("week{}_day{}.rs", test.week, test.day);
+    let src = format!("{}/{}", src_dir, test_filename);
+    let target = format!("{}/{}", target_dir, test_filename);
+    cmd!("cp", src, target).run()?;
+    let test_filename = "harness.rs";
+    let src = format!("{}/{}", src_dir, test_filename);
+    let target = format!("{}/{}", target_dir, test_filename);
+    cmd!("cp", src, target).run()?;
+    let mut test_file = Vec::new();
+    for file in Path::new(&target_dir).read_dir()? {
+        let file = file?;
+        let fname = file.file_name();
+        let fnamestr = fname
+            .as_os_str()
+            .to_str()
+            .ok_or_else(|| anyhow!("invalid filename?"))?;
+        if let Some((mod_name, _)) = fnamestr.split_once(".rs") {
+            test_file.push(mod_name.to_string());
         }
     }
+    let mut tests_mod = String::new();
+    writeln!(tests_mod, "//! DO NOT MODIFY -- Mini-LSM tests modules")?;
+    writeln!(
+        tests_mod,
+        "//! This file will be automatically rewritten by the copy-test command."
+    )?;
+    writeln!(tests_mod)?;
+    for tf in test_file {
+        writeln!(tests_mod, "mod {};", tf)?;
+    }
+    println!("{}", tests_mod);
+    std::fs::write("mini-lsm-starter/src/tests.rs", tests_mod)?;
     Ok(())
 }
 

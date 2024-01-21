@@ -7,6 +7,14 @@ In this chapter, you will:
 * Implement SST block encoding.
 * Implement SST block decoding and block iterator.
 
+
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 3
+cargo x scheck
+```
+
 ## Task 1: Block Builder
 
 You have already implemented all in-memory structures for an LSM storage engine in the previous two chapters. Now it's time to build the on-disk structures. The basic unit of the on-disk structure is blocks. Blocks are usually of 4-KB size (the size may vary depending on the storage medium), which is equivalent to the page size in the operating system and the page size on an SSD. A block stores ordered key-value pairs. An SST is composed of multiple blocks. When the number of memtables exceed the system limit, it will flush the memtable as an SST. In this chapter, you will implement the encoding and decoding of a block.

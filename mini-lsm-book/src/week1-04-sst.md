@@ -7,6 +7,14 @@ In this chapter, you will:
 * Implement SST encoding and metadata encoding.
 * Implement SST decoding and iterator.
   
+
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 4
+cargo x scheck
+```
+
 ## Task 1: SST Builder
 
 In this task, you will need to modify:

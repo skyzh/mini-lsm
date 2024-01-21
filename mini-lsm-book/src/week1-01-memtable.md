@@ -8,6 +8,13 @@ In this chapter, you will:
 * Implement freezing memtable logic.
 * Implement LSM read path `get` for memtables.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 1
+cargo x scheck
+```
+
 ## Task 1: SkipList Memtable
 
 In this task, you will need to modify:

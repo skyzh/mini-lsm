@@ -28,7 +28,7 @@ cargo x install-tools
 ## Run tests
 
 ```
-cargo x copy-test day1
+cargo x copy-test --week 1 --day 1
 cargo x scheck
 ```
 

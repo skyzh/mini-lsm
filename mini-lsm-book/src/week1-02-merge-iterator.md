@@ -8,6 +8,14 @@ In this chapter, you will:
 * Implement merge iterator.
 * Implement LSM read path `scan` for memtables.
 
+
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 1 --day 2
+cargo x scheck
+```
+
 ## Task 1: Memtable Iterator
 
 In this chapter, we will implement the LSM `scan` interface. `scan` returns a range of key-value pairs in order using an iterator API. In the previous chapter, you have implemented the `get` API and the logic to create immutable memtables, and your LSM state should now have multiple memtables. You will need to first create iterators on a single memtable, then create a merge iterator on all memtables, and finally implement the range limit for the iterators.
