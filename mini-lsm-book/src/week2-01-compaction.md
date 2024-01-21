@@ -10,6 +10,8 @@ In this chapter, you will:
 
 ## Test Your Understanding
 
+* What are the definitions of read/write/space amplifications? (This is covered in the overview chapter)
+* What are the ways to accurately compute the read/write/space amplifications, and what are the ways to estimate them?
 * Is it correct that a key will take some storage space even if a user requests to delete it?
 * Given that compaction takes a lot of write bandwidth and read bandwidth and may interfere with foreground operations, it is a good idea to postpone compaction when there are large write flow. It is even beneficial to stop/pause existing compaction tasks in this situation. What do you think of this idea? (Read the Slik paper!)
 * Is it a good idea to use/fill the block cache for compactions? Or is it better to fully bypass the block cache when compaction?
