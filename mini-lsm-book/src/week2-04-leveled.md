@@ -7,6 +7,12 @@ In this chapter, you will:
 * Implement a leveled compaction strategy and simulate it on the compaction simulator.
 * Incorporate leveled compaction strategy into the system.
 
+## Task 1: Leveled Compaction
+
+## Task 2: Compaction Simulation
+
+## Task 3: Integrate with the Read Path
+
 ## Test Your Understanding
 
 * Finding a good key split point for compaction may potentially reduce the write amplification, or it does not matter at all?

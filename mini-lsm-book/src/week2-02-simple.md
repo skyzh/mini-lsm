@@ -7,6 +7,12 @@ In this chapter, you will:
 * Implement a simple leveled compaction strategy and simulate it on the compaction simulator.
 * Start compaction as a background task and implement a compaction trigger in the system.
 
+## Task 1: Simple Level Compaction
+
+## Task 2: Compaction Simulation
+
+## Task 3: Integrate with the Read Path
+
 ## Test Your Understanding
 
 * Is it correct that a key will only be purged from the LSM tree if the user requests to delete it and it has been compacted in the bottom-most level?

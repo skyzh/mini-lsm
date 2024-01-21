@@ -9,6 +9,12 @@ In this chapter, you will:
 
 The tiered compaction we talk about in this chapter is the same as RocksDB's universal compaction. We will use these two terminologies interchangeably.
 
+## Task 1: Universal Compaction
+
+## Task 2: Compaction Simulation
+
+## Task 3: Integrate with the Read Path
+
 ## Test Your Understanding
 
 * What are the pros/cons of universal compaction compared with simple leveled/tiered compaction?

@@ -39,7 +39,7 @@ SST 6: key range 06000 - key 10010, 1000 keys
 
 The 3 new SSTs are created by merging SST 1, 2, and 3. We can get a sorted 3000 keys and then split them into 3 files, so as to avoid having a super large SST file. Now our LSM state has 3 non-overlapping SSTs, and we only need to access SST 4 to find key 02333.
 
-## Two Extremes and Write Amplification
+## Two Extremes of Compaction and Write Amplification
 
 So from the above example, we have 2 naive ways of handling the LSM structure -- not doing compactions at all, and always do full compaction when new SSTs are flushed.
 
@@ -59,7 +59,7 @@ Compaction strategies usually aim to control the number of sorted runs, so as to
 
 In leveled compaction, the user can specify a maximum number of levels, which is the number of sorted runs in the system (except L0). For example, RocksDB usually keeps 6 levels (sorted runs) in leveled compaction mode. During the compaction process, SSTs from two adjacent levels will be merged and then the produced SSTs will be put to the lower level of the two levels. The sorted runs (levels) grow exponentially in size -- the lower level will be < some number x > of the upper level in size.
 
-In tiered compaction, the engine will dynamically adjust the number of sorted runs by merging them to minimize write amplification. The number of sorted runs can be high if the compaction strategy does not choose to merge them, therefore making read amplification high. In this tutorial, we will implement RocksDB's universal compaction, which is a kind of tiered compaction strategy.
+In tiered compaction, the engine will dynamically adjust the number of sorted runs by merging them or letting new SSTs flushed as new sorted run (a tier) to minimize write amplification. The number of tiers can be high if the compaction strategy does not choose to merge tiers, therefore making read amplification high. In this tutorial, we will implement RocksDB's universal compaction, which is a kind of tiered compaction strategy.
 
 ## Space Amplification
 

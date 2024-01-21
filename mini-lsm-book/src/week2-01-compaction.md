@@ -8,6 +8,14 @@ In this chapter, you will:
 * Implement the logic to update the LSM states and manage SST files on the filesystem.
 * Update LSM read path to incorporate the LSM levels.
 
+## Task 1: Compaction Implementation
+
+## Task 2: Update the LSM State
+
+## Task 3: Concat Iterator
+
+## Task 4: Integrate with the Read Path
+
 ## Test Your Understanding
 
 * What are the definitions of read/write/space amplifications? (This is covered in the overview chapter)

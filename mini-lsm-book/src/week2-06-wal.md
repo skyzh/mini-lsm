@@ -7,6 +7,12 @@ In this chapter, you will:
 * Implement encoding and decoding of the write-ahead log file.
 * Recover memtables from the WALs when the system restarts.
 
+## Task 1: WAL Encoding
+
+## Task 2: Write WALs
+
+## Task 3: Recover from the WALs
+
 ## Test Your Understanding
 
 * When can you tell the user that their modifications (put/delete) have been persisted?
