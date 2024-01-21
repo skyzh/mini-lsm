@@ -73,8 +73,6 @@ impl BlockMeta {
 }
 
 /// A file object.
-///
-/// Before day 4, it should look like:
 pub struct FileObject(Option<File>, u64);
 
 impl FileObject {
@@ -111,7 +109,7 @@ impl FileObject {
 
 pub struct SsTable {
     file: FileObject,
-    block_metas: Vec<BlockMeta>,
+    block_meta: Vec<BlockMeta>,
     block_meta_offset: usize,
     id: usize,
     block_cache: Option<Arc<BlockCache>>,
@@ -131,12 +129,12 @@ impl SsTable {
         let raw_meta_offset = file.read(len - 4, 4)?;
         let block_meta_offset = (&raw_meta_offset[..]).get_u32() as u64;
         let raw_meta = file.read(block_meta_offset, len - 4 - block_meta_offset)?;
-        let block_metas = BlockMeta::decode_block_meta(&raw_meta[..]);
+        let block_meta = BlockMeta::decode_block_meta(&raw_meta[..]);
         Ok(Self {
             file,
-            first_key: block_metas.first().unwrap().first_key.clone(),
-            last_key: block_metas.last().unwrap().last_key.clone(),
-            block_metas,
+            first_key: block_meta.first().unwrap().first_key.clone(),
+            last_key: block_meta.last().unwrap().last_key.clone(),
+            block_meta,
             block_meta_offset: block_meta_offset as usize,
             id,
             block_cache,
@@ -147,7 +145,7 @@ impl SsTable {
     pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
         Self {
             file: FileObject(None, file_size),
-            block_metas: vec![],
+            block_meta: vec![],
             block_meta_offset: 0,
             id,
             block_cache: None,
@@ -158,9 +156,9 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        let offset = self.block_metas[block_idx].offset;
+        let offset = self.block_meta[block_idx].offset;
         let offset_end = self
-            .block_metas
+            .block_meta
             .get(block_idx + 1)
             .map_or(self.block_meta_offset, |x| x.offset);
         let block_data = self
@@ -183,14 +181,14 @@ impl SsTable {
 
     /// Find the block that may contain `key`.
     pub fn find_block_idx(&self, key: &[u8]) -> usize {
-        self.block_metas
+        self.block_meta
             .partition_point(|meta| meta.first_key <= key)
             .saturating_sub(1)
     }
 
     /// Get number of data blocks.
     pub fn num_of_blocks(&self) -> usize {
-        self.block_metas.len()
+        self.block_meta.len()
     }
 
     pub fn first_key(&self) -> &Bytes {

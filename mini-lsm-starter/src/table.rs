@@ -79,18 +79,14 @@ impl FileObject {
     }
 }
 
-/// -------------------------------------------------------------------------------------------------------
-/// |              Data Block             |             Meta Block              |          Extra          |
-/// -------------------------------------------------------------------------------------------------------
-/// | Data Block #1 | ... | Data Block #N | Meta Block #1 | ... | Meta Block #N | Meta Block Offset (u32) |
-/// -------------------------------------------------------------------------------------------------------
+/// An SSTable.
 pub struct SsTable {
     /// The actual storage unit of SsTable, the format is as above.
-    file: FileObject,
+    pub(crate) file: FileObject,
     /// The meta blocks that hold info for data blocks.
-    block_metas: Vec<BlockMeta>,
+    pub(crate) block_meta: Vec<BlockMeta>,
     /// The offset that indicates the start point of meta blocks in `file`.
-    block_meta_offset: usize,
+    pub(crate) block_meta_offset: usize,
     id: usize,
     block_cache: Option<Arc<BlockCache>>,
     first_key: Bytes,
@@ -112,7 +108,7 @@ impl SsTable {
     pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
         Self {
             file: FileObject(None, file_size),
-            block_metas: vec![],
+            block_meta: vec![],
             block_meta_offset: 0,
             id,
             block_cache: None,
@@ -140,7 +136,7 @@ impl SsTable {
 
     /// Get number of data blocks.
     pub fn num_of_blocks(&self) -> usize {
-        self.block_metas.len()
+        self.block_meta.len()
     }
 
     pub fn first_key(&self) -> &Bytes {

@@ -71,8 +71,7 @@ impl SsTableBuilder {
         self.data.extend(encoded_block);
     }
 
-    /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
-    /// chapter 4 block cache.
+    /// Builds the SSTable and writes it to the given path.
     pub fn build(
         mut self,
         id: usize,
@@ -90,7 +89,7 @@ impl SsTableBuilder {
             file,
             first_key: self.meta.first().unwrap().first_key.clone(),
             last_key: self.meta.last().unwrap().last_key.clone(),
-            block_metas: self.meta,
+            block_meta: self.meta,
             block_meta_offset: meta_offset,
             block_cache,
         })

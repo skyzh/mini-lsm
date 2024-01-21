@@ -7,12 +7,16 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use super::{BlockMeta, SsTable};
-use crate::lsm_storage::BlockCache;
+use crate::{block::BlockBuilder, lsm_storage::BlockCache};
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
-    pub(super) meta: Vec<BlockMeta>,
-    // Add other fields you need.
+    builder: BlockBuilder,
+    first_key: Vec<u8>,
+    last_key: Vec<u8>,
+    data: Vec<u8>,
+    pub(crate) meta: Vec<BlockMeta>,
+    block_size: usize,
 }
 
 impl SsTableBuilder {
@@ -22,21 +26,22 @@ impl SsTableBuilder {
     }
 
     /// Adds a key-value pair to SSTable.
+    ///
     /// Note: You should split a new block when the current block is full.(`std::mem::replace` may
-    /// be of help here)
+    /// be helpful here)
     pub fn add(&mut self, key: &[u8], value: &[u8]) {
         unimplemented!()
     }
 
     /// Get the estimated size of the SSTable.
+    ///
     /// Since the data blocks contain much more data than meta blocks, just return the size of data
     /// blocks here.
     pub fn estimated_size(&self) -> usize {
         unimplemented!()
     }
 
-    /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
-    /// chapter 4 block cache.
+    /// Builds the SSTable and writes it to the given path. Use the `FileObject` structure to manipulate the disk objects.
     pub fn build(
         self,
         id: usize,

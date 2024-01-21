@@ -9,9 +9,72 @@ In this chapter, you will:
   
 ## Task 1: SST Builder
 
+In this task, you will need to modify:
+
+```
+src/table/builder.rs
+src/table.rs
+```
+
+SSTs are composed of data blocks and index blocks stored on the disk. Usually, data blocks are lazily loaded -- they will not be loaded into the memory until a user requests it. Index blocks can also be loaded on-demand, but in this tutorial, we make simple assumptions that all SST index blocks (meta blocks) can fit in memory (actually we do not have a designated index block implementation.) Generally, an SST file is of 256MB size.
+
+The SST builder is similar to block builder -- users will call `add` on the builder. You should maintain a `BlockBuilder` inside SST builder and split blocks when necessary. Also, you will need to maintain block metadata `BlockMeta`, which includes the first/last keys in each block and the offsets of each block. The `build` function will encode the SST, write everything to disk using `FileObject::create`, and return an `SsTable` object.
+
+The encoding of SST is like:
+
+```plaintext
+-------------------------------------------------------------------------------------------
+|         Block Section         |          Meta Section         |          Extra          |
+-------------------------------------------------------------------------------------------
+| data block | ... | data block |            metadata           | meta block offset (u32) |
+-------------------------------------------------------------------------------------------
+```
+
+You also need to implement `estimated_size` function of `SsTableBuilder`, so that the caller can know when can it start a new SST to write data. The function don't need to be very accurate. Given the assumption that data blocks contain much more data than meta block, we can simply return the size of data blocks for `estimated_size`.
+
+Besides SST builder, you will also need to complete the encoding/decoding of block metadata, so that `SsTableBuilder::build` can produce a valid SST file.
+
 ## Task 2: SST Iterator
 
+In this task, you will need to modify:
+
+```
+src/table/iterator.rs
+src/table.rs
+```
+
+Like `BlockIterator`, you will need to implement an iterator over an SST. Note that you should load data on demand. For example, if your iterator is at block 1, it should not hold any other block content in memory until it reaches the next block.
+
+`SsTableIterator` should implement the `StorageIterator` trait, so that it can be composed with other iterators in the future.
+
+One thing to note is `seek_to_key` function. Basically, you will need to do binary search on block metadata to find which block might possibly contain the key. It is possible that the key does not exist in the LSM tree so that the block iterator will be invalid immediately after a seek. For example,
+
+```plaintext
+--------------------------------------
+| block 1 | block 2 |   block meta   |
+--------------------------------------
+| a, b, c | e, f, g | 1: a/c, 2: e/g |
+--------------------------------------
+```
+
+We recommend only using the first key of each block to do the binary search so as to reduce the complexity of your implementation. If we do `seek(b)` in this SST, it is quite simple -- using binary search, we can know block 1 contains keys `a <= keys < e`. Therefore, we load block 1 and seek the block iterator to the corresponding position.
+
+But if we do `seek(d)`, we will position to block 1, if we only use first key as the binary search criteria, but seeking `d` in block 1 will reach the end of the block. Therefore, we should check if the iterator is invalid after the seek, and switch to the next block if necessary. Or you can leverage the last key metadata to directly position to a correct block, it is up to you.
+
 ## Task 3: Block Cache
+
+In this task, you will need to modify:
+
+```
+src/table/iterator.rs
+src/table.rs
+```
+
+You can implement a new `read_block_cached` function on `SsTable` .
+
+We use `moka-rs` as our block cache implementation. Blocks are cached by `(sst_id, block_id)` as the cache key. You may use `try_get_with` to get the block from cache if it hits the cache / populate the cache if it misses the cache. If there are multiple requests reading the same block and cache misses, `try_get_with` will only issue a single read request to the disk and broadcast the result to all requests.
+
+At this point, you may change your table iterator to use `read_block_cached` instead of `read_block` to leverage the block cache.
 
 ## Test Your Understanding
 
@@ -28,8 +91,10 @@ We do not provide reference answers to the questions, and feel free to discuss a
 
 ## Bonus Tasks
 
-* **Explore different SST encoding and layout.** For example, in the [Lethe](https://disc-projects.bu.edu/lethe/) paper, the author adds secondary key support to SST. Or you can use B+ Tree as the SST format instead of sorted blocks.
-* **Index Blocks.**
-* **Index Cache.**
+* **Explore different SST encoding and layout.** For example, in the [Lethe](https://disc-projects.bu.edu/lethe/) paper, the author adds secondary key support to SST.
+  * Or you can use B+ Tree as the SST format instead of sorted blocks.
+* **Index Blocks.** Split block indexes and block metadata into index blocks, and load them on-demand.
+* **Index Cache.** Use a separate cache for indexes apart from the data block cache.
+* **I/O Optimizations.** Align blocks to 4KB boundary and use direct I/O to bypass the system page cache.
 
 {{#include copyright.md}}
