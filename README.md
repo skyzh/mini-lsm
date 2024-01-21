@@ -41,18 +41,18 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | Week + Chapter | Topic                                           | Solution | Starter Code | Writeup |
 | -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
 | 1.1            | Memtables                                       | ✅        | ✅            | ✅       |
-| 1.2            | Block Format                                    | ✅        | 🚧            | 🚧       |
-| 1.3            | Table Format                                    | ✅        | 🚧            | 🚧       |
-| 1.4            | Merge Iterators                                 | ✅        | 🚧            | 🚧       |
+| 1.2            | Merge Iterators                                 | ✅        | ✅            | ✅       |
+| 1.3            | Block Format                                    | ✅        | 🚧            | 🚧       |
+| 1.4            | Table Format                                    | ✅        | 🚧            | 🚧       |
 | 1.5            | Storage Engine - Read Path                      | ✅        | 🚧            | 🚧       |
 | 1.6            | Storage Engine - Write Path                     | ✅        | 🚧            | 🚧       |
 | 1.7            | Bloom Filter and Key Compression                |          |              |         |
 | 2.1            | Compaction Implementation                       | ✅        | 🚧            | 🚧       |
 | 2.2            | Compaction Strategy - Simple                    | ✅        | 🚧            | 🚧       |
-| 2.3            | Compaction Strategy - Tiered                    | ✅        |              |         |
-| 2.4            | Compaction Strategy - Leveled                   | ✅        |              |         |
-| 2.5            | Manifest                                        | ✅        |              |         |
-| 2.6            | Write-Ahead Log                                 | ✅        |              |         |
+| 2.3            | Compaction Strategy - Tiered                    | ✅        | 🚧            |         |
+| 2.4            | Compaction Strategy - Leveled                   | ✅        | 🚧            |         |
+| 2.5            | Manifest                                        | ✅        | 🚧            |         |
+| 2.6            | Write-Ahead Log                                 | ✅        | 🚧            |         |
 | 2.7            | Batch Write + Checksum                          |          |              |         |
 | 3.1            | Timestamp Key Encoding + New Block Format       |          |              |         |
 | 3.2            | Prefix Bloom Filter                             |          |              |         |
