@@ -1,4 +1,4 @@
-# Overview
+# Week 2 Overview: Compaction and Persistence
 
 ![Chapter Overview](./lsm-tutorial/week2-overview.svg)
 

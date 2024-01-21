@@ -81,4 +81,8 @@ For get requests, it will be processed as lookups in the memtables, and then sca
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
+## Bonus Tasks
+
+* **The Cost of Dynamic Dispatch.** Implement a `Box<dyn StorageIterator>` version of merge iterators and benchmark to see the performance differences.
+
 {{#include copyright.md}}

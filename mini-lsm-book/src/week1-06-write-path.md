@@ -122,4 +122,8 @@ You can implement helper functions like `range_overlap` and `key_within` to simp
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
+## Bonus Tasks
+
+* **Implement Write Stall.** When the number of memtables exceed the maximum number too much, you can stop users from writing to the storage engine. You may also implement write stall for L0 tables in week 2 after you have implemented compactions.
+
 {{#include copyright.md}}

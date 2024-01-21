@@ -1,4 +1,4 @@
-# SST Optimizations
+# Snack Time: SST Optimizations
 
 ![Chapter Overview](./lsm-tutorial/week1-07-overview.svg)
 
