@@ -9,6 +9,12 @@ In this chapter, you will:
 * Implement bloom filter on SSTs and integrate into the LSM read path `get`.
 * Implement key compression in SST block format.
 
+## Task 1: Bloom Filters
+
+## Task 2: Integrate Bloom Filter on the Read Path
+
+## Task 3: Key Compression Encoding + Decoding
+
 ## Test Your Understanding
 
 * How does the bloom filter help with the SST filtering process? What kind of information can it tell you about a key? (may not exist/may exist/must exist/must not exist)
