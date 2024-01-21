@@ -18,6 +18,7 @@ rand = "0.8.5"
 crossbeam-channel = "0.5.11"
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
+farmhash = "1"
 
 [dev-dependencies]
 tempfile = "3"

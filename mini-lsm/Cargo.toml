@@ -26,3 +26,11 @@ serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "mini-lsm-cli-ref"
+path = "src/bin/mini-lsm-cli.rs"
+
+[[bin]]
+name = "mini-lsm-wrapper-ref"
+path = "src/bin/wrapper.rs"

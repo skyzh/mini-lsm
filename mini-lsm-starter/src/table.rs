@@ -1,6 +1,7 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
+pub(crate) mod bloom;
 mod builder;
 mod iterator;
 
@@ -15,6 +16,8 @@ pub use iterator::SsTableIterator;
 
 use crate::block::Block;
 use crate::lsm_storage::BlockCache;
+
+use self::bloom::Bloom;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
@@ -91,6 +94,7 @@ pub struct SsTable {
     block_cache: Option<Arc<BlockCache>>,
     first_key: Bytes,
     last_key: Bytes,
+    pub(crate) bloom: Option<Bloom>,
 }
 
 impl SsTable {
@@ -114,6 +118,7 @@ impl SsTable {
             block_cache: None,
             first_key,
             last_key,
+            bloom: None,
         }
     }
 
