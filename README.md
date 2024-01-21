@@ -26,6 +26,14 @@ cargo x book
 If you changed public API in the reference solution, you might also need to synchronize it to the starter crate.
 To do this, use `cargo x sync`.
 
+## Structure
+
+* mini-lsm: the final solution code
+* mini-lsm-starter: the starter code
+* mini-lsm-book: the tutorial
+
+We have another repo mini-lsm-solution-checkpoint at [https://github.com/skyzh/mini-lsm-solution-checkpoint](https://github.com/skyzh/mini-lsm-solution-checkpoint). In this repo, each commit corresponds to a chapter in the tutorial. We will not update the solution checkpoint very often.
+
 ## Progress
 
 We are working on a new version of the mini-lsm tutorial that is split into 3 weeks.
