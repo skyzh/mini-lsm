@@ -75,7 +75,7 @@ impl MemTable {
         unimplemented!()
     }
 
-    /// Flush the mem-table to SSTable.
+    /// Flush the mem-table to SSTable. Implement in week 1 day 6.
     pub fn flush(&self, _builder: &mut SsTableBuilder) -> Result<()> {
         unimplemented!()
     }

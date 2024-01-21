@@ -1,10 +1,9 @@
 use std::ops::Bound;
 
+use self::harness::generate_sst;
+use self::harness::{check_iter_result, MockIterator};
 use bytes::Bytes;
 use tempfile::tempdir;
-use week1_day5::harness::generate_sst;
-
-use self::harness::{check_iter_result, MockIterator};
 
 use super::*;
 use crate::{

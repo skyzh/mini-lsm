@@ -79,6 +79,16 @@ impl LsmStorageOptions {
             num_memtable_limit: 50,
         }
     }
+
+    pub fn default_for_week1_day6_test() -> Self {
+        Self {
+            block_size: 4096,
+            target_sst_size: 2 << 20,
+            compaction_options: CompactionOptions::NoCompaction,
+            enable_wal: false,
+            num_memtable_limit: 2,
+        }
+    }
 }
 
 /// The storage interface of the LSM tree.
@@ -96,6 +106,10 @@ pub(crate) struct LsmStorageInner {
 /// A thin wrapper for `LsmStorageInner` and the user interface for MiniLSM.
 pub struct MiniLsm {
     pub(crate) inner: Arc<LsmStorageInner>,
+    /// Notifies the L0 flush thread to stop working. (In week 1 day 6)
+    flush_notifier: crossbeam_channel::Sender<()>,
+    /// The handle for the compaction thread. (In week 1 day 6)
+    flush_thread: Mutex<Option<std::thread::JoinHandle<()>>>,
     /// Notifies the compaction thread to stop working. (In week 2)
     compaction_notifier: crossbeam_channel::Sender<()>,
     /// The handle for the compaction thread. (In week 2)
@@ -105,6 +119,7 @@ pub struct MiniLsm {
 impl Drop for MiniLsm {
     fn drop(&mut self) {
         self.compaction_notifier.send(()).ok();
+        self.flush_notifier.send(()).ok();
     }
 }
 
@@ -117,11 +132,15 @@ impl MiniLsm {
     /// not exist.
     pub fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Arc<Self>> {
         let inner = Arc::new(LsmStorageInner::open(path, options)?);
-        let (tx, rx) = crossbeam_channel::unbounded();
+        let (tx1, rx) = crossbeam_channel::unbounded();
         let compaction_thread = inner.spawn_compaction_thread(rx)?;
+        let (tx2, rx) = crossbeam_channel::unbounded();
+        let flush_thread = inner.spawn_flush_thread(rx)?;
         Ok(Arc::new(Self {
             inner,
-            compaction_notifier: tx,
+            flush_notifier: tx2,
+            flush_thread: Mutex::new(flush_thread),
+            compaction_notifier: tx1,
             compaction_thread: Mutex::new(compaction_thread),
         }))
     }

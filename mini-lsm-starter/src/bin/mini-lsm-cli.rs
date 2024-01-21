@@ -1,20 +1,23 @@
-use std::path::PathBuf;
+mod wrapper;
+use wrapper::mini_lsm_wrapper;
 
 use anyhow::Result;
 use bytes::Bytes;
 use clap::{Parser, ValueEnum};
-use mini_lsm::compact::{
+use mini_lsm_wrapper::compact::{
     CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
     TieredCompactionOptions,
 };
-use mini_lsm::iterators::StorageIterator;
-use mini_lsm::lsm_storage::{LsmStorageOptions, MiniLsm};
+use mini_lsm_wrapper::iterators::StorageIterator;
+use mini_lsm_wrapper::lsm_storage::{LsmStorageOptions, MiniLsm};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, ValueEnum)]
 enum CompactionStrategy {
     Simple,
     Leveled,
     Tiered,
+    None,
 }
 
 #[derive(Parser, Debug)]
@@ -37,6 +40,7 @@ fn main() -> Result<()> {
             target_sst_size: 2 << 20, // 2MB
             num_memtable_limit: 3,
             compaction_options: match args.compaction {
+                CompactionStrategy::None => CompactionOptions::NoCompaction,
                 CompactionStrategy::Simple => {
                     CompactionOptions::Simple(SimpleLeveledCompactionOptions {
                         size_ratio_percent: 200,
