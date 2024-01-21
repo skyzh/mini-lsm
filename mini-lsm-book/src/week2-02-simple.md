@@ -9,7 +9,8 @@ In this chapter, you will:
 
 ## Test Your Understanding
 
-* (I know this is stupid but) could you please repeat the definition of read/write/space amplifications? What are the ways to accurately compute them, and what are the ways to estimate them?
+* (I know this is stupid but) could you please repeat the definition of read/write/space amplifications?
+* What are the ways to accurately compute the read/write/space amplifications, and what are the ways to estimate them?
 * Is it correct that a key will only be purged from the LSM tree if the user requests to delete it and it has been compacted in the bottom-most level?
 * Is it a good strategy to periodically do a full compaction on the LSM tree? Why or why not?
 * Actively choosing some old files/levels to compact even if they do not violate the level amplifier would be a good choice, is it true? (Look at the Lethe paper!)

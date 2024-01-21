@@ -76,6 +76,16 @@ a->1, b->del, c->4, d->5, e->4
 
 The constructor of the merge iterator takes a vector of iterators. We assume the one with a lower index (i.e., the first one) has the latest data.
 
+One common pitfall is on error handling. For example,
+
+```rust
+let Some(mut inner_iter) = self.iters.peek_mut() {
+    inner_iter.next()?; // <- will cause problem
+}
+```
+
+If `next` returns an error (i.e., due to disk failure, network failure, checksum error, etc.), it is no longer valid. However, when we go out of the if condition and return the error to the caller, `PeekMut`'s drop will try move the element within the heap, which causes an access to an invalid iterator. Therefore, you will need to do all error handling by yourself instead of using `?` within the scope of `PeekMut`.
+
 We want to avoid dynamic dispatch as much as possible, and therefore we do not use `Box<dyn StorageIterator>` in the system. Instead, we prefer static dispatch using generics.
 
 ## Task 3: LSM Iterator + Fused Iterator
