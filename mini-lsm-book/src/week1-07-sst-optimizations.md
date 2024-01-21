@@ -2,7 +2,7 @@
 
 ![Chapter Overview](./lsm-tutorial/week1-07-overview.svg)
 
-at the end of each week, we will have some easy, not important, while interesting things
+In the previous chapter, you already built a storage engine with get/scan/put support. At the end of this week, we will implement some easy but important optimizations of SST formats. Welcome to Mini-LSM's week 1 snack time!
 
 In this chapter, you will:
 
