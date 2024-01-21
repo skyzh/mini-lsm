@@ -11,7 +11,7 @@ bytes = "1"
 crossbeam-epoch = "0.9"
 crossbeam-skiplist = "0.1"
 parking_lot = "0.12"
-ouroboros = "0.15"
+ouroboros = "0.18"
 moka = "0.9"
 clap = { version = "4.4.17", features = ["derive"] }
 rand = "0.8.5"

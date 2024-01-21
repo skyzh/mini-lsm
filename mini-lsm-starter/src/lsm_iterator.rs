@@ -3,9 +3,23 @@
 
 use anyhow::Result;
 
-use crate::iterators::StorageIterator;
+use crate::{
+    iterators::{merge_iterator::MergeIterator, StorageIterator},
+    mem_table::MemTableIterator,
+};
 
-pub struct LsmIterator {}
+/// Represents the internal type for an LSM iterator. This type will be changed across the tutorial for multiple times.
+type LsmIteratorInner = MergeIterator<MemTableIterator>;
+
+pub struct LsmIterator {
+    inner: LsmIteratorInner,
+}
+
+impl LsmIterator {
+    pub(crate) fn new(iter: LsmIteratorInner) -> Result<Self> {
+        Ok(Self { inner: iter })
+    }
+}
 
 impl StorageIterator for LsmIterator {
     fn is_valid(&self) -> bool {
@@ -26,7 +40,8 @@ impl StorageIterator for LsmIterator {
 }
 
 /// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is
-/// invalid.
+/// invalid. If an iterator is already invalid, `next` does not do anything. If `next` returns an error,
+/// `is_valid` should return false, and `next` should always return an error.
 pub struct FusedIterator<I: StorageIterator> {
     iter: I,
 }
