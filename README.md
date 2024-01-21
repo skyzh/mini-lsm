@@ -42,7 +42,7 @@ We are working on a new version of the mini-lsm tutorial that is split into 3 we
 | -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
 | 1.1            | Memtables                                       | ✅        | ✅            | ✅       |
 | 1.2            | Merge Iterators                                 | ✅        | ✅            | ✅       |
-| 1.3            | Block Format                                    | ✅        | 🚧            | 🚧       |
+| 1.3            | Block Format                                    | ✅        | ✅            | ✅       |
 | 1.4            | Table Format                                    | ✅        | 🚧            | 🚧       |
 | 1.5            | Storage Engine - Read Path                      | ✅        | 🚧            | 🚧       |
 | 1.6            | Storage Engine - Write Path                     | ✅        | 🚧            | 🚧       |

@@ -11,8 +11,8 @@ pub struct BlockIterator {
     block: Arc<Block>,
     /// The current key, empty represents the iterator is invalid
     key: Vec<u8>,
-    /// The corresponding value, can be empty
-    value: Vec<u8>,
+    /// the value range from the block
+    value_range: (usize, usize),
     /// Current index of the key-value pair, should be in range of [0, num_of_elements)
     idx: usize,
 }
@@ -22,7 +22,7 @@ impl BlockIterator {
         Self {
             block,
             key: Vec::new(),
-            value: Vec::new(),
+            value_range: (0, 0),
             idx: 0,
         }
     }

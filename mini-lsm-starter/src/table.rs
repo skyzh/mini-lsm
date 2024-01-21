@@ -159,6 +159,3 @@ impl SsTable {
         self.id
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -78,7 +78,7 @@ The constructor of the merge iterator takes a vector of iterators. We assume the
 
 One common pitfall is on error handling. For example,
 
-```rust
+```rust,no_run
 let Some(mut inner_iter) = self.iters.peek_mut() {
     inner_iter.next()?; // <- will cause problem
 }
@@ -116,7 +116,7 @@ In this task, you will need to modify:
 src/iterators/lsm_storage.rs
 ```
 
-We are finally there -- with all iterators you have implemented, you can finally implement the `scan` interface of the LSM engine.
+We are finally there -- with all iterators you have implemented, you can finally implement the `scan` interface of the LSM engine. You can simply construct an LSM iterator with the memtable iterators (remember to put the latest memtable at the front of the merge iterator), and your storage engine will be able to handle the scan request.
 
 ## Test Your Understanding
 
@@ -133,7 +133,7 @@ We are finally there -- with all iterators you have implemented, you can finally
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
-## Bonus Task
+## Bonus Tasks
 
 * **Foreground Iterator.** In this tutorial we assumed that all operations are short, so that we can hold reference to mem-table in the iterator. If an iterator is held by users for a long time, the whole mem-table (which might be 256MB) will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` / `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow garbage collection of the resources.
 
