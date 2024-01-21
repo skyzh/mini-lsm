@@ -14,6 +14,3 @@ pub trait StorageIterator {
     /// Move to the next position.
     fn next(&mut self) -> anyhow::Result<()>;
 }
-
-#[cfg(test)]
-mod tests;

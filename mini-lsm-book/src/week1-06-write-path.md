@@ -21,4 +21,10 @@ cargo x scheck
 
 ## Task 3: Filter the SSTs
 
+## Test Your Understanding
+
+* What happens if a user requests to delete a key twice?
+
+We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+
 {{#include copyright.md}}

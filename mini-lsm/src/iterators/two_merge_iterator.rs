@@ -23,7 +23,7 @@ impl<A: StorageIterator, B: StorageIterator> TwoMergeIterator<A, B> {
 
     fn skip_b(&mut self) -> Result<()> {
         if self.a.is_valid() {
-            while self.b.is_valid() && self.b.key() == self.a.key() {
+            if self.b.is_valid() && self.b.key() == self.a.key() {
                 self.b.next()?;
             }
         }

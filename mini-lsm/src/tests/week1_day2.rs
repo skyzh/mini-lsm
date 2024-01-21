@@ -10,7 +10,7 @@ use crate::{
     mem_table::MemTable,
 };
 
-use super::harness::MockIterator;
+use super::harness::{check_iter_result, expect_iter_error, MockIterator};
 
 #[test]
 fn test_task1_memtable_iter() {
@@ -75,42 +75,6 @@ fn test_task1_empty_memtable_iter() {
     {
         let iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
         assert!(!iter.is_valid());
-    }
-}
-
-fn as_bytes(x: &[u8]) -> Bytes {
-    Bytes::copy_from_slice(x)
-}
-
-fn check_iter_result(iter: &mut impl StorageIterator, expected: Vec<(Bytes, Bytes)>) {
-    for (k, v) in expected {
-        assert!(iter.is_valid());
-        assert_eq!(
-            k,
-            iter.key(),
-            "expected key: {:?}, actual key: {:?}",
-            k,
-            as_bytes(iter.key()),
-        );
-        assert_eq!(
-            v,
-            iter.value(),
-            "expected value: {:?}, actual value: {:?}",
-            v,
-            as_bytes(iter.value()),
-        );
-        iter.next().unwrap();
-    }
-    assert!(!iter.is_valid());
-}
-
-fn expect_iter_error(mut iter: impl StorageIterator) {
-    loop {
-        match iter.next() {
-            Ok(_) if iter.is_valid() => continue,
-            Ok(_) => panic!("expect an error"),
-            Err(_) => break,
-        }
     }
 }
 
