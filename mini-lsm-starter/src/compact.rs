@@ -23,13 +23,16 @@ pub enum CompactionTask {
     Leveled(LeveledCompactionTask),
     Tiered(TieredCompactionTask),
     Simple(SimpleLeveledCompactionTask),
-    ForceFullCompaction(Vec<usize>),
+    ForceFullCompaction {
+        l0_sstables: Vec<usize>,
+        l1_sstables: Vec<usize>,
+    },
 }
 
 impl CompactionTask {
     fn compact_to_bottom_level(&self) -> bool {
         match self {
-            CompactionTask::ForceFullCompaction(_) => true,
+            CompactionTask::ForceFullCompaction { .. } => true,
             CompactionTask::Leveled(task) => task.is_lower_level_bottom_level,
             CompactionTask::Simple(task) => task.is_lower_level_bottom_level,
             CompactionTask::Tiered(task) => task.bottom_tier_included,

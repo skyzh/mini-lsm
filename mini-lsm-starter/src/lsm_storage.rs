@@ -46,7 +46,8 @@ impl LsmStorageState {
                 ..=*max_levels)
                 .map(|level| (level, Vec::new()))
                 .collect::<Vec<_>>(),
-            CompactionOptions::Tiered(_) | CompactionOptions::NoCompaction => Vec::new(),
+            CompactionOptions::Tiered(_) => Vec::new(),
+            CompactionOptions::NoCompaction => vec![(0, Vec::new())],
         };
         Self {
             memtable: Arc::new(MemTable::create(0)),

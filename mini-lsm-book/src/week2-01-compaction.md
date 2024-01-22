@@ -64,7 +64,7 @@ In this task, you will need to modify,
 src/iterators/concat.rs
 ```
 
-Now that you have created sorted runs in your system, it is possible to do a simple optimization over the read path. You do not always need to create merge iterators for your SSTs. If SSTs belong to one sorted run, you can create a concat iterator that simply iterates the keys in each SST in order, because SSTs in one sorted run do not contain overlapping key ranges and they are sorted by their first key.
+Now that you have created sorted runs in your system, it is possible to do a simple optimization over the read path. You do not always need to create merge iterators for your SSTs. If SSTs belong to one sorted run, you can create a concat iterator that simply iterates the keys in each SST in order, because SSTs in one sorted run do not contain overlapping key ranges and they are sorted by their first key. We do not want to create all SST iterators in advance (because it will lead to one block read), and therefore we only store SST objects in this iterator.
 
 ## Task 3: Integrate with the Read Path
 
@@ -88,6 +88,7 @@ You will need to implement `num_active_iterators` for concat iterator so that th
 * Is it correct that a key will take some storage space even if a user requests to delete it?
 * Given that compaction takes a lot of write bandwidth and read bandwidth and may interfere with foreground operations, it is a good idea to postpone compaction when there are large write flow. It is even beneficial to stop/pause existing compaction tasks in this situation. What do you think of this idea? (Read the Slik paper!)
 * Is it a good idea to use/fill the block cache for compactions? Or is it better to fully bypass the block cache when compaction?
+* Does it make sense to have a `struct ConcatIterator<I: StorageIterator>` in the system?
 * Some researchers/engineers propose to offload compaction to a remote server or a serverless lambda function. What are the benefits, and what might be the potential challenges and performance impacts of doing remote compaction? (Think of the point when a compaction completes and the block cache...)
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
