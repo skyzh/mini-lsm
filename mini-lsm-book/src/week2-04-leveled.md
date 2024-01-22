@@ -9,6 +9,12 @@ In this chapter, you will:
 
 ## Task 1: Leveled Compaction
 
+### Task 1.1: Compute Target Sizes
+
+### Task 1.2: Decide Base Level
+
+### Task 1.3: Decide Level Priorities
+
 ## Task 2: Compaction Simulation
 
 ## Task 3: Integrate with the Read Path

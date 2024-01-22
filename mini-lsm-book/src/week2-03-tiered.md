@@ -11,9 +11,13 @@ The tiered compaction we talk about in this chapter is the same as RocksDB's uni
 
 ## Task 1: Universal Compaction
 
-## Task 2: Compaction Simulation
+### Task 1.1: Triggered by Space Amplification Ratio
 
-## Task 3: Integrate with the Read Path
+### Task 1.2: Triggered by Size Ratio
+
+### Task 1.3: Reduce Sorted Runs
+
+## Task 2: Integrate with the Read Path
 
 ## Test Your Understanding
 
