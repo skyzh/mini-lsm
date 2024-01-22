@@ -196,7 +196,7 @@ impl LsmStorageInner {
             state.clone()
         };
         let mut original_sstables = snapshot.l0_sstables.clone();
-        original_sstables.reverse();
+        original_sstables.reverse(); // is this correct?
         let sstables = self.compact(&CompactionTask::ForceFullCompaction(
             original_sstables.clone(),
         ))?;

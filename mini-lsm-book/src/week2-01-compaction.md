@@ -10,11 +10,76 @@ In this chapter, you will:
 
 ## Task 1: Compaction Implementation
 
-## Task 2: Update the LSM State
+In this task, you will implement the core logic of doing a compaction -- merge sort a set of SST files into a sorted run. You will need to modify:
 
-## Task 3: Concat Iterator
+```
+src/compact.rs
+```
 
-## Task 4: Integrate with the Read Path
+Specifically, the `force_full_compaction` and `compact` function. `force_full_compaction` is the compaction trigger the decides which files to compact and update the LSM state. `compact` does the actual compaction job that merges some SST files and return a set of new SST files.
+
+Your compaction implementation should take all SSTs in the storage engine, do a merge over them by using `MergeIterator`, and then use the SST builder to write the result into new files. You will need to split the SST files if the file is too large. After compaction completes, you can update the LSM state to add all the new sorted run to the first level of the LSM tree. And, you will need to remove unused files in the LSM tree. In your implementation, your SSTs should only be stored in two places: the L0 SSTs and the first level SSTs. That is to say, the `levels` structure in the LSM state should only have one vector.
+
+Compaction should not block L0 flush, and therefore you should not take the state lock when merging the files. You should only take the state lock at the end of the compaction process when you update the LSM state.
+
+You can assume that the user will ensure there is only one compaction going on. `force_full_compaction` will be called in only one thread at any time. The SSTs being put in the level 1 should be sorted by their first key and should not have overlapping key ranges.
+
+<details>
+
+<summary>Spoilers: Compaction Pseudo Code</summary>
+
+```rust,no_run
+fn force_full_compaction(&self) {
+    let ssts_to_compact = {
+        let state = self.state.read();
+        state.l0_sstables + state.levels[0]
+    };
+    let new_ssts = self.compact(FullCompactionTask(ssts_to_compact))?;
+    {
+        let state_lock = self.state_lock.lock();
+        let state = self.state.write();
+        state.l0_sstables.remove(/* the ones being compacted */);
+        state.levels[0] = new_ssts;
+    };
+    std::fs::remove(ssts_to_compact)?;
+}
+```
+
+</details>
+
+In your compaction implementation, you only need to handle `FullCompaction` for now, where the task information contains the SSTs that you will need to compact. You will also need to ensure the order of the SSTs are correct so that the latest version of a key will be put into the new SST.
+
+Because we always compact all SSTs, if we find multiple version of a key, we can simply retain the latest one. If the latest version is a delete marker, we do not need to keep it in the produced SST files. This does not apply for the compaction strategies in the next few chapters.
+
+There are some niches that you might need to think about. For example,
+
+* How does your implementation handle L0 flush in par with compaction? (Not taking the state lock when doing the compaction, and also need to consider new L0 files produced when compaction is going on.)
+* If your implementation removes the original SST files immediately after the compaction completes, will it cause problems in your system? (Generally no on macOS/Linux because the OS will not actually remove the file until no file handle is being held.)
+
+## Task 2: Concat Iterator
+
+In this task, you will need to modify,
+
+```
+src/iterators/concat.rs
+```
+
+Now that you have created sorted runs in your system, it is possible to do a simple optimization over the read path. You do not always need to create merge iterators for your SSTs. If SSTs belong to one sorted run, you can create a concat iterator that simply iterates the keys in each SST in order, because SSTs in one sorted run do not contain overlapping key ranges and they are sorted by their first key.
+
+## Task 3: Integrate with the Read Path
+
+In this task, you will need to modify,
+
+```
+src/lsm_iterator.rs
+src/lsm_storage.rs
+```
+
+Now that we have the two-level structure for your LSM tree, and you can change your read path to use the new concat iterator to optimize the read path.
+
+You will need to change the inner iterator type of the `LsmStorageIterator`. After that, you can construct a two merge iterator that merges memtables and L0 SSTs, and another merge iterator that merges that iterator with the L1 concat iterator. 
+
+You will need to implement `num_active_iterators` for concat iterator so that the test case can test if concat iterators are being used by your implementation, and it should always be 1.
 
 ## Test Your Understanding
 
