@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="-5 170 704 599" width="704" height="599">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="-5 170 704 599" width="704" height="599">
   <defs>
     <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
       <g>
@@ -8,7 +8,7 @@
       </g>
     </marker>
   </defs>
-  <g id="00-full-overview" fill-opacity="1" stroke-opacity="1" stroke="none" fill="none" stroke-dasharray="none">
+  <g id="00-full-overview" stroke-opacity="1" fill-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
     <title>00-full-overview</title>
     <rect fill="white" x="-5" y="170" width="704" height="599"/>
     <g id="00-full-overview_Layer_1">

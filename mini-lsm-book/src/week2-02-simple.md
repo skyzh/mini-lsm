@@ -1,13 +1,13 @@
 # Simple Compaction Strategy
 
-![Chapter Overview](./lsm-tutorial/week2-01-overview.svg)
+![Chapter Overview](./lsm-tutorial/week2-00-leveled.svg)
 
 In this chapter, you will:
 
 * Implement a simple leveled compaction strategy and simulate it on the compaction simulator.
 * Start compaction as a background task and implement a compaction trigger in the system.
 
-## Task 1: Simple Level Compaction + Compaction Simulation
+## Task 1: Simple Leveled Compaction + Compaction Simulation
 
 In this chapter, we are going to implement our first compaction strategy -- simple leveled compaction. In this task, you will need to modify:
 

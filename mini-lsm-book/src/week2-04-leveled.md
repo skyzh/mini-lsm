@@ -1,6 +1,6 @@
 # Leveled Compaction Strategy
 
-![Chapter Overview](./lsm-tutorial/week2-01-overview.svg)
+![Chapter Overview](./lsm-tutorial/week2-04-leveled.svg)
 
 In this chapter, you will:
 
