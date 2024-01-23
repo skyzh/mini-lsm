@@ -19,6 +19,8 @@ The tiered compaction we talk about in this chapter is the same as RocksDB's uni
 
 ## Task 2: Integrate with the Read Path
 
+As tiered compaction does not use the L0 level of the LSM state, you should directly flush your memtables to a new tier instead of as an L0 SST. You can use `self.compaction_controller.flush_to_l0()` to know whether to flush to L0. You may use the first output SST id as the level/tier id for your new sorted run.
+
 ## Test Your Understanding
 
 * What are the pros/cons of universal compaction compared with simple leveled/tiered compaction?
