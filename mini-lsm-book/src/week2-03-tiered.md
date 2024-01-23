@@ -11,11 +11,15 @@ The tiered compaction we talk about in this chapter is the same as RocksDB's uni
 
 ## Task 1: Universal Compaction
 
+In this chapter, you will implement RocksDB's universal compaction, which is of the tiered compaction family compaction strategies. Similar to the simple leveled compaction strategy, we only use number of files as the indicator in this compaction strategy. And when we trigger the compaction jobs, we always include a full sorted run (tier) in the compaction job.
+
 ### Task 1.1: Triggered by Space Amplification Ratio
 
 ### Task 1.2: Triggered by Size Ratio
 
 ### Task 1.3: Reduce Sorted Runs
+
+**Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
 
 ## Task 2: Integrate with the Read Path
 

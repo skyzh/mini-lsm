@@ -11,6 +11,8 @@ In this chapter, you will:
 
 ## Task 2: Write Manifests
 
-## Task 3: Recover from the State
+## Task 3: Flush on Close
+
+## Task 4: Recover from the State
 
 {{#include copyright.md}}
