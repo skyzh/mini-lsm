@@ -91,6 +91,12 @@ fn main() -> Result<()> {
             }
 
             println!("{} values filled with epoch {}", end - begin + 1, epoch);
+        } else if line.starts_with("del ") {
+            let Some((_, key)) = line.split_once(' ') else {
+                println!("invalid command");
+                continue;
+            };
+            lsm.delete(key.as_bytes())?;
         } else if line.starts_with("get ") {
             let Some((_, key)) = line.split_once(' ') else {
                 println!("invalid command");
@@ -114,6 +120,7 @@ fn main() -> Result<()> {
                 std::ops::Bound::Included(begin_key.as_bytes()),
                 std::ops::Bound::Included(end_key.as_bytes()),
             )?;
+            let mut cnt = 0;
             while iter.is_valid() {
                 println!(
                     "{:?}={:?}",
@@ -121,11 +128,15 @@ fn main() -> Result<()> {
                     Bytes::copy_from_slice(iter.value()),
                 );
                 iter.next()?;
+                cnt += 1;
             }
+            println!("{} keys scanned", cnt);
         } else if line == "dump" {
             lsm.dump_structure();
         } else if line == "flush" {
             lsm.force_flush()?;
+        } else if line == "full_compaction" {
+            lsm.force_full_compaction()?;
         } else if line == "quit" {
             lsm.close()?;
             break;

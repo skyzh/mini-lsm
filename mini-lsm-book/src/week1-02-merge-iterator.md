@@ -138,6 +138,7 @@ We are finally there -- with all iterators you have implemented, you can finally
 * Why do we need to ensure the merge iterator returns data in the iterator construction order?
 * Is it possible to implement a Rust-style iterator (i.e., `next(&self) -> (Key, Value)`) for LSM iterators? What are the pros/cons?
 * The scan interface is like `fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>)`. How to make this API compatible with Rust-style range (i.e., `key_a..key_b`)? If you implement this, try to pass a full range `..` to the interface and see what will happen.
+* The starter code provides the merge iterator interface to store `Box<I>` instead of `I`. What might be the reason behind that?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 

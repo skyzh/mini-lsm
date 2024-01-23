@@ -34,3 +34,7 @@ path = "src/bin/mini-lsm-cli.rs"
 [[bin]]
 name = "mini-lsm-wrapper-ref"
 path = "src/bin/wrapper.rs"
+
+[[bin]]
+name = "compaction-simulator-ref"
+path = "src/bin/compaction-simulator.rs"

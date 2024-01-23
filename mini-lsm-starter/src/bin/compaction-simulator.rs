@@ -1,15 +1,18 @@
+mod wrapper;
+use wrapper::mini_lsm_wrapper;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use clap::Parser;
-use mini_lsm::compact::{
+use mini_lsm_wrapper::compact::{
     LeveledCompactionController, LeveledCompactionOptions, SimpleLeveledCompactionController,
     SimpleLeveledCompactionOptions, TieredCompactionController, TieredCompactionOptions,
 };
-use mini_lsm::lsm_storage::LsmStorageState;
-use mini_lsm::mem_table::MemTable;
-use mini_lsm::table::SsTable;
+use mini_lsm_wrapper::lsm_storage::LsmStorageState;
+use mini_lsm_wrapper::mem_table::MemTable;
+use mini_lsm_wrapper::table::SsTable;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -220,6 +223,7 @@ fn main() {
             level0_file_num_compaction_trigger,
             max_levels,
         } => {
+            // TODO(chi): use unified logic for all 3 compactions...
             let controller =
                 SimpleLeveledCompactionController::new(SimpleLeveledCompactionOptions {
                     size_ratio_percent,

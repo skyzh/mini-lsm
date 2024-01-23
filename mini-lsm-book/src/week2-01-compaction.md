@@ -84,6 +84,28 @@ You can also change your compaction implementation to leverage the concat iterat
 
 You will need to implement `num_active_iterators` for concat iterator so that the test case can test if concat iterators are being used by your implementation, and it should always be 1.
 
+To test your implementation interactively,
+
+```shell
+cargo run --bin mini-lsm-cli-ref -- --compaction none # reference solution
+cargo run --bin mini-lsm-cli -- --compaction none # your solution
+```
+
+And then,
+
+```
+fill 1000 3000
+flush
+fill 1000 3000
+flush
+full_compaction
+fill 1000 3000
+flush
+full_compaction
+get 2333
+scan 2000 2333
+```
+
 ## Test Your Understanding
 
 * What are the definitions of read/write/space amplifications? (This is covered in the overview chapter)
