@@ -125,5 +125,6 @@ We do not provide reference answers to the questions, and feel free to discuss a
 ## Bonus Tasks
 
 * **Implement Write Stall.** When the number of memtables exceed the maximum number too much, you can stop users from writing to the storage engine. You may also implement write stall for L0 tables in week 2 after you have implemented compactions.
+* **Prefix Scan.** You may filter more SSTs by implementing the prefix scan interface and using the prefix information.
 
 {{#include copyright.md}}

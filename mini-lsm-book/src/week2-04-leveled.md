@@ -99,7 +99,7 @@ L4: 202MB/200MB = 1.01
 L5: 1.9GB/2GB = 0.95
 ```
 
-L3 and L4 needs to be compacted, while L5 does not. And L3 has a larger ratio, and therefore we will produce a compaction task of L3 and L4.
+L3 and L4 needs to be compacted with their lower level respectively, while L5 does not. And L3 has a larger ratio, and therefore we will produce a compaction task of L3 and L4. After the compaction is done, it is likely that we will schedule compactions of L4 and L5.
 
 ### Task 1.4: Select SST to Compact
 
@@ -160,6 +160,7 @@ The implementation should be similar to simple leveled compaction. Remember to c
 * What is the peak storage usage for leveled compaction? Compared with universal compaction?
 * Is it true that with a lower `level_size_multiplier`, you can always get a lower write amplification?
 * What needs to be done if a user not using compaction at all decides to migrate to leveled compaction?
+* Some people propose to do intra-L0 compaction (compact L0 tables and still put them in L0) before pushing them to lower layers. What might be the benefits of doing so? (Might be related: [PebblesDB SOSP'17](https://www.cs.utexas.edu/~rak/papers/sosp17-pebblesdb.pdf))
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 

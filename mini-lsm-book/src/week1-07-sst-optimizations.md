@@ -95,7 +95,7 @@ After that, you can modify the `get` read path to filter SSTs based on bloom fil
 
 We do not have integration test for this part and you will need to ensure that your implementation still pass all previous chapter tests.
 
-## Task 3: Key Compression Encoding + Decoding
+## Task 3: Key Prefix Encoding + Decoding
 
 In this task, you will need to modify:
 
@@ -121,6 +121,7 @@ After you finish the encoding, you will also need to implement decoding in the b
 * How does the bloom filter help with the SST filtering process? What kind of information can it tell you about a key? (may not exist/may exist/must exist/must not exist)
 * Consider the case that we need a backward iterator. Does our key compression affect backward iterators?
 * Can you use bloom filters on scan?
+* What might be the pros/cons of doing key-prefix encoding over adjacent keys instead of with the first key in the block?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
