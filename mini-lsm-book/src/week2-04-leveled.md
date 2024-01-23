@@ -14,17 +14,135 @@ In chapter 2 day 2, you have implemented the simple leveled compaction strategie
 * Compaction always include a full level. Note that you cannot remove the old files until you finish the compaction, and therefore, your storage engine might use 2x storage space while the compaction is going on (if it is a full compaction). Tiered compaction has the same problem. In this chapter, we will implement partial compaction that we select one SST from the upper level for compaction, instead of the full level.
 * SSTs may be compacted across empty levels. As you have seen in the compaction simulator, when the LSM state is empty, and the engine flushes some L0 SSTs, these SSTs will be first compacted to L1, then from L1 to L2, etc. An optimal strategy is to directly place the SST from L0 to the lowest level possible, so as to avoid unnecessary write amplification.
 
-In this chapter, you will implement a production-ready leveled compaction strategy. The strategy is the same as RocksDB's leveled compaction.
+In this chapter, you will implement a production-ready leveled compaction strategy. The strategy is the same as RocksDB's leveled compaction. You will need to modify:
+
+```
+src/compact/leveled.rs
+```
+
+To run the compaction simulator,
+
+```
+cargo run --bin compaction-simulator leveled
+```
 
 ### Task 1.1: Compute Target Sizes
 
+In this compaction strategy, you will need to know the first/last key of each SST and the size of the SSTs. The compaction simulator will set up some mock SSTs for you to access.
+
+You will need to compute the target sizes of the levels. Assume `base_level_size_mb` is 200MB and the number of levels (except L0) is 6. When the LSM state is empty, the target sizes will be:
+
+```
+[0 0 0 0 0 200MB]
+```
+
+When the levels grow in size as more SSTs get compacted to that level, we will compute the target size based on the size of the last level. When the actual size of SST files in the last level reaches 200MB, for example, 300MB, we will compute the target size of the other levels by dividing the `level_size_multiplier`. Assume `level_size_multiplier=10`.
+
+```
+0 0 0 0 30MB 300MB
+```
+
+We will only keep at most *one* level below `base_level_size_mb`, and in this case, it is L5. Assume we now have 30GB files in the last level, the target sizes will be,
+
+```
+0 0 30MB 300MB 3GB 30GB
+```
+
 ### Task 1.2: Decide Base Level
 
+Now, let us solve the problem that SSTs may be compacted across empty levels in the simple leveled compaction strategy. When we compact L0 SSTs with lower levels, we do not directly put it to L1. Instead, we compact it with the first level with `target size > 0``. For example, when the target level sizes are:
+
+```
+0 0 0 0 30MB 300MB
+```
+
+We will compact L0 SSTs with L5 SSTs if the number of L0 SSTs reaches the `level0_file_num_compaction_trigger` threshold.
+
+Now, you can generate L0 compaction tasks and run the compaction simulator.
+
+```
+--- After Flush ---
+L0 (1): [23]
+L1 (0): []
+L2 (0): []
+L3 (2): [19, 20]
+L4 (6): [11, 12, 7, 8, 9, 10]
+
+...
+
+--- After Flush ---
+L0 (2): [102, 103]
+L1 (0): []
+L2 (0): []
+L3 (18): [42, 65, 86, 87, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 61, 62, 52, 34]
+L4 (6): [11, 12, 7, 8, 9, 10]
+```
+
+The number of levels in the compaction simulator is 4. Therefore, the SSTs should be directly flushed to L3/L4.
+
 ### Task 1.3: Decide Level Priorities
+
+Now that we will need to handle compactions below L0. L0 compaction always has the top priority, that you should compact L0 with other levels first if it reaches the threshold. After that, we can compute the compaction priorities of each level by `current_size / target_size`. We only compact levels with this ratio `> 1.0` The one with the largest ratio will be chosen for compaction with the lower level. For example, if we have:
+
+```
+L3: 200MB, target_size=20MB
+L4: 202MB, target_size=200MB
+L5: 1.9GB, target_size=2GB
+L6: 20GB, target_size=20GB
+```
+
+The priority of compaction will be:
+
+```
+L3: 200MB/20MB = 10.0
+L4: 202MB/200MB = 1.01
+L5: 1.9GB/2GB = 0.95
+```
+
+L3 and L4 needs to be compacted, while L5 does not. And L3 has a larger ratio, and therefore we will produce a compaction task of L3 and L4.
+
+### Task 1.4: Select SST to Compact
+
+Now, let us improve the problem that compaction always include a full level from the simple leveled compaction strategy. When we decide to compact two levels, we always select the oldest SST from the upper level. You can know the time that the SST is produced by comparing the SST id.
+
+There are other ways of choosing the compacting SST, for example, by looking into the number of delete tombstones. You can implement this as part of the bonus task.
+
+After you choose the upper level SST, you will need to find all SSTs in the lower level with overlapping keys of the upper level SST. Then, you can generate a compaction task that contain exactly one SST in the upper level and overlapping SSTs in the lower level.
+
+When the compaction completes, you will need to remove the SSTs from the state and insert new SSTs into the correct place. Note that you should keep SST ids ordered by first keys in all levels except L0.
+
+Running the compaction simulator, you should see:
+
+```
+--- After Compaction ---
+L0 (0): []
+L1 (4): [222, 223, 208, 209]
+L2 (5): [206, 196, 207, 212, 165]
+L3 (11): [166, 120, 143, 144, 179, 148, 167, 140, 189, 180, 190]
+L4 (22): [113, 85, 86, 36, 46, 37, 146, 100, 147, 203, 102, 103, 65, 81, 105, 75, 82, 95, 96, 97, 152, 153]
+```
+
+The sizes of the levels should be kept under the level multiplier ratio. And the compaction task:
+
+```
+Upper L1 [224.sst 7cd080e..=33d79d04]
+Lower L2 [210.sst 1c657df4..=31a00e1b, 211.sst 31a00e1c..=46da9e43] -> [228.sst 7cd080e..=1cd18f74, 229.sst 1cd18f75..=31d616db, 230.sst 31d616dc..=46da9e43]
+```
+
+...should only have one SST from the upper layer.
 
 **Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
 
 ## Task 2: Integrate with the Read Path
+
+In this task, you will need to modify:
+
+```
+src/compact.rs
+src/lsm_storage.rs
+```
+
+The implementation should be similar to simple leveled compaction. Remember to change both get/scan read path and the compaction iterators.
 
 ## Test Your Understanding
 
