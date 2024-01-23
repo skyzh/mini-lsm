@@ -3,7 +3,7 @@ use std::{ops::Bound, time::Duration};
 use bytes::Bytes;
 use tempfile::tempdir;
 
-use self::harness::check_iter_result;
+use self::harness::{check_iter_result, sync};
 
 use super::*;
 use crate::{
@@ -11,12 +11,6 @@ use crate::{
     lsm_storage::{LsmStorageInner, LsmStorageOptions, MiniLsm},
 };
 
-fn sync(storage: &LsmStorageInner) {
-    storage
-        .force_freeze_memtable(&storage.state_lock.lock())
-        .unwrap();
-    storage.force_flush_next_imm_memtable().unwrap();
-}
 
 #[test]
 fn test_task1_storage_scan() {

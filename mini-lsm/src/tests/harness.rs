@@ -5,7 +5,7 @@ use bytes::Bytes;
 
 use crate::{
     iterators::StorageIterator,
-    lsm_storage::BlockCache,
+    lsm_storage::{BlockCache, LsmStorageInner},
     table::{SsTable, SsTableBuilder},
 };
 
@@ -122,4 +122,12 @@ pub fn generate_sst(
         builder.add(&key[..], &value[..]);
     }
     builder.build(id, block_cache, path.as_ref()).unwrap()
+}
+
+
+pub fn sync(storage: &LsmStorageInner) {
+    storage
+        .force_freeze_memtable(&storage.state_lock.lock())
+        .unwrap();
+    storage.force_flush_next_imm_memtable().unwrap();
 }

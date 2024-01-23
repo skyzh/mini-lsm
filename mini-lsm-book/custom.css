@@ -3,3 +3,9 @@
     margin-right: auto;
     display: block;
 }
+
+.caption {
+    text-align: center;
+    font-size: smaller;
+    color: gray;
+}

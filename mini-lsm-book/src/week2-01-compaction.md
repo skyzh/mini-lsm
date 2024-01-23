@@ -39,7 +39,7 @@ fn force_full_compaction(&self) {
         let state_lock = self.state_lock.lock();
         let state = self.state.write();
         state.l0_sstables.remove(/* the ones being compacted */);
-        state.levels[0] = new_ssts;
+        state.levels[0] = new_ssts; // new SSTs added to L1
     };
     std::fs::remove(ssts_to_compact)?;
 }
@@ -51,7 +51,7 @@ In your compaction implementation, you only need to handle `FullCompaction` for 
 
 Because we always compact all SSTs, if we find multiple version of a key, we can simply retain the latest one. If the latest version is a delete marker, we do not need to keep it in the produced SST files. This does not apply for the compaction strategies in the next few chapters.
 
-There are some niches that you might need to think about.
+There are some things that you might need to think about.
 
 * How does your implementation handle L0 flush in par with compaction? (Not taking the state lock when doing the compaction, and also need to consider new L0 files produced when compaction is going on.)
 * If your implementation removes the original SST files immediately after the compaction completes, will it cause problems in your system? (Generally no on macOS/Linux because the OS will not actually remove the file until no file handle is being held.)
@@ -89,10 +89,10 @@ You will need to implement `num_active_iterators` for concat iterator so that th
 * What are the definitions of read/write/space amplifications? (This is covered in the overview chapter)
 * What are the ways to accurately compute the read/write/space amplifications, and what are the ways to estimate them?
 * Is it correct that a key will take some storage space even if a user requests to delete it?
-* Given that compaction takes a lot of write bandwidth and read bandwidth and may interfere with foreground operations, it is a good idea to postpone compaction when there are large write flow. It is even beneficial to stop/pause existing compaction tasks in this situation. What do you think of this idea? (Read the Slik paper!)
+* Given that compaction takes a lot of write bandwidth and read bandwidth and may interfere with foreground operations, it is a good idea to postpone compaction when there are large write flow. It is even beneficial to stop/pause existing compaction tasks in this situation. What do you think of this idea? (Read the [Silk](https://www.usenix.org/conference/atc19/presentation/balmau) paper!)
 * Is it a good idea to use/fill the block cache for compactions? Or is it better to fully bypass the block cache when compaction?
 * Does it make sense to have a `struct ConcatIterator<I: StorageIterator>` in the system?
-* Some researchers/engineers propose to offload compaction to a remote server or a serverless lambda function. What are the benefits, and what might be the potential challenges and performance impacts of doing remote compaction? (Think of the point when a compaction completes and the block cache...)
+* Some researchers/engineers propose to offload compaction to a remote server or a serverless lambda function. What are the benefits, and what might be the potential challenges and performance impacts of doing remote compaction? (Think of the point when a compaction completes and what happens to the block cache on the next read request...)
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
