@@ -99,7 +99,7 @@ We do not provide reference answers to the questions, and feel free to discuss a
 
 ## Bonus Tasks
 
-* **Explore different SST encoding and layout.** For example, in the [Lethe](https://disc-projects.bu.edu/lethe/) paper, the author adds secondary key support to SST.
+* **Explore different SST encoding and layout.** For example, in the [Lethe: Enabling Efficient Deletes in LSMs](https://disc-projects.bu.edu/lethe/) paper, where the author adds secondary key support to SST.
   * Or you can use B+ Tree as the SST format instead of sorted blocks.
 * **Index Blocks.** Split block indexes and block metadata into index blocks, and load them on-demand.
 * **Index Cache.** Use a separate cache for indexes apart from the data block cache.

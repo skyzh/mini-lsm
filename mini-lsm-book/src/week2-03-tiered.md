@@ -109,13 +109,20 @@ src/lsm_storage.rs
 
 As tiered compaction does not use the L0 level of the LSM state, you should directly flush your memtables to a new tier instead of as an L0 SST. You can use `self.compaction_controller.flush_to_l0()` to know whether to flush to L0. You may use the first output SST id as the level/tier id for your new sorted run. You will also need to modify your compaction process to construct merge iterators for tiered compaction jobs.
 
+## Related Readings
+
+[Universal Compaction - RocksDB Wiki](https://github.com/facebook/rocksdb/wiki/Universal-Compaction)
+
 ## Test Your Understanding
 
+* What is the estimated write amplification of leveled compaction? (Okay this is hard to estimate... But what if without the last *reduce sorted run* trigger?)
+* What is the estimated read amplification of leveled compaction?
 * What are the pros/cons of universal compaction compared with simple leveled/tiered compaction?
-* How much storage space is it required (compared with user data size) to run universal compaction without using up the storage device space?
+* How much storage space is it required (compared with user data size) to run universal compaction?
 * Can we merge two tiers that are not adjacent in the LSM state?
-* What happens if compaction cannot keep up with the SST flushes?
-* The log-on-log problem.
+* What happens if compaction speed cannot keep up with the SST flushes?
+* What might needs to be considered if the system schedules multiple compaction tasks in parallel?
+* SSDs also write its own logs (basically it is a log-structured storage). If the SSD has a write amplification of 2x, what is the end-to-end write amplification of the whole system? Related: [ZNS: Avoiding the Block Interface Tax for Flash-based SSDs](https://www.usenix.org/conference/atc21/presentation/bjorling).
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 

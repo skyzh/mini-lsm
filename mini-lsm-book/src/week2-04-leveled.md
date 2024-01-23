@@ -144,11 +144,21 @@ src/lsm_storage.rs
 
 The implementation should be similar to simple leveled compaction. Remember to change both get/scan read path and the compaction iterators.
 
+## Related Readings
+
+[Leveled Compaction - RocksDB Wiki](https://github.com/facebook/rocksdb/wiki/Leveled-Compaction)
+
 ## Test Your Understanding
 
-* Finding a good key split point for compaction may potentially reduce the write amplification, or it does not matter at all?
+* What is the estimated write amplification of leveled compaction?
+* What is the estimated read amplification of leveled compaction?
+* Finding a good key split point for compaction may potentially reduce the write amplification, or it does not matter at all? (Consider that case that the user write keys beginning with some prefixes, `00` and `01`. The number of keys under these two prefixes are different and their write patterns are different. If we can always split `00` and `01` into different SSTs...)
 * Imagine that a user was using tiered (universal) compaction before and wants to migrate to leveled compaction. What might be the challenges of this migration? And how to do the migration?
-* What if the user wants to migrate from leveled compaction to tiered compaction?
+* And if we do it reversely, what if the user wants to migrate from leveled compaction to tiered compaction?
+* What happens if compaction speed cannot keep up with the SST flushes?
+* What might needs to be considered if the system schedules multiple compaction tasks in parallel?
+* What is the peak storage usage for leveled compaction? Compared with universal compaction?
+* Is it true that with a lower `level_size_multiplier`, you can always get a lower write amplification?
 * What needs to be done if a user not using compaction at all decides to migrate to leveled compaction?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.

@@ -7,7 +7,7 @@ In this chapter, you will:
 * Implement a simple leveled compaction strategy and simulate it on the compaction simulator.
 * Start compaction as a background task and implement a compaction trigger in the system.
 
-## Task 1: Simple Leveled Compaction + Compaction Simulation
+## Task 1: Simple Leveled Compaction
 
 In this chapter, we are going to implement our first compaction strategy -- simple leveled compaction. In this task, you will need to modify:
 
@@ -152,6 +152,8 @@ You may print something, for example, the compaction task information, when the 
 
 ## Test Your Understanding
 
+* What is the estimated write amplification of leveled compaction?
+* What is the estimated read amplification of leveled compaction?
 * Is it correct that a key will only be purged from the LSM tree if the user requests to delete it and it has been compacted in the bottom-most level?
 * Is it a good strategy to periodically do a full compaction on the LSM tree? Why or why not?
 * Actively choosing some old files/levels to compact even if they do not violate the level amplifier would be a good choice, is it true? (Look at the [Lethe](https://disc-projects.bu.edu/lethe/) paper!)
