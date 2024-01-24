@@ -158,6 +158,10 @@ impl MiniLsm {
         self.inner.delete(key)
     }
 
+    pub fn sync(&self) -> Result<()> {
+        self.inner.sync()
+    }
+
     pub fn scan(
         &self,
         lower: Bound<&[u8]>,
@@ -220,6 +224,10 @@ impl LsmStorageInner {
         };
 
         Ok(storage)
+    }
+
+    pub fn sync(&self) -> Result<()> {
+        unimplemented!()
     }
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.

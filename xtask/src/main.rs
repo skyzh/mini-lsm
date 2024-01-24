@@ -111,6 +111,11 @@ fn sync() -> Result<()> {
         std::fs::read_to_string(cargo_toml)?.replace("mini-lsm-starter", "mini-lsm")
             + "\n[workspace]\n",
     )?;
+    let wrapper_rs = "sync-tmp/mini-lsm-starter/src/bin/wrapper.rs";
+    std::fs::write(
+        wrapper_rs,
+        std::fs::read_to_string(wrapper_rs)?.replace("mini_lsm_starter", "mini_lsm"),
+    )?;
     cmd!(
         "cargo",
         "semver-checks",
