@@ -42,8 +42,8 @@ impl LsmIterator {
         }
         match self.end_bound.as_ref() {
             Bound::Unbounded => {}
-            Bound::Included(key) => self.is_valid = self.inner.key() <= key.as_ref(),
-            Bound::Excluded(key) => self.is_valid = self.inner.key() < key.as_ref(),
+            Bound::Included(key) => self.is_valid = self.inner.key().0 <= key.as_ref(),
+            Bound::Excluded(key) => self.is_valid = self.inner.key().0 < key.as_ref(),
         }
         Ok(())
     }
@@ -55,25 +55,25 @@ impl LsmIterator {
         Ok(())
     }
 
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.is_valid
     }
 
-    fn key(&self) -> &[u8] {
-        self.inner.key()
+    pub fn key(&self) -> &[u8] {
+        self.inner.key().0
     }
 
-    fn value(&self) -> &[u8] {
+    pub fn value(&self) -> &[u8] {
         self.inner.value()
     }
 
-    fn next(&mut self) -> Result<()> {
+    pub fn next(&mut self) -> Result<()> {
         self.next_inner()?;
         self.move_to_non_delete()?;
         Ok(())
     }
 
-    fn num_active_iterators(&self) -> usize {
+    pub fn num_active_iterators(&self) -> usize {
         self.inner.num_active_iterators()
     }
 }
@@ -94,25 +94,25 @@ impl FusedIterator {
         }
     }
 
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         !self.has_errored && self.iter.is_valid()
     }
 
-    fn key(&self) -> &[u8] {
+    pub fn key(&self) -> &[u8] {
         if self.has_errored || !self.iter.is_valid() {
             panic!("invalid access to the underlying iterator");
         }
         self.iter.key()
     }
 
-    fn value(&self) -> &[u8] {
+    pub fn value(&self) -> &[u8] {
         if self.has_errored || !self.iter.is_valid() {
             panic!("invalid access to the underlying iterator");
         }
         self.iter.value()
     }
 
-    fn next(&mut self) -> Result<()> {
+    pub fn next(&mut self) -> Result<()> {
         // only move when the iterator is valid and not errored
         if self.has_errored {
             bail!("the iterator is tainted");
@@ -126,7 +126,7 @@ impl FusedIterator {
         Ok(())
     }
 
-    fn num_active_iterators(&self) -> usize {
+    pub fn num_active_iterators(&self) -> usize {
         self.iter.num_active_iterators()
     }
 }

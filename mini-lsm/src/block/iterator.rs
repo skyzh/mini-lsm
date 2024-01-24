@@ -27,9 +27,11 @@ impl Block {
     fn get_first_key(&self) -> Key {
         let mut buf = &self.data[..];
         buf.get_u16();
-        let key_len = buf.get_u16();
-        let key = &buf[..key_len as usize];
-        key.to_vec()
+        let key_len = buf.get_u16() as usize;
+        let key = &buf[..key_len];
+        // get key ts (only in week 3)
+        let ts = (&buf[key_len..(key_len + std::mem::size_of::<u64>())]).get_u64();
+        Key(key.to_vec(), ts)
     }
 }
 
@@ -38,7 +40,7 @@ impl BlockIterator {
         Self {
             first_key: block.get_first_key(),
             block,
-            key: Vec::new(),
+            key: Key::empty(),
             value_range: (0, 0),
             idx: 0,
         }
@@ -61,7 +63,7 @@ impl BlockIterator {
     /// Returns the key of the current entry.
     pub fn key(&self) -> KeySlice {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
-        &self.key
+        self.key.as_key_slice()
     }
 
     /// Returns the value of the current entry.
@@ -109,8 +111,10 @@ impl BlockIterator {
         let key = entry[..key_len].to_vec();
         entry.advance(key_len);
         self.key.clear();
-        self.key.extend(&self.first_key[..overlap_len]);
-        self.key.extend(key);
+        self.key.0.extend(&self.first_key.0[..overlap_len]);
+        self.key.0.extend(key);
+        // set key ts (only in week 3)
+        self.key.1 = entry.get_u64();
         let value_len = entry.get_u16() as usize;
         let value_offset_begin = offset + SIZEOF_U16 + SIZEOF_U16 + key_len + SIZEOF_U16;
         let value_offset_end = value_offset_begin + value_len;
@@ -126,7 +130,7 @@ impl BlockIterator {
             let mid = low + (high - low) / 2;
             self.seek_to(mid);
             assert!(self.is_valid());
-            match self.key().cmp(key) {
+            match self.key().cmp(&key) {
                 std::cmp::Ordering::Less => low = mid + 1,
                 std::cmp::Ordering::Greater => high = mid,
                 std::cmp::Ordering::Equal => return,

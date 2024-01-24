@@ -41,20 +41,20 @@ impl LeveledCompactionController {
             .iter()
             .map(|id| snapshot.sstables[id].first_key())
             .min()
-            .cloned()
-            .unwrap();
+            .unwrap()
+            .clone();
         let end_key = sst_ids
             .iter()
             .map(|id| snapshot.sstables[id].last_key())
             .max()
-            .cloned()
-            .unwrap();
+            .unwrap()
+            .clone();
         let mut overlap_ssts = Vec::new();
         for sst_id in &snapshot.levels[in_level - 1].1 {
             let sst = &snapshot.sstables[sst_id];
             let first_key = sst.first_key();
             let last_key = sst.last_key();
-            if !(last_key < &begin_key || first_key > &end_key) {
+            if !(last_key < begin_key || first_key > end_key) {
                 overlap_ssts.push(*sst_id);
             }
         }
@@ -221,7 +221,7 @@ impl LeveledCompactionController {
                 .get(x)
                 .unwrap()
                 .first_key()
-                .cmp(snapshot.sstables.get(y).unwrap().first_key())
+                .cmp(&snapshot.sstables.get(y).unwrap().first_key())
         });
         snapshot.levels[task.lower_level - 1].1 = new_lower_level_ssts;
         (snapshot, files_to_remove)

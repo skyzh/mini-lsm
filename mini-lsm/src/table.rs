@@ -2,19 +2,17 @@ pub(crate) mod bloom;
 mod builder;
 mod iterator;
 
-use std::cmp::Ordering;
 use std::fs::File;
-use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 pub use builder::SsTableBuilder;
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{Buf, BufMut};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
-use crate::key::{Key, KeyBytes, KeySlice};
+use crate::key::{KeyBytes, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
@@ -39,11 +37,11 @@ impl BlockMeta {
             // The size of key length
             estimated_size += std::mem::size_of::<u16>();
             // The size of actual key
-            estimated_size += meta.first_key.len();
+            estimated_size += meta.first_key.raw_len();
             // The size of key length
             estimated_size += std::mem::size_of::<u16>();
             // The size of actual key
-            estimated_size += meta.last_key.len();
+            estimated_size += meta.last_key.raw_len();
         }
         // Reserve the space to improve performance, especially when the size of incoming data is
         // large
@@ -51,10 +49,12 @@ impl BlockMeta {
         let original_len = buf.len();
         for meta in block_meta {
             buf.put_u32(meta.offset as u32);
-            buf.put_u16(meta.first_key.len() as u16);
-            buf.put_slice(&meta.first_key);
-            buf.put_u16(meta.last_key.len() as u16);
-            buf.put_slice(&meta.last_key);
+            buf.put_u16(meta.first_key.key_len() as u16);
+            buf.put_slice(&meta.first_key.0);
+            buf.put_u64(meta.first_key.1);
+            buf.put_u16(meta.last_key.key_len() as u16);
+            buf.put_slice(&meta.last_key.0);
+            buf.put_u64(meta.last_key.1);
         }
         assert_eq!(estimated_size, buf.len() - original_len);
     }
@@ -65,13 +65,18 @@ impl BlockMeta {
         while buf.has_remaining() {
             let offset = buf.get_u32() as usize;
             let first_key_len = buf.get_u16() as usize;
+            // the caller will always provide a Vec<u8> and therefore no memory leak
             let first_key = buf.copy_to_bytes(first_key_len);
+            // only in week 3
+            let first_key_ts = buf.get_u64();
             let last_key_len = buf.get_u16() as usize;
             let last_key = buf.copy_to_bytes(last_key_len);
+            // only in week 3
+            let last_key_ts = buf.get_u64();
             block_meta.push(BlockMeta {
                 offset,
-                first_key,
-                last_key,
+                first_key: KeyBytes(first_key, first_key_ts),
+                last_key: KeyBytes(last_key, last_key_ts),
             });
         }
         block_meta
@@ -204,7 +209,7 @@ impl SsTable {
     /// Find the block that may contain `key`.
     pub fn find_block_idx(&self, key: KeySlice) -> usize {
         self.block_meta
-            .partition_point(|meta| meta.first_key <= key)
+            .partition_point(|meta| meta.first_key.as_key_slice() <= key)
             .saturating_sub(1)
     }
 
@@ -214,11 +219,11 @@ impl SsTable {
     }
 
     pub fn first_key(&self) -> KeySlice {
-        &self.first_key
+        self.first_key.as_key_slice()
     }
 
     pub fn last_key(&self) -> KeySlice {
-        &self.last_key
+        self.last_key.as_key_slice()
     }
 
     pub fn table_size(&self) -> u64 {

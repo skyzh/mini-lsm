@@ -1,4 +1,5 @@
 mod wrapper;
+use mini_lsm::key::extract_raw_key;
 use wrapper::mini_lsm_wrapper;
 
 use std::collections::HashMap;
@@ -135,11 +136,11 @@ impl MockStorage {
                             "invalid file arrangement in L{}: id={}, range={:x}..={:x}; id={}, range={:x}..={:x}",
                             level,
                             this_file.sst_id(),
-                            this_file.first_key().clone().get_u64(),
-                            this_file.last_key().clone().get_u64(),
+                            extract_raw_key(this_file.first_key()) .get_u64(),
+                            extract_raw_key(this_file.last_key()).get_u64(),
                             next_file.sst_id(),
-                            next_file.first_key().clone().get_u64(),
-                            next_file.last_key().clone().get_u64()
+                            extract_raw_key(next_file.first_key()).get_u64(),
+                            extract_raw_key(next_file.last_key()).get_u64()
                         );
                     }
                 }

@@ -19,10 +19,10 @@ pub struct BlockBuilder {
 fn compute_overlap(first_key: KeySlice, key: KeySlice) -> usize {
     let mut i = 0;
     loop {
-        if i >= first_key.len() || i >= key.len() {
+        if i >= first_key.0.len() || i >= key.0.len() {
             break;
         }
-        if first_key[i] != key[i] {
+        if first_key.0[i] != key.0[i] {
             break;
         }
         i += 1;
@@ -37,7 +37,7 @@ impl BlockBuilder {
             offsets: Vec::new(),
             data: Vec::new(),
             block_size,
-            first_key: Vec::new(),
+            first_key: Key::empty(),
         }
     }
 
@@ -50,27 +50,29 @@ impl BlockBuilder {
     #[must_use]
     pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         assert!(!key.is_empty(), "key must not be empty");
-        if self.estimated_size() + key.len() + value.len() + SIZEOF_U16 * 3 /* key_len, value_len and offset */ > self.block_size
+        if self.estimated_size() + key.raw_len() + value.len() + SIZEOF_U16 * 3 /* key_len, value_len and offset */ > self.block_size
             && !self.is_empty()
         {
             return false;
         }
         // Add the offset of the data into the offset array.
         self.offsets.push(self.data.len() as u16);
-        let overlap = compute_overlap(&self.first_key, key);
+        let overlap = compute_overlap(self.first_key.as_key_slice(), key);
         // Encode key overlap.
         self.data.put_u16(overlap as u16);
         // Encode key length.
-        self.data.put_u16((key.len() - overlap) as u16);
+        self.data.put_u16((key.key_len() - overlap) as u16);
         // Encode key content.
-        self.data.put(&key[overlap..]);
+        self.data.put(&key.0[overlap..]);
+        // Encode key ts (only in week 3)
+        self.data.put_u64(key.1);
         // Encode value length.
         self.data.put_u16(value.len() as u16);
         // Encode value content.
         self.data.put(value);
 
         if self.first_key.is_empty() {
-            self.first_key = key.to_vec();
+            self.first_key = key.to_key();
         }
 
         true

@@ -27,8 +27,8 @@ impl SsTableBuilder {
         Self {
             data: Vec::new(),
             meta: Vec::new(),
-            first_key: Vec::new(),
-            last_key: Vec::new(),
+            first_key: Key::empty(),
+            last_key: Key::empty(),
             block_size,
             builder: BlockBuilder::new(block_size),
             key_hashes: Vec::new(),
@@ -38,15 +38,13 @@ impl SsTableBuilder {
     /// Adds a key-value pair to SSTable
     pub fn add(&mut self, key: KeySlice, value: &[u8]) {
         if self.first_key.is_empty() {
-            self.first_key.clear();
-            self.first_key.extend(key);
+            self.first_key.set_from_slice(key);
         }
 
-        self.key_hashes.push(farmhash::fingerprint32(key));
+        self.key_hashes.push(farmhash::fingerprint32(key.0));
 
         if self.builder.add(key, value) {
-            self.last_key.clear();
-            self.last_key.extend(key);
+            self.last_key.set_from_slice(key);
             return;
         }
 
@@ -55,10 +53,8 @@ impl SsTableBuilder {
 
         // add the key-value pair to the next block
         assert!(self.builder.add(key, value));
-        self.first_key.clear();
-        self.first_key.extend(key);
-        self.last_key.clear();
-        self.last_key.extend(key);
+        self.first_key.set_from_slice(key);
+        self.last_key.set_from_slice(key);
     }
 
     /// Get the estimated size of the SSTable.
@@ -71,8 +67,8 @@ impl SsTableBuilder {
         let encoded_block = builder.build().encode();
         self.meta.push(BlockMeta {
             offset: self.data.len(),
-            first_key: std::mem::take(&mut self.first_key).into(),
-            last_key: std::mem::take(&mut self.last_key).into(),
+            first_key: std::mem::take(&mut self.first_key).into_key_bytes(),
+            last_key: std::mem::take(&mut self.last_key).into_key_bytes(),
         });
         self.data.extend(encoded_block);
     }
