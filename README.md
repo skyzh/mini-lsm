@@ -34,6 +34,20 @@ To do this, use `cargo x sync`.
 
 We have another repo mini-lsm-solution-checkpoint at [https://github.com/skyzh/mini-lsm-solution-checkpoint](https://github.com/skyzh/mini-lsm-solution-checkpoint). In this repo, each commit corresponds to a chapter in the tutorial. We will not update the solution checkpoint very often.
 
+## Demo
+
+You can run the reference solution by yourself to gain an overview of the system before you start.
+
+```
+cargo run --bin mini-lsm-cli-ref
+```
+
+And we have a compaction simulator to experiment with your compaction algorithm implementation,
+
+```
+cargo run --bin compaction-simulator-ref
+```
+
 ## Progress
 
 We are working on a new version of the mini-lsm tutorial that is split into 3 weeks.
