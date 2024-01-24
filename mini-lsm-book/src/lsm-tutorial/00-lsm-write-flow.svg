@@ -13,7 +13,7 @@
       </g>
     </marker>
   </defs>
-  <g id="00-lsm-write-flow" stroke-opacity="1" fill-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
+  <g id="00-lsm-write-flow" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
     <title>00-lsm-write-flow</title>
     <rect fill="white" x="6" y="245" width="693" height="273"/>
     <g id="00-lsm-write-flow_Layer_1">

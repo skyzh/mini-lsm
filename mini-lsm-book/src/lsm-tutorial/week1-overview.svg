@@ -13,7 +13,7 @@
       </g>
     </marker>
   </defs>
-  <g id="week1-overview" stroke-opacity="1" fill-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
+  <g id="week1-overview" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
     <title>week1-overview</title>
     <rect fill="white" x="-5" y="170" width="784" height="599"/>
     <g id="week1-overview_Layer_1">

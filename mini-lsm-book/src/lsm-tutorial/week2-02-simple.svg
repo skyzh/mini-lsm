@@ -8,10 +8,10 @@
       </g>
     </marker>
   </defs>
-  <g id="week2-00-leveled" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
-    <title>week2-00-leveled</title>
+  <g id="week2-02-simple" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
+    <title>week2-02-simple</title>
     <rect fill="white" x="85" y="204" width="473" height="245"/>
-    <g id="week2-00-leveled_Layer_1">
+    <g id="week2-02-simple_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_67">
         <rect x="119" y="288" width="150.5" height="112.974" fill="white"/>
@@ -113,8 +113,8 @@
         <line x1="269.5" y1="353.43125" x2="330.1692" y2="360.64243" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       </g>
       <g id="Graphic_84">
-        <text transform="translate(280.708 319.526)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">Leveled Compaction</tspan>
+        <text transform="translate(345 313.5)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="2842171e-20" y="15">Simple Leveled Compaction</tspan>
         </text>
       </g>
       <g id="Graphic_85">

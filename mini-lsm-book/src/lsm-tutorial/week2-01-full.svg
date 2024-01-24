@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="85 204 473 245" width="473" height="245">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="85 204 473 198" width="473" height="198">
   <defs>
     <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
       <g>
@@ -8,10 +8,10 @@
       </g>
     </marker>
   </defs>
-  <g id="week2-00-leveled" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
-    <title>week2-00-leveled</title>
-    <rect fill="white" x="85" y="204" width="473" height="245"/>
-    <g id="week2-00-leveled_Layer_1">
+  <g id="week2-01-full" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
+    <title>week2-01-full</title>
+    <rect fill="white" x="85" y="204" width="473" height="198"/>
+    <g id="week2-01-full_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_67">
         <rect x="119" y="288" width="150.5" height="112.974" fill="white"/>
@@ -39,39 +39,6 @@
       <g id="Graphic_43">
         <text transform="translate(90.208 365.026)" fill="black">
           <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="1278977e-18" y="15">L1</tspan>
-        </text>
-      </g>
-      <g id="Graphic_42">
-        <rect x="200.88684" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="200.88684" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(205.88684 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
-        </text>
-      </g>
-      <g id="Graphic_41">
-        <rect x="273.48168" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="273.48168" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(278.48168 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
-        </text>
-      </g>
-      <g id="Graphic_40">
-        <text transform="translate(90 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="1278977e-18" y="15">L2</tspan>
-        </text>
-      </g>
-      <g id="Graphic_39">
-        <rect x="128.292" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="128.292" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(133.292 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
-        </text>
-      </g>
-      <g id="Graphic_38">
-        <rect x="346.07652" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="346.07652" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(351.07652 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
         </text>
       </g>
       <g id="Line_69">
@@ -113,27 +80,13 @@
         <line x1="269.5" y1="353.43125" x2="330.1692" y2="360.64243" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       </g>
       <g id="Graphic_84">
-        <text transform="translate(280.708 319.526)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">Leveled Compaction</tspan>
+        <text transform="translate(286.65832 320.026)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="29132252e-20" y="15">Full Compaction</tspan>
         </text>
       </g>
       <g id="Graphic_85">
         <text transform="translate(309 366.026)" fill="black">
           <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="1278977e-18" y="15">L1</tspan>
-        </text>
-      </g>
-      <g id="Graphic_86">
-        <rect x="418.67136" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="418.67136" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(423.67136 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
-        </text>
-      </g>
-      <g id="Graphic_87">
-        <rect x="490.67136" y="406.5" width="62.81032" height="41.5" fill="white"/>
-        <rect x="490.67136" y="406.5" width="62.81032" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(495.67136 418.026)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="11.445159" y="15">SST</tspan>
         </text>
       </g>
     </g>

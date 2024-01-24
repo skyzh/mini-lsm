@@ -18,7 +18,7 @@
       </g>
     </marker>
   </defs>
-  <g id="00-lsm-read-flow" stroke-opacity="1" fill-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
+  <g id="00-lsm-read-flow" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
     <title>00-lsm-read-flow</title>
     <rect fill="white" x="6" y="194" width="693" height="361"/>
     <g id="00-lsm-read-flow_Layer_1">

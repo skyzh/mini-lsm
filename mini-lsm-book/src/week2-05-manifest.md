@@ -9,10 +9,70 @@ In this chapter, you will:
 
 ## Task 1: Manifest Encoding
 
+The system uses a manifest file to record all operations happened in the engine. Currently, there are only two types of them: compaction and SST flush. When the engine restarts, it will read the manifest file, reconstruct the state, and load the SST files on the disk.
+
+There are many approaches to storing the LSM state. One of the easiest way is to simply store the full state into a JSON file. Every time we do a compaction or flush a new SST, we can serialize the entire LSM state into a file. The problem with this approach is that when the database gets super large (i.e., 10k SSTs), writing the manifest to the disk would be super slow. Therefore, we designed the manifest to be a append-only file.
+
+In this task, you will need to modify:
+
+```
+src/manifest.rs
+```
+
+We encode the manifest records using JSON. You may use `serde_json::to_vec` to encode a manifest record to a json, write it to the manifest file, and do a fsync. When you read from the manifest file, you may use `serde_json::Deserializer::from_slice` and it will return a stream of records. You do not need to store the record length or so, as `serde_json` can automatically find the split of the records.
+
+After the engine runs for several hours, the manifest file might get very large. At that time, you may periodically compact the manifest file to store the current snapshot and truncate the logs. This is an optimization you may implement as part of bonus tasks.
+
 ## Task 2: Write Manifests
+
+You can now go ahead and modify your LSM engine to write manifests when necessary. In this task, you will need to modify:
+
+```
+src/lsm_storage.rs
+src/compact.rs
+```
+
+For now, we only use two types of the manifest records: SST flush and compaction. SST flush record stores the SST id that gets flushed to the disk. Compaction record stores the compaction task and the produced SST ids. Every time you write some new files the the disk, first sync the files and the storage directory, and then write to the manifest and sync the manifest.
+
+To sync the directory, you may implement the `sync_dir` function, where you can use `File::open(dir).sync_all()?` to sync it. On Linux, directory is a file that contains the list of files in the directory. By doing fsync on the directory, you will ensure that the newly-written (or removed) files can be visible to the user if the power goes off.
 
 ## Task 3: Flush on Close
 
+In this task, you will need to modify:
+
+```
+src/lsm_storage.rs
+```
+
+You will need to implement the `close` function. If `self.options.enable_wal = false` (we will cover WAL in the next chapter), you should flush all memtables to the disk before stopping the storage engine, so that all user changes will be persisted.
+
 ## Task 4: Recover from the State
+
+In this task, you will need to modify:
+
+```
+src/lsm_storage.rs
+```
+
+Now, you may modify the `open` function to recover the engine state from the manifest file. To recover it, you will need to first generate the list of SSTs you will need to load. You can do this by calling `apply_compaction_result` and recover SST ids in the LSM state. After that, you may iterate the state and load all SSTs (update the sstables hash map). During the process, you will need to compute the maximum SST id and update the `next_sst_id` field. After that, you may create a new memtable using that id and increment the id by one.
+
+You may use the mini-lsm-cli to test your implementation.
+
+```
+cargo run --bin mini-lsm-cli
+fill 1000 2000
+close
+cargo run --bin mini-lsm-cli
+get 1500
+```
+
+## Test Your Understanding
+
+* When do you need to call `fsync`? Why do you need to fsync the directory?
+* What are the places you will need to write to the manifest?
+
+## Bonus Tasks
+
+* **Manifest Compaction.** When the number of logs in the manifest file gets too large, you can rewrite the manifest file to only store the current snapshot and append new logs to that file.
 
 {{#include copyright.md}}

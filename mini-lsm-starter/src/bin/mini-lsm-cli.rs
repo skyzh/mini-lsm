@@ -27,7 +27,7 @@ struct Args {
     path: PathBuf,
     #[arg(long, default_value = "leveled")]
     compaction: CompactionStrategy,
-    #[arg(long, default_value = "true")]
+    #[arg(long)]
     enable_wal: bool,
 }
 

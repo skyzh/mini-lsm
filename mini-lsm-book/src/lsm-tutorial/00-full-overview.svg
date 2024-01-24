@@ -8,7 +8,7 @@
       </g>
     </marker>
   </defs>
-  <g id="00-full-overview" stroke-opacity="1" fill-opacity="1" stroke-dasharray="none" stroke="none" fill="none">
+  <g id="00-full-overview" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
     <title>00-full-overview</title>
     <rect fill="white" x="-5" y="170" width="704" height="599"/>
     <g id="00-full-overview_Layer_1">

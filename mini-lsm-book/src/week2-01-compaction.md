@@ -1,6 +1,6 @@
 # Compaction Implementation
 
-![Chapter Overview](./lsm-tutorial/week2-01-overview.svg)
+![Chapter Overview](./lsm-tutorial/week2-01-full.svg)
 
 In this chapter, you will:
 
