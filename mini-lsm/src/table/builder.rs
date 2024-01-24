@@ -7,13 +7,14 @@ use bytes::BufMut;
 use super::bloom::Bloom;
 use super::{BlockMeta, FileObject, SsTable};
 use crate::block::BlockBuilder;
+use crate::key::{KeySlice, KeyVec};
 use crate::lsm_storage::BlockCache;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     builder: BlockBuilder,
-    first_key: Vec<u8>,
-    last_key: Vec<u8>,
+    first_key: KeyVec,
+    last_key: KeyVec,
     data: Vec<u8>,
     pub(crate) meta: Vec<BlockMeta>,
     block_size: usize,
@@ -26,8 +27,8 @@ impl SsTableBuilder {
         Self {
             data: Vec::new(),
             meta: Vec::new(),
-            first_key: Vec::new(),
-            last_key: Vec::new(),
+            first_key: KeyVec::new(),
+            last_key: KeyVec::new(),
             block_size,
             builder: BlockBuilder::new(block_size),
             key_hashes: Vec::new(),
@@ -35,17 +36,15 @@ impl SsTableBuilder {
     }
 
     /// Adds a key-value pair to SSTable
-    pub fn add(&mut self, key: &[u8], value: &[u8]) {
+    pub fn add(&mut self, key: KeySlice, value: &[u8]) {
         if self.first_key.is_empty() {
-            self.first_key.clear();
-            self.first_key.extend(key);
+            self.first_key.set_from_slice(key);
         }
 
-        self.key_hashes.push(farmhash::fingerprint32(key));
+        self.key_hashes.push(farmhash::fingerprint32(key.raw_ref()));
 
         if self.builder.add(key, value) {
-            self.last_key.clear();
-            self.last_key.extend(key);
+            self.last_key.set_from_slice(key);
             return;
         }
 
@@ -54,10 +53,8 @@ impl SsTableBuilder {
 
         // add the key-value pair to the next block
         assert!(self.builder.add(key, value));
-        self.first_key.clear();
-        self.first_key.extend(key);
-        self.last_key.clear();
-        self.last_key.extend(key);
+        self.first_key.set_from_slice(key);
+        self.last_key.set_from_slice(key);
     }
 
     /// Get the estimated size of the SSTable.
@@ -70,8 +67,8 @@ impl SsTableBuilder {
         let encoded_block = builder.build().encode();
         self.meta.push(BlockMeta {
             offset: self.data.len(),
-            first_key: std::mem::take(&mut self.first_key).into(),
-            last_key: std::mem::take(&mut self.last_key).into(),
+            first_key: std::mem::take(&mut self.first_key).into_key_bytes(),
+            last_key: std::mem::take(&mut self.last_key).into_key_bytes(),
         });
         self.data.extend(encoded_block);
     }

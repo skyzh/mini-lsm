@@ -8,7 +8,6 @@ use mini_lsm_wrapper::compact::{
     CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
     TieredCompactionOptions,
 };
-use mini_lsm_wrapper::iterators::StorageIterator;
 use mini_lsm_wrapper::lsm_storage::{LsmStorageOptions, MiniLsm};
 use std::path::PathBuf;
 

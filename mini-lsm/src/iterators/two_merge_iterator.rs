@@ -1,5 +1,7 @@
 use anyhow::Result;
 
+use crate::key::KeySlice;
+
 use super::StorageIterator;
 
 /// Merges two iterators of different types into one. If the two iterators have the same key, only
@@ -41,7 +43,7 @@ impl<A: StorageIterator, B: StorageIterator> TwoMergeIterator<A, B> {
 }
 
 impl<A: StorageIterator, B: StorageIterator> StorageIterator for TwoMergeIterator<A, B> {
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         if self.choose_a {
             self.a.key()
         } else {

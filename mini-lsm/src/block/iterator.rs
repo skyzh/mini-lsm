@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use bytes::Buf;
 
-use crate::block::SIZEOF_U16;
+use crate::{
+    block::SIZEOF_U16,
+    key::{KeySlice, KeyVec},
+};
 
 use super::Block;
 
@@ -11,22 +14,22 @@ pub struct BlockIterator {
     /// reference to the block
     block: Arc<Block>,
     /// the current key at the iterator position
-    key: Vec<u8>,
+    key: KeyVec,
     /// the value range from the block
     value_range: (usize, usize),
     /// the current index at the iterator position
     idx: usize,
     /// the first key in the block
-    first_key: Vec<u8>,
+    first_key: KeyVec,
 }
 
 impl Block {
-    fn get_first_key(&self) -> Vec<u8> {
+    fn get_first_key(&self) -> KeyVec {
         let mut buf = &self.data[..];
         buf.get_u16();
         let key_len = buf.get_u16();
         let key = &buf[..key_len as usize];
-        key.to_vec()
+        KeyVec::from_vec(key.to_vec())
     }
 }
 
@@ -35,7 +38,7 @@ impl BlockIterator {
         Self {
             first_key: block.get_first_key(),
             block,
-            key: Vec::new(),
+            key: KeyVec::new(),
             value_range: (0, 0),
             idx: 0,
         }
@@ -49,16 +52,16 @@ impl BlockIterator {
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
-    pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
+    pub fn create_and_seek_to_key(block: Arc<Block>, key: KeySlice) -> Self {
         let mut iter = Self::new(block);
         iter.seek_to_key(key);
         iter
     }
 
     /// Returns the key of the current entry.
-    pub fn key(&self) -> &[u8] {
+    pub fn key(&self) -> KeySlice {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
-        &self.key
+        self.key.as_key_slice()
     }
 
     /// Returns the value of the current entry.
@@ -103,11 +106,11 @@ impl BlockIterator {
         // we don't need to manually advance it
         let overlap_len = entry.get_u16() as usize;
         let key_len = entry.get_u16() as usize;
-        let key = entry[..key_len].to_vec();
-        entry.advance(key_len);
+        let key = &entry[..key_len];
         self.key.clear();
-        self.key.extend(&self.first_key[..overlap_len]);
-        self.key.extend(key);
+        self.key.append(&self.first_key.raw_ref()[..overlap_len]);
+        self.key.append(key);
+        entry.advance(key_len);
         let value_len = entry.get_u16() as usize;
         let value_offset_begin = offset + SIZEOF_U16 + SIZEOF_U16 + key_len + SIZEOF_U16;
         let value_offset_end = value_offset_begin + value_len;
@@ -116,14 +119,14 @@ impl BlockIterator {
     }
 
     /// Seek to the first key that is >= `key`.
-    pub fn seek_to_key(&mut self, key: &[u8]) {
+    pub fn seek_to_key(&mut self, key: KeySlice) {
         let mut low = 0;
         let mut high = self.block.offsets.len();
         while low < high {
             let mid = low + (high - low) / 2;
             self.seek_to(mid);
             assert!(self.is_valid());
-            match self.key().cmp(key) {
+            match self.key().cmp(&key) {
                 std::cmp::Ordering::Less => low = mid + 1,
                 std::cmp::Ordering::Greater => high = mid,
                 std::cmp::Ordering::Equal => return,
