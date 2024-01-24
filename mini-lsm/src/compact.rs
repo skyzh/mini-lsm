@@ -57,13 +57,13 @@ impl CompactionController {
     pub fn generate_compaction_task(&self, snapshot: &LsmStorageState) -> Option<CompactionTask> {
         match self {
             CompactionController::Leveled(ctrl) => ctrl
-                .generate_compaction_task(&snapshot)
+                .generate_compaction_task(snapshot)
                 .map(CompactionTask::Leveled),
             CompactionController::Simple(ctrl) => ctrl
-                .generate_compaction_task(&snapshot)
+                .generate_compaction_task(snapshot)
                 .map(CompactionTask::Simple),
             CompactionController::Tiered(ctrl) => ctrl
-                .generate_compaction_task(&snapshot)
+                .generate_compaction_task(snapshot)
                 .map(CompactionTask::Tiered),
             CompactionController::NoCompaction => unreachable!(),
         }
@@ -77,13 +77,13 @@ impl CompactionController {
     ) -> (LsmStorageState, Vec<usize>) {
         match (self, task) {
             (CompactionController::Leveled(ctrl), CompactionTask::Leveled(task)) => {
-                ctrl.apply_compaction_result(&snapshot, task, output)
+                ctrl.apply_compaction_result(snapshot, task, output)
             }
             (CompactionController::Simple(ctrl), CompactionTask::Simple(task)) => {
-                ctrl.apply_compaction_result(&snapshot, task, output)
+                ctrl.apply_compaction_result(snapshot, task, output)
             }
             (CompactionController::Tiered(ctrl), CompactionTask::Tiered(task)) => {
-                ctrl.apply_compaction_result(&snapshot, task, output)
+                ctrl.apply_compaction_result(snapshot, task, output)
             }
             _ => unreachable!(),
         }
@@ -92,11 +92,10 @@ impl CompactionController {
 
 impl CompactionController {
     pub fn flush_to_l0(&self) -> bool {
-        if let Self::Leveled(_) | Self::Simple(_) | Self::NoCompaction = self {
-            true
-        } else {
-            false
-        }
+        matches!(
+            self,
+            Self::Leveled(_) | Self::Simple(_) | Self::NoCompaction
+        )
     }
 }
 
@@ -379,10 +378,11 @@ impl LsmStorageInner {
     }
 
     fn trigger_flush(&self) -> Result<()> {
-        if {
+        let res = {
             let state = self.state.read();
             state.imm_memtables.len() >= self.options.num_memtable_limit
-        } {
+        };
+        if res {
             self.force_flush_next_imm_memtable()?;
         }
 
@@ -405,6 +405,6 @@ impl LsmStorageInner {
                 }
             }
         });
-        return Ok(Some(handle));
+        Ok(Some(handle))
     }
 }

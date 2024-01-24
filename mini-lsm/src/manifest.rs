@@ -43,9 +43,9 @@ impl Manifest {
             .context("failed to recover manifest")?;
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
-        let mut stream = Deserializer::from_slice(&buf).into_iter::<ManifestRecord>();
+        let stream = Deserializer::from_slice(&buf).into_iter::<ManifestRecord>();
         let mut records = Vec::new();
-        while let Some(x) = stream.next() {
+        for x in stream {
             records.push(x?);
         }
         Ok((

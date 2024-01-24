@@ -71,7 +71,7 @@ fn test_task3_block_key_compression() {
     }
     let dir = tempdir().unwrap();
     let path = dir.path().join("1.sst");
-    let sst = builder.build_for_test(&path).unwrap();
+    let sst = builder.build_for_test(path).unwrap();
     assert!(
         sst.block_meta.len() <= 25,
         "you have {} blocks, expect 25",

@@ -78,7 +78,7 @@ impl LeveledCompactionController {
                     .sum::<u64>() as usize,
             );
         }
-        let base_level_size_bytes = self.options.base_level_size_mb as usize * 1024 * 1024;
+        let base_level_size_bytes = self.options.base_level_size_mb * 1024 * 1024;
 
         // select base level and compute target level size
         target_level_size[self.options.max_levels - 1] =

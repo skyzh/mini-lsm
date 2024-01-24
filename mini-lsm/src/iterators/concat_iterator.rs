@@ -71,21 +71,17 @@ impl SstConcatIterator {
     }
 
     fn move_until_valid(&mut self) -> Result<()> {
-        loop {
-            if let Some(iter) = self.current.as_mut() {
-                if iter.is_valid() {
-                    break;
-                }
-                if self.next_sst_idx >= self.sstables.len() {
-                    self.current = None;
-                } else {
-                    self.current = Some(SsTableIterator::create_and_seek_to_first(
-                        self.sstables[self.next_sst_idx].clone(),
-                    )?);
-                    self.next_sst_idx += 1;
-                }
-            } else {
+        while let Some(iter) = self.current.as_mut() {
+            if iter.is_valid() {
                 break;
+            }
+            if self.next_sst_idx >= self.sstables.len() {
+                self.current = None;
+            } else {
+                self.current = Some(SsTableIterator::create_and_seek_to_first(
+                    self.sstables[self.next_sst_idx].clone(),
+                )?);
+                self.next_sst_idx += 1;
             }
         }
         Ok(())

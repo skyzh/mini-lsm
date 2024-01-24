@@ -336,7 +336,7 @@ impl LsmStorageInner {
             for table_id in state
                 .l0_sstables
                 .iter()
-                .chain(state.levels.iter().map(|(_, files)| files).flatten())
+                .chain(state.levels.iter().flat_map(|(_, files)| files))
             {
                 let table_id = *table_id;
                 let sst = SsTable::open(

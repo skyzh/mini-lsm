@@ -70,6 +70,12 @@ pub struct MockStorage {
     total_writes: usize,
 }
 
+impl Default for MockStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockStorage {
     pub fn new() -> Self {
         let snapshot = LsmStorageState {
@@ -206,8 +212,8 @@ fn generate_random_split(
         let ne = begin + len * (i + 1) / split - 1;
         let mut begin_bytes = BytesMut::new();
         let mut end_bytes = BytesMut::new();
-        begin_bytes.put_u64(nb as u64);
-        end_bytes.put_u64(ne as u64);
+        begin_bytes.put_u64(nb);
+        end_bytes.put_u64(ne);
         result.push((begin_bytes.into(), end_bytes.into()));
     }
     result
