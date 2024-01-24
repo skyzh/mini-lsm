@@ -107,6 +107,19 @@ fn main() -> Result<()> {
             } else {
                 println!("{} not exist", key);
             }
+        } else if line == "scan" {
+            let mut iter = lsm.scan(std::ops::Bound::Unbounded, std::ops::Bound::Unbounded)?;
+            let mut cnt = 0;
+            while iter.is_valid() {
+                println!(
+                    "{:?}={:?}",
+                    Bytes::copy_from_slice(iter.key()),
+                    Bytes::copy_from_slice(iter.value()),
+                );
+                iter.next()?;
+                cnt += 1;
+            }
+            println!("{} keys scanned", cnt);
         } else if line.starts_with("scan ") {
             let Some((_, rest)) = line.split_once(' ') else {
                 println!("invalid command");
@@ -137,7 +150,7 @@ fn main() -> Result<()> {
             lsm.force_flush()?;
         } else if line == "full_compaction" {
             lsm.force_full_compaction()?;
-        } else if line == "quit" {
+        } else if line == "quit" || line == "close" {
             lsm.close()?;
             break;
         } else {

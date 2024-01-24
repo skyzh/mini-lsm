@@ -124,7 +124,6 @@ pub fn generate_sst(
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
 
-
 pub fn sync(storage: &LsmStorageInner) {
     storage
         .force_freeze_memtable(&storage.state_lock.lock())

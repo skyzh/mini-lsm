@@ -343,6 +343,7 @@ fn main() {
                 } else {
                     storage.dump_original_id(false, false);
                 }
+                println!("--- Compaction Task ---");
                 let mut num_compactions = 0;
                 while let Some(task) = {
                     println!("--- Compaction Task ---");

@@ -166,10 +166,16 @@ impl MiniLsm {
         self.inner.scan(lower, upper)
     }
 
+    /// Only call this in test cases due to race conditions
     pub fn force_flush(&self) -> Result<()> {
-        self.inner
-            .force_freeze_memtable(&self.inner.state_lock.lock())?;
-        self.inner.force_flush_next_imm_memtable()
+        if !self.inner.state.read().memtable.is_empty() {
+            self.inner
+                .force_freeze_memtable(&self.inner.state_lock.lock())?;
+        }
+        if !self.inner.state.read().imm_memtables.is_empty() {
+            self.inner.force_flush_next_imm_memtable()?;
+        }
+        Ok(())
     }
 
     pub fn force_full_compaction(&self) -> Result<()> {
@@ -247,7 +253,7 @@ impl LsmStorageInner {
         Self::path_of_wal_static(&self.path, id)
     }
 
-    fn sync_dir(&self) -> Result<()> {
+    pub(super) fn sync_dir(&self) -> Result<()> {
         unimplemented!()
     }
 

@@ -1,3 +1,4 @@
+pub mod concat_iterator;
 pub mod merge_iterator;
 pub mod two_merge_iterator;
 
@@ -13,7 +14,9 @@ pub trait StorageIterator {
 
     /// Move to the next position.
     fn next(&mut self) -> anyhow::Result<()>;
-}
 
-#[cfg(test)]
-mod tests;
+    /// Number of underlying active iterators for this iterator.
+    fn num_active_iterators(&self) -> usize {
+        1
+    }
+}

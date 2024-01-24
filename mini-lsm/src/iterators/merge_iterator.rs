@@ -77,13 +77,11 @@ impl<I: StorageIterator> MergeIterator<I> {
 
 impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     fn key(&self) -> &[u8] {
-        unsafe { self.current.as_ref().unwrap_unchecked() }.1.key()
+        self.current.as_ref().unwrap().1.key()
     }
 
     fn value(&self) -> &[u8] {
-        unsafe { self.current.as_ref().unwrap_unchecked() }
-            .1
-            .value()
+        self.current.as_ref().unwrap().1.value()
     }
 
     fn is_valid(&self) -> bool {
@@ -94,7 +92,7 @@ impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     }
 
     fn next(&mut self) -> Result<()> {
-        let current = unsafe { self.current.as_mut().unwrap_unchecked() };
+        let current = self.current.as_mut().unwrap();
         // Pop the item out of the heap if they have the same value.
         while let Some(mut inner_iter) = self.iters.peek_mut() {
             debug_assert!(
@@ -135,5 +133,17 @@ impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
         }
 
         Ok(())
+    }
+
+    fn num_active_iterators(&self) -> usize {
+        self.iters
+            .iter()
+            .map(|x| x.1.num_active_iterators())
+            .sum::<usize>()
+            + self
+                .current
+                .as_ref()
+                .map(|x| x.1.num_active_iterators())
+                .unwrap_or(0)
     }
 }

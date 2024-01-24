@@ -77,4 +77,8 @@ impl<A: StorageIterator, B: StorageIterator> StorageIterator for TwoMergeIterato
         self.choose_a = Self::choose_a(&self.a, &self.b);
         Ok(())
     }
+
+    fn num_active_iterators(&self) -> usize {
+        self.a.num_active_iterators() + self.b.num_active_iterators()
+    }
 }

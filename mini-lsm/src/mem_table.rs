@@ -1,5 +1,8 @@
+#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
+
 use std::ops::Bound;
 use std::path::Path;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -12,13 +15,18 @@ use crate::iterators::StorageIterator;
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
-/// A basic mem-table based on crossbeam-skiplist
+/// A basic mem-table based on crossbeam-skiplist.
+///
+/// An initial implementation of memtable is part of week 1, day 1. It will be incrementally implemented in other
+/// chapters of week 1 and week 2.
 pub struct MemTable {
     map: Arc<SkipMap<Bytes, Bytes>>,
     wal: Option<Wal>,
     id: usize,
+    approximate_size: Arc<AtomicUsize>,
 }
 
+/// Create a bound of `Bytes` from a bound of `&[u8]`.
 pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
     match bound {
         Bound::Included(x) => Bound::Included(Bytes::copy_from_slice(x)),
@@ -34,6 +42,7 @@ impl MemTable {
             id,
             map: Arc::new(SkipMap::new()),
             wal: None,
+            approximate_size: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -43,6 +52,7 @@ impl MemTable {
             id,
             map: Arc::new(SkipMap::new()),
             wal: Some(Wal::create(path.as_ref())?),
+            approximate_size: Arc::new(AtomicUsize::new(0)),
         })
     }
 
@@ -53,6 +63,7 @@ impl MemTable {
             id,
             wal: Some(Wal::recover(path.as_ref(), &map)?),
             map,
+            approximate_size: Arc::new(AtomicUsize::new(0)),
         })
     }
 
@@ -62,9 +73,15 @@ impl MemTable {
     }
 
     /// Put a key-value pair into the mem-table.
+    ///
+    /// In week 1, day 1, simply put the key-value pair into the skipmap.
+    /// In week 2, day 6, also flush the data to WAL.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        let estimated_size = key.len() + value.len();
         self.map
             .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
+        self.approximate_size
+            .fetch_add(estimated_size, std::sync::atomic::Ordering::Relaxed);
         if let Some(ref wal) = self.wal {
             wal.put(key, value)?;
         }
@@ -84,7 +101,7 @@ impl MemTable {
         let mut iter = MemTableIteratorBuilder {
             map: self.map.clone(),
             iter_builder: |map| map.range((lower, upper)),
-            item: (Bytes::from_static(&[]), Bytes::from_static(&[])),
+            item: (Bytes::new(), Bytes::new()),
         }
         .build();
         let entry = iter.with_iter_mut(|iter| MemTableIterator::entry_to_item(iter.next()));
@@ -92,7 +109,7 @@ impl MemTable {
         iter
     }
 
-    /// Flush the mem-table to SSTable.
+    /// Flush the mem-table to SSTable. Implement in week 1 day 6.
     pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
         for entry in self.map.iter() {
             builder.add(&entry.key()[..], &entry.value()[..]);
@@ -103,18 +120,34 @@ impl MemTable {
     pub fn id(&self) -> usize {
         self.id
     }
+
+    pub fn approximate_size(&self) -> usize {
+        self.approximate_size
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Only use this function when closing the database
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
 }
 
 type SkipMapRangeIter<'a> =
     crossbeam_skiplist::map::Range<'a, Bytes, (Bound<Bytes>, Bound<Bytes>), Bytes, Bytes>;
 
-/// An iterator over a range of `SkipMap`.
+/// An iterator over a range of `SkipMap`. This is a self-referential structure and please refer to week 1, day 2
+/// chapter for more information.
+///
+/// This is part of week 1, day 2.
 #[self_referencing]
 pub struct MemTableIterator {
+    /// Stores a reference to the skipmap.
     map: Arc<SkipMap<Bytes, Bytes>>,
+    /// Stores a skipmap iterator that refers to the lifetime of `MemTableIterator` itself.
     #[borrows(map)]
     #[not_covariant]
     iter: SkipMapRangeIter<'this>,
+    /// Stores the current key-value pair.
     item: (Bytes, Bytes),
 }
 
@@ -145,6 +178,3 @@ impl StorageIterator for MemTableIterator {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests;

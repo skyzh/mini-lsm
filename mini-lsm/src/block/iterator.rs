@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use bytes::Buf;
 
+use crate::block::SIZEOF_U16;
+
 use super::Block;
 
 /// Iterates on a block.
@@ -10,18 +12,31 @@ pub struct BlockIterator {
     block: Arc<Block>,
     /// the current key at the iterator position
     key: Vec<u8>,
-    /// the current value at the iterator position
-    value: Vec<u8>,
+    /// the value range from the block
+    value_range: (usize, usize),
     /// the current index at the iterator position
     idx: usize,
+    /// the first key in the block
+    first_key: Vec<u8>,
+}
+
+impl Block {
+    fn get_first_key(&self) -> Vec<u8> {
+        let mut buf = &self.data[..];
+        buf.get_u16();
+        let key_len = buf.get_u16();
+        let key = &buf[..key_len as usize];
+        key.to_vec()
+    }
 }
 
 impl BlockIterator {
     fn new(block: Arc<Block>) -> Self {
         Self {
+            first_key: block.get_first_key(),
             block,
             key: Vec::new(),
-            value: Vec::new(),
+            value_range: (0, 0),
             idx: 0,
         }
     }
@@ -49,7 +64,7 @@ impl BlockIterator {
     /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
-        &self.value
+        &self.block.data[self.value_range.0..self.value_range.1]
     }
 
     /// Returns true if the iterator is valid.
@@ -66,7 +81,7 @@ impl BlockIterator {
     fn seek_to(&mut self, idx: usize) {
         if idx >= self.block.offsets.len() {
             self.key.clear();
-            self.value.clear();
+            self.value_range = (0, 0);
             return;
         }
         let offset = self.block.offsets[idx] as usize;
@@ -86,16 +101,18 @@ impl BlockIterator {
         let mut entry = &self.block.data[offset..];
         // Since `get_u16()` will automatically move the ptr 2 bytes ahead here,
         // we don't need to manually advance it
+        let overlap_len = entry.get_u16() as usize;
         let key_len = entry.get_u16() as usize;
         let key = entry[..key_len].to_vec();
         entry.advance(key_len);
         self.key.clear();
+        self.key.extend(&self.first_key[..overlap_len]);
         self.key.extend(key);
         let value_len = entry.get_u16() as usize;
-        let value = entry[..value_len].to_vec();
+        let value_offset_begin = offset + SIZEOF_U16 + SIZEOF_U16 + key_len + SIZEOF_U16;
+        let value_offset_end = value_offset_begin + value_len;
+        self.value_range = (value_offset_begin, value_offset_end);
         entry.advance(value_len);
-        self.value.clear();
-        self.value.extend(value);
     }
 
     /// Seek to the first key that is >= `key`.

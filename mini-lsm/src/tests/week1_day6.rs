@@ -11,7 +11,6 @@ use crate::{
     lsm_storage::{LsmStorageInner, LsmStorageOptions, MiniLsm},
 };
 
-
 #[test]
 fn test_task1_storage_scan() {
     let dir = tempdir().unwrap();
