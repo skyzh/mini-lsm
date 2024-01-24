@@ -22,15 +22,15 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
-        assert_eq!(iter.key(), b"key1");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key3");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key3");
         assert_eq!(iter.value(), b"value3");
         assert!(iter.is_valid());
         iter.next().unwrap();
@@ -39,11 +39,11 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Included(b"key1"), Bound::Included(b"key2"));
-        assert_eq!(iter.key(), b"key1");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();
@@ -52,7 +52,7 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();

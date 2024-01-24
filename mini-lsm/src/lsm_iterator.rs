@@ -53,26 +53,30 @@ impl LsmIterator {
         }
         Ok(())
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl StorageIterator for LsmIterator {
+    type KeyType<'a> = &'a [u8];
+
+    fn is_valid(&self) -> bool {
         self.is_valid
     }
 
-    pub fn key(&self) -> &[u8] {
+    fn key(&self) -> &[u8] {
         self.inner.key().raw_ref()
     }
 
-    pub fn value(&self) -> &[u8] {
+    fn value(&self) -> &[u8] {
         self.inner.value()
     }
 
-    pub fn next(&mut self) -> Result<()> {
+    fn next(&mut self) -> Result<()> {
         self.next_inner()?;
         self.move_to_non_delete()?;
         Ok(())
     }
 
-    pub fn num_active_iterators(&self) -> usize {
+    fn num_active_iterators(&self) -> usize {
         self.inner.num_active_iterators()
     }
 }
@@ -80,38 +84,42 @@ impl LsmIterator {
 /// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is
 /// invalid. If an iterator is already invalid, `next` does not do anything. If `next` returns an error,
 /// `is_valid` should return false, and `next` should always return an error.
-pub struct FusedIterator {
-    iter: LsmIterator,
+pub struct FusedIterator<I: StorageIterator> {
+    iter: I,
     has_errored: bool,
 }
 
-impl FusedIterator {
-    pub fn new(iter: LsmIterator) -> Self {
+impl<I: StorageIterator> FusedIterator<I> {
+    pub fn new(iter: I) -> Self {
         Self {
             iter,
             has_errored: false,
         }
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
+    type KeyType<'a> = I::KeyType<'a> where Self: 'a;
+
+    fn is_valid(&self) -> bool {
         !self.has_errored && self.iter.is_valid()
     }
 
-    pub fn key(&self) -> &[u8] {
+    fn key(&self) -> Self::KeyType<'_> {
         if self.has_errored || !self.iter.is_valid() {
             panic!("invalid access to the underlying iterator");
         }
         self.iter.key()
     }
 
-    pub fn value(&self) -> &[u8] {
+    fn value(&self) -> &[u8] {
         if self.has_errored || !self.iter.is_valid() {
             panic!("invalid access to the underlying iterator");
         }
         self.iter.value()
     }
 
-    pub fn next(&mut self) -> Result<()> {
+    fn next(&mut self) -> Result<()> {
         // only move when the iterator is valid and not errored
         if self.has_errored {
             bail!("the iterator is tainted");
@@ -125,7 +133,7 @@ impl FusedIterator {
         Ok(())
     }
 
-    pub fn num_active_iterators(&self) -> usize {
+    fn num_active_iterators(&self) -> usize {
         self.iter.num_active_iterators()
     }
 }

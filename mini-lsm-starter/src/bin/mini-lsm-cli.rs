@@ -1,4 +1,5 @@
 mod wrapper;
+use mini_lsm::iterators::StorageIterator;
 use wrapper::mini_lsm_wrapper;
 
 use anyhow::Result;

@@ -159,6 +159,8 @@ impl MemTableIterator {
 }
 
 impl StorageIterator for MemTableIterator {
+    type KeyType<'a> = KeySlice<'a>;
+
     fn value(&self) -> &[u8] {
         &self.borrow_item().1[..]
     }

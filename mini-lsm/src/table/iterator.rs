@@ -76,6 +76,8 @@ impl SsTableIterator {
 }
 
 impl StorageIterator for SsTableIterator {
+    type KeyType<'a> = KeySlice<'a>;
+
     fn value(&self) -> &[u8] {
         self.blk_iter.value()
     }

@@ -77,7 +77,11 @@ impl<I: StorageIterator> MergeIterator<I> {
     }
 }
 
-impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
+impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIterator
+    for MergeIterator<I>
+{
+    type KeyType<'a> = KeySlice<'a>;
+
     fn key(&self) -> KeySlice {
         self.current.as_ref().unwrap().1.key()
     }
