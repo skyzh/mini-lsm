@@ -20,9 +20,9 @@
   - [Leveled Compaction Strategy](./week2-04-leveled.md)
   - [Manifest](./week2-05-manifest.md)
   - [Write-Ahead Log (WAL)](./week2-06-wal.md)
-  - [Snack Time: Batch Write and Checksums](./week2-07-snacks.md)
+  - [Snack Time: Batch Write and Checksums (WIP)](./week2-07-snacks.md)
 
-- [Week 3 Overview: MVCC](./week3-overview.md)
+- [Week 3 Overview: MVCC (WIP)](./week3-overview.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
 ---
