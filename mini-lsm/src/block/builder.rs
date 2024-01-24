@@ -1,5 +1,7 @@
 use bytes::BufMut;
 
+use crate::key::{Key, KeySlice};
+
 use super::{Block, SIZEOF_U16};
 
 /// Builds a block.
@@ -11,10 +13,10 @@ pub struct BlockBuilder {
     /// The expected block size.
     block_size: usize,
     /// The first key in the block
-    first_key: Vec<u8>,
+    first_key: Key,
 }
 
-fn compute_overlap(first_key: &[u8], key: &[u8]) -> usize {
+fn compute_overlap(first_key: KeySlice, key: KeySlice) -> usize {
     let mut i = 0;
     loop {
         if i >= first_key.len() || i >= key.len() {
@@ -46,7 +48,7 @@ impl BlockBuilder {
 
     /// Adds a key-value pair to the block. Returns false when the block is full.
     #[must_use]
-    pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
+    pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         assert!(!key.is_empty(), "key must not be empty");
         if self.estimated_size() + key.len() + value.len() + SIZEOF_U16 * 3 /* key_len, value_len and offset */ > self.block_size
             && !self.is_empty()

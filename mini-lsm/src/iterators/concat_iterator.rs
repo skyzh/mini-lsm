@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use crate::table::{SsTable, SsTableIterator};
+use crate::{
+    key::KeySlice,
+    table::{SsTable, SsTableIterator},
+};
 
 use super::StorageIterator;
 
@@ -46,7 +49,7 @@ impl SstConcatIterator {
         Ok(iter)
     }
 
-    pub fn create_and_seek_to_key(sstables: Vec<Arc<SsTable>>, key: &[u8]) -> Result<Self> {
+    pub fn create_and_seek_to_key(sstables: Vec<Arc<SsTable>>, key: KeySlice) -> Result<Self> {
         Self::check_sst_valid(&sstables);
         let idx: usize = sstables
             .partition_point(|table| table.first_key() <= key)
@@ -89,7 +92,7 @@ impl SstConcatIterator {
 }
 
 impl StorageIterator for SstConcatIterator {
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         self.current.as_ref().unwrap().key()
     }
 

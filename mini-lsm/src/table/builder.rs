@@ -7,13 +7,14 @@ use bytes::BufMut;
 use super::bloom::Bloom;
 use super::{BlockMeta, FileObject, SsTable};
 use crate::block::BlockBuilder;
+use crate::key::{Key, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     builder: BlockBuilder,
-    first_key: Vec<u8>,
-    last_key: Vec<u8>,
+    first_key: Key,
+    last_key: Key,
     data: Vec<u8>,
     pub(crate) meta: Vec<BlockMeta>,
     block_size: usize,
@@ -35,7 +36,7 @@ impl SsTableBuilder {
     }
 
     /// Adds a key-value pair to SSTable
-    pub fn add(&mut self, key: &[u8], value: &[u8]) {
+    pub fn add(&mut self, key: KeySlice, value: &[u8]) {
         if self.first_key.is_empty() {
             self.first_key.clear();
             self.first_key.extend(key);

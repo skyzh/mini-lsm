@@ -7,6 +7,7 @@ use crate::iterators::concat_iterator::SstConcatIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
+use crate::key::KeyBytes;
 use crate::mem_table::MemTableIterator;
 use crate::table::SsTableIterator;
 
@@ -53,9 +54,7 @@ impl LsmIterator {
         }
         Ok(())
     }
-}
 
-impl StorageIterator for LsmIterator {
     fn is_valid(&self) -> bool {
         self.is_valid
     }
@@ -82,21 +81,19 @@ impl StorageIterator for LsmIterator {
 /// A wrapper around existing iterator, will prevent users from calling `next` when the iterator is
 /// invalid. If an iterator is already invalid, `next` does not do anything. If `next` returns an error,
 /// `is_valid` should return false, and `next` should always return an error.
-pub struct FusedIterator<I: StorageIterator> {
-    iter: I,
+pub struct FusedIterator {
+    iter: LsmIterator,
     has_errored: bool,
 }
 
-impl<I: StorageIterator> FusedIterator<I> {
-    pub fn new(iter: I) -> Self {
+impl FusedIterator {
+    pub fn new(iter: LsmIterator) -> Self {
         Self {
             iter,
             has_errored: false,
         }
     }
-}
 
-impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
     fn is_valid(&self) -> bool {
         !self.has_errored && self.iter.is_valid()
     }

@@ -18,6 +18,7 @@ use crate::iterators::concat_iterator::SstConcatIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
+use crate::key::KeySlice;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::{Manifest, ManifestRecord};
 use crate::mem_table::{map_bound, MemTable};
@@ -98,8 +99,8 @@ impl LsmStorageOptions {
 fn range_overlap(
     user_begin: Bound<&[u8]>,
     user_end: Bound<&[u8]>,
-    table_begin: &[u8],
-    table_end: &[u8],
+    table_begin: KeySlice,
+    table_end: KeySlice,
 ) -> bool {
     match user_end {
         Bound::Excluded(key) if key <= table_begin => {
@@ -122,7 +123,7 @@ fn range_overlap(
     true
 }
 
-fn key_within(user_key: &[u8], table_begin: &[u8], table_end: &[u8]) -> bool {
+fn key_within(user_key: &[u8], table_begin: KeySlice, table_end: KeySlice) -> bool {
     table_begin <= user_key && user_key <= table_end
 }
 
@@ -235,11 +236,7 @@ impl MiniLsm {
         self.inner.sync()
     }
 
-    pub fn scan(
-        &self,
-        lower: Bound<&[u8]>,
-        upper: Bound<&[u8]>,
-    ) -> Result<FusedIterator<LsmIterator>> {
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<FusedIterator> {
         self.inner.scan(lower, upper)
     }
 
@@ -575,7 +572,8 @@ impl LsmStorageInner {
 
     /// Force flush the earliest-created immutable memtable to disk
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
-        let state_lock = self.state_lock.lock();
+        let state_lock: parking_lot::lock_api::MutexGuard<'_, parking_lot::RawMutex, ()> =
+            self.state_lock.lock();
 
         let flush_memtable;
 
@@ -633,11 +631,7 @@ impl LsmStorageInner {
     }
 
     /// Create an iterator over a range of keys.
-    pub fn scan(
-        &self,
-        lower: Bound<&[u8]>,
-        upper: Bound<&[u8]>,
-    ) -> Result<FusedIterator<LsmIterator>> {
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<FusedIterator> {
         let snapshot = {
             let guard = self.state.read();
             Arc::clone(&guard)

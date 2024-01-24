@@ -4,6 +4,8 @@ use std::collections::BinaryHeap;
 
 use anyhow::Result;
 
+use crate::key::KeySlice;
+
 use super::StorageIterator;
 
 struct HeapWrapper<I: StorageIterator>(pub usize, pub Box<I>);
@@ -76,7 +78,7 @@ impl<I: StorageIterator> MergeIterator<I> {
 }
 
 impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         self.current.as_ref().unwrap().1.key()
     }
 

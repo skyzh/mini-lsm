@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use bytes::Buf;
 
-use crate::block::SIZEOF_U16;
+use crate::{
+    block::SIZEOF_U16,
+    key::{Key, KeySlice},
+};
 
 use super::Block;
 
@@ -11,17 +14,17 @@ pub struct BlockIterator {
     /// reference to the block
     block: Arc<Block>,
     /// the current key at the iterator position
-    key: Vec<u8>,
+    key: Key,
     /// the value range from the block
     value_range: (usize, usize),
     /// the current index at the iterator position
     idx: usize,
     /// the first key in the block
-    first_key: Vec<u8>,
+    first_key: Key,
 }
 
 impl Block {
-    fn get_first_key(&self) -> Vec<u8> {
+    fn get_first_key(&self) -> Key {
         let mut buf = &self.data[..];
         buf.get_u16();
         let key_len = buf.get_u16();
@@ -49,14 +52,14 @@ impl BlockIterator {
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
-    pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
+    pub fn create_and_seek_to_key(block: Arc<Block>, key: KeySlice) -> Self {
         let mut iter = Self::new(block);
         iter.seek_to_key(key);
         iter
     }
 
     /// Returns the key of the current entry.
-    pub fn key(&self) -> &[u8] {
+    pub fn key(&self) -> KeySlice {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
         &self.key
     }
@@ -116,7 +119,7 @@ impl BlockIterator {
     }
 
     /// Seek to the first key that is >= `key`.
-    pub fn seek_to_key(&mut self, key: &[u8]) {
+    pub fn seek_to_key(&mut self, key: KeySlice) {
         let mut low = 0;
         let mut high = self.block.offsets.len();
         while low < high {

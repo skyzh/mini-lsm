@@ -1,3 +1,5 @@
+use crate::key::KeySlice;
+
 pub mod concat_iterator;
 pub mod merge_iterator;
 pub mod two_merge_iterator;
@@ -7,7 +9,7 @@ pub trait StorageIterator {
     fn value(&self) -> &[u8];
 
     /// Get the current key.
-    fn key(&self) -> &[u8];
+    fn key(&self) -> KeySlice;
 
     /// Check if the current iterator is valid.
     fn is_valid(&self) -> bool;

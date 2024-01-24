@@ -2,7 +2,9 @@ pub(crate) mod bloom;
 mod builder;
 mod iterator;
 
+use std::cmp::Ordering;
 use std::fs::File;
+use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -12,6 +14,7 @@ use bytes::{Buf, BufMut, Bytes};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
+use crate::key::{Key, KeyBytes, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
@@ -21,9 +24,9 @@ pub struct BlockMeta {
     /// Offset of this data block.
     pub offset: usize,
     /// The first key of the data block.
-    pub first_key: Bytes,
+    pub first_key: KeyBytes,
     /// The last key of the data block.
-    pub last_key: Bytes,
+    pub last_key: KeyBytes,
 }
 
 impl BlockMeta {
@@ -120,10 +123,11 @@ pub struct SsTable {
     pub(crate) block_meta_offset: usize,
     id: usize,
     block_cache: Option<Arc<BlockCache>>,
-    first_key: Bytes,
-    last_key: Bytes,
+    first_key: KeyBytes,
+    last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
 }
+
 impl SsTable {
     #[cfg(test)]
     pub(crate) fn open_for_test(file: FileObject) -> Result<Self> {
@@ -154,15 +158,20 @@ impl SsTable {
     }
 
     /// Create a mock SST with only first key + last key metadata
-    pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
+    pub fn create_meta_only(
+        id: usize,
+        file_size: u64,
+        first_key: KeyBytes,
+        last_key: KeyBytes,
+    ) -> Self {
         Self {
             file: FileObject(None, file_size),
             block_meta: vec![],
             block_meta_offset: 0,
             id,
             block_cache: None,
-            first_key,
-            last_key,
+            first_key: first_key,
+            last_key: last_key,
             bloom: None,
         }
     }
@@ -193,7 +202,7 @@ impl SsTable {
     }
 
     /// Find the block that may contain `key`.
-    pub fn find_block_idx(&self, key: &[u8]) -> usize {
+    pub fn find_block_idx(&self, key: KeySlice) -> usize {
         self.block_meta
             .partition_point(|meta| meta.first_key <= key)
             .saturating_sub(1)
@@ -204,11 +213,11 @@ impl SsTable {
         self.block_meta.len()
     }
 
-    pub fn first_key(&self) -> &Bytes {
+    pub fn first_key(&self) -> KeySlice {
         &self.first_key
     }
 
-    pub fn last_key(&self) -> &Bytes {
+    pub fn last_key(&self) -> KeySlice {
         &self.last_key
     }
 
