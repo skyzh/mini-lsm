@@ -98,6 +98,7 @@ impl CompactionController {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum CompactionOptions {
     /// Leveled compaction with partial compaction + dynamic level support (= RocksDB's Leveled
     /// Compaction)
@@ -309,24 +310,24 @@ impl LsmStorageInner {
         };
         println!("running compaction task: {:?}", task);
         let sstables = self.compact(&task)?;
-        let files_added = sstables.len();
         let output = sstables.iter().map(|x| x.sst_id()).collect::<Vec<_>>();
         let ssts_to_remove = {
             let state_lock = self.state_lock.lock();
-            let (mut snapshot, files_to_remove) = self
-                .compaction_controller
-                .apply_compaction_result(&self.state.read(), &task, &output);
-            let mut ssts_to_remove = Vec::with_capacity(files_to_remove.len());
-            for file_to_remove in &files_to_remove {
-                let result = snapshot.sstables.remove(file_to_remove);
-                assert!(result.is_some(), "cannot remove {}.sst", file_to_remove);
-                ssts_to_remove.push(result.unwrap());
-            }
+            let mut snapshot = self.state.read().as_ref().clone();
             let mut new_sst_ids = Vec::new();
             for file_to_add in sstables {
                 new_sst_ids.push(file_to_add.sst_id());
                 let result = snapshot.sstables.insert(file_to_add.sst_id(), file_to_add);
                 assert!(result.is_none());
+            }
+            let (mut snapshot, files_to_remove) = self
+                .compaction_controller
+                .apply_compaction_result(&snapshot, &task, &output);
+            let mut ssts_to_remove = Vec::with_capacity(files_to_remove.len());
+            for file_to_remove in &files_to_remove {
+                let result = snapshot.sstables.remove(file_to_remove);
+                assert!(result.is_some(), "cannot remove {}.sst", file_to_remove);
+                ssts_to_remove.push(result.unwrap());
             }
             let mut state = self.state.write();
             *state = Arc::new(snapshot);
@@ -339,9 +340,10 @@ impl LsmStorageInner {
             ssts_to_remove
         };
         println!(
-            "compaction finished: {} files removed, {} files added",
+            "compaction finished: {} files removed, {} files added, output={:?}",
             ssts_to_remove.len(),
-            files_added
+            output.len(),
+            output
         );
         for sst in ssts_to_remove {
             std::fs::remove_file(self.path_of_sst(sst.sst_id()))?;

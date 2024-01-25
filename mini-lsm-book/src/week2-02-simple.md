@@ -7,6 +7,13 @@ In this chapter, you will:
 * Implement a simple leveled compaction strategy and simulate it on the compaction simulator.
 * Start compaction as a background task and implement a compaction trigger in the system.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 2 --day 2
+cargo x scheck
+```
+
 ## Task 1: Simple Leveled Compaction
 
 In this chapter, we are going to implement our first compaction strategy -- simple leveled compaction. In this task, you will need to modify:

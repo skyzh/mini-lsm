@@ -8,6 +8,13 @@ In this chapter, you will:
 * Implement the logic to update the LSM states and manage SST files on the filesystem.
 * Update LSM read path to incorporate the LSM levels.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 2 --day 1
+cargo x scheck
+```
+
 ## Task 1: Compaction Implementation
 
 In this task, you will implement the core logic of doing a compaction -- merge sort a set of SST files into a sorted run. You will need to modify:

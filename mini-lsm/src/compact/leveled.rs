@@ -124,11 +124,11 @@ impl LeveledCompactionController {
                 "target level sizes: {:?}, real level sizes: {:?}, base_level: {}",
                 target_level_size
                     .iter()
-                    .map(|x| format!("{}MB", x / 1024 / 1024))
+                    .map(|x| format!("{:.3}MB", *x as f64 / 1024.0 / 1024.0))
                     .collect::<Vec<_>>(),
                 real_level_size
                     .iter()
-                    .map(|x| format!("{}MB", x / 1024 / 1024))
+                    .map(|x| format!("{:.3}MB", *x as f64 / 1024.0 / 1024.0))
                     .collect::<Vec<_>>(),
                 base_level,
             );

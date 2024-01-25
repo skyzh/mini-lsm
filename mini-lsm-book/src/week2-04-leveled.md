@@ -7,6 +7,13 @@ In this chapter, you will:
 * Implement a leveled compaction strategy and simulate it on the compaction simulator.
 * Incorporate leveled compaction strategy into the system.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 2 --day 4
+cargo x scheck
+```
+
 ## Task 1: Leveled Compaction
 
 In chapter 2 day 2, you have implemented the simple leveled compaction strategies. However, the implementation has a few problems:

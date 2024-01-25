@@ -9,6 +9,13 @@ In this chapter, you will:
 
 The tiered compaction we talk about in this chapter is the same as RocksDB's universal compaction. We will use these two terminologies interchangeably.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 2 --day 3
+cargo x scheck
+```
+
 ## Task 1: Universal Compaction
 
 In this chapter, you will implement RocksDB's universal compaction, which is of the tiered compaction family compaction strategies. Similar to the simple leveled compaction strategy, we only use number of files as the indicator in this compaction strategy. And when we trigger the compaction jobs, we always include a full sorted run (tier) in the compaction job.

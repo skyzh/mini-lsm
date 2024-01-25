@@ -90,6 +90,16 @@ impl LsmStorageOptions {
             num_memtable_limit: 2,
         }
     }
+
+    pub fn default_for_week2_test(compaction_options: CompactionOptions) -> Self {
+        Self {
+            block_size: 4096,
+            target_sst_size: 1 << 20, // 1MB
+            compaction_options,
+            enable_wal: false,
+            num_memtable_limit: 2,
+        }
+    }
 }
 
 /// The storage interface of the LSM tree.
