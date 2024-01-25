@@ -1,5 +1,5 @@
 [workspace]
-members = ["mini-lsm", "xtask", "mini-lsm-starter"]
+members = ["mini-lsm", "xtask", "mini-lsm-starter", "mini-lsm-mvcc"]
 resolver = "2"
 
 [workspace.package]
