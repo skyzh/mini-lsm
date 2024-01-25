@@ -1,6 +1,9 @@
 use tempfile::tempdir;
 
-use crate::table::{bloom::Bloom, FileObject, SsTable, SsTableBuilder};
+use crate::{
+    key::KeySlice,
+    table::{bloom::Bloom, FileObject, SsTable, SsTableBuilder},
+};
 
 fn key_of(idx: usize) -> Vec<u8> {
     format!("key_{:010}", idx * 5).into_bytes()
@@ -49,7 +52,7 @@ fn test_task2_sst_decode() {
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
-        builder.add(&key[..], &value[..]);
+        builder.add(KeySlice::for_testing_from_slice_no_ts(&key[..]), &value[..]);
     }
     let dir = tempdir().unwrap();
     let path = dir.path().join("1.sst");
@@ -67,7 +70,7 @@ fn test_task3_block_key_compression() {
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
-        builder.add(&key[..], &value[..]);
+        builder.add(KeySlice::for_testing_from_slice_no_ts(&key[..]), &value[..]);
     }
     let dir = tempdir().unwrap();
     let path = dir.path().join("1.sst");

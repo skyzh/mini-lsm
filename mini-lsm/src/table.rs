@@ -8,10 +8,11 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 pub use builder::SsTableBuilder;
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{Buf, BufMut};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
+use crate::key::{KeyBytes, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
@@ -21,9 +22,9 @@ pub struct BlockMeta {
     /// Offset of this data block.
     pub offset: usize,
     /// The first key of the data block.
-    pub first_key: Bytes,
+    pub first_key: KeyBytes,
     /// The last key of the data block.
-    pub last_key: Bytes,
+    pub last_key: KeyBytes,
 }
 
 impl BlockMeta {
@@ -49,9 +50,9 @@ impl BlockMeta {
         for meta in block_meta {
             buf.put_u32(meta.offset as u32);
             buf.put_u16(meta.first_key.len() as u16);
-            buf.put_slice(&meta.first_key);
+            buf.put_slice(meta.first_key.raw_ref());
             buf.put_u16(meta.last_key.len() as u16);
-            buf.put_slice(&meta.last_key);
+            buf.put_slice(meta.last_key.raw_ref());
         }
         assert_eq!(estimated_size, buf.len() - original_len);
     }
@@ -62,9 +63,9 @@ impl BlockMeta {
         while buf.has_remaining() {
             let offset = buf.get_u32() as usize;
             let first_key_len = buf.get_u16() as usize;
-            let first_key = buf.copy_to_bytes(first_key_len);
-            let last_key_len = buf.get_u16() as usize;
-            let last_key = buf.copy_to_bytes(last_key_len);
+            let first_key = KeyBytes::from_bytes(buf.copy_to_bytes(first_key_len));
+            let last_key_len: usize = buf.get_u16() as usize;
+            let last_key = KeyBytes::from_bytes(buf.copy_to_bytes(last_key_len));
             block_meta.push(BlockMeta {
                 offset,
                 first_key,
@@ -120,8 +121,8 @@ pub struct SsTable {
     pub(crate) block_meta_offset: usize,
     id: usize,
     block_cache: Option<Arc<BlockCache>>,
-    first_key: Bytes,
-    last_key: Bytes,
+    first_key: KeyBytes,
+    last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
 }
 impl SsTable {
@@ -154,7 +155,12 @@ impl SsTable {
     }
 
     /// Create a mock SST with only first key + last key metadata
-    pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
+    pub fn create_meta_only(
+        id: usize,
+        file_size: u64,
+        first_key: KeyBytes,
+        last_key: KeyBytes,
+    ) -> Self {
         Self {
             file: FileObject(None, file_size),
             block_meta: vec![],
@@ -193,9 +199,9 @@ impl SsTable {
     }
 
     /// Find the block that may contain `key`.
-    pub fn find_block_idx(&self, key: &[u8]) -> usize {
+    pub fn find_block_idx(&self, key: KeySlice) -> usize {
         self.block_meta
-            .partition_point(|meta| meta.first_key <= key)
+            .partition_point(|meta| meta.first_key.as_key_slice() <= key)
             .saturating_sub(1)
     }
 
@@ -204,11 +210,11 @@ impl SsTable {
         self.block_meta.len()
     }
 
-    pub fn first_key(&self) -> &Bytes {
+    pub fn first_key(&self) -> &KeyBytes {
         &self.first_key
     }
 
-    pub fn last_key(&self) -> &Bytes {
+    pub fn last_key(&self) -> &KeyBytes {
         &self.last_key
     }
 

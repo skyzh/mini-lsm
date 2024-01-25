@@ -8,9 +8,10 @@ use crate::{
     lsm_iterator::FusedIterator,
     lsm_storage::{LsmStorageInner, LsmStorageOptions},
     mem_table::MemTable,
+    tests::harness::check_lsm_iter_result_by_key,
 };
 
-use super::harness::{check_iter_result, expect_iter_error, MockIterator};
+use super::harness::{check_iter_result_by_key, expect_iter_error, MockIterator};
 
 #[test]
 fn test_task1_memtable_iter() {
@@ -22,15 +23,15 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
-        assert_eq!(iter.key(), b"key1");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key3");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key3");
         assert_eq!(iter.value(), b"value3");
         assert!(iter.is_valid());
         iter.next().unwrap();
@@ -39,11 +40,11 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Included(b"key1"), Bound::Included(b"key2"));
-        assert_eq!(iter.key(), b"key1");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
         iter.next().unwrap();
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();
@@ -52,7 +53,7 @@ fn test_task1_memtable_iter() {
 
     {
         let mut iter = memtable.scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
-        assert_eq!(iter.key(), b"key2");
+        assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
         iter.next().unwrap();
@@ -104,7 +105,7 @@ fn test_task2_merge_1() {
         Box::new(i3.clone()),
     ]);
 
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.1")),
@@ -117,7 +118,7 @@ fn test_task2_merge_1() {
 
     let mut iter = MergeIterator::create(vec![Box::new(i3), Box::new(i1), Box::new(i2)]);
 
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.1")),
@@ -169,7 +170,7 @@ fn test_task2_merge_2() {
         Box::new(i3.clone()),
         Box::new(i4.clone()),
     ]);
-    check_iter_result(&mut iter, result.clone());
+    check_iter_result_by_key(&mut iter, result.clone());
 
     let mut iter = MergeIterator::create(vec![
         Box::new(i2.clone()),
@@ -177,17 +178,17 @@ fn test_task2_merge_2() {
         Box::new(i3.clone()),
         Box::new(i1.clone()),
     ]);
-    check_iter_result(&mut iter, result.clone());
+    check_iter_result_by_key(&mut iter, result.clone());
 
     let mut iter =
         MergeIterator::create(vec![Box::new(i4), Box::new(i3), Box::new(i2), Box::new(i1)]);
-    check_iter_result(&mut iter, result);
+    check_iter_result_by_key(&mut iter, result);
 }
 
 #[test]
 fn test_task2_merge_empty() {
     let mut iter = MergeIterator::<MockIterator>::create(vec![]);
-    check_iter_result(&mut iter, vec![]);
+    check_iter_result_by_key(&mut iter, vec![]);
 
     let i1 = MockIterator::new(vec![
         (Bytes::from("a"), Bytes::from("1.1")),
@@ -196,7 +197,7 @@ fn test_task2_merge_empty() {
     ]);
     let i2 = MockIterator::new(vec![]);
     let mut iter = MergeIterator::<MockIterator>::create(vec![Box::new(i1), Box::new(i2)]);
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.1")),
@@ -209,7 +210,7 @@ fn test_task2_merge_empty() {
 #[test]
 fn test_task2_merge_error() {
     let mut iter = MergeIterator::<MockIterator>::create(vec![]);
-    check_iter_result(&mut iter, vec![]);
+    check_iter_result_by_key(&mut iter, vec![]);
 
     let i1 = MockIterator::new(vec![
         (Bytes::from("a"), Bytes::from("1.1")),
@@ -276,7 +277,7 @@ fn test_task4_integration() {
     storage.put(b"3", b"233333").unwrap();
     {
         let mut iter = storage.scan(Bound::Unbounded, Bound::Unbounded).unwrap();
-        check_iter_result(
+        check_lsm_iter_result_by_key(
             &mut iter,
             vec![
                 (Bytes::from_static(b"1"), Bytes::from_static(b"233333")),
@@ -294,7 +295,7 @@ fn test_task4_integration() {
         let mut iter = storage
             .scan(Bound::Included(b"2"), Bound::Included(b"3"))
             .unwrap();
-        check_iter_result(
+        check_lsm_iter_result_by_key(
             &mut iter,
             vec![(Bytes::from_static(b"3"), Bytes::from_static(b"233333"))],
         );

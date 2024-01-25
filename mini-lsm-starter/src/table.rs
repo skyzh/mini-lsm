@@ -11,10 +11,11 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use builder::SsTableBuilder;
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
+use crate::key::{KeyBytes, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
@@ -24,9 +25,9 @@ pub struct BlockMeta {
     /// Offset of this data block.
     pub offset: usize,
     /// The first key of the data block.
-    pub first_key: Bytes,
+    pub first_key: KeyBytes,
     /// The last key of the data block.
-    pub last_key: Bytes,
+    pub last_key: KeyBytes,
 }
 
 impl BlockMeta {
@@ -92,8 +93,8 @@ pub struct SsTable {
     pub(crate) block_meta_offset: usize,
     id: usize,
     block_cache: Option<Arc<BlockCache>>,
-    first_key: Bytes,
-    last_key: Bytes,
+    first_key: KeyBytes,
+    last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
 }
 
@@ -109,7 +110,12 @@ impl SsTable {
     }
 
     /// Create a mock SST with only first key + last key metadata
-    pub fn create_meta_only(id: usize, file_size: u64, first_key: Bytes, last_key: Bytes) -> Self {
+    pub fn create_meta_only(
+        id: usize,
+        file_size: u64,
+        first_key: KeyBytes,
+        last_key: KeyBytes,
+    ) -> Self {
         Self {
             file: FileObject(None, file_size),
             block_meta: vec![],
@@ -135,7 +141,7 @@ impl SsTable {
     /// Find the block that may contain `key`.
     /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
     /// You may also assume the key-value pairs stored in each consecutive block are sorted.
-    pub fn find_block_idx(&self, key: &[u8]) -> usize {
+    pub fn find_block_idx(&self, key: KeySlice) -> usize {
         unimplemented!()
     }
 
@@ -144,11 +150,11 @@ impl SsTable {
         self.block_meta.len()
     }
 
-    pub fn first_key(&self) -> &Bytes {
+    pub fn first_key(&self) -> &KeyBytes {
         &self.first_key
     }
 
-    pub fn last_key(&self) -> &Bytes {
+    pub fn last_key(&self) -> &KeyBytes {
         &self.last_key
     }
 

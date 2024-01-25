@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use super::SsTable;
-use crate::{block::BlockIterator, iterators::StorageIterator};
+use crate::{block::BlockIterator, iterators::StorageIterator, key::KeySlice};
 
 /// An iterator over the contents of an SSTable.
 pub struct SsTableIterator {
@@ -27,21 +27,23 @@ impl SsTableIterator {
     }
 
     /// Create a new iterator and seek to the first key-value pair which >= `key`.
-    pub fn create_and_seek_to_key(table: Arc<SsTable>, key: &[u8]) -> Result<Self> {
+    pub fn create_and_seek_to_key(table: Arc<SsTable>, key: KeySlice) -> Result<Self> {
         unimplemented!()
     }
 
     /// Seek to the first key-value pair which >= `key`.
     /// Note: You probably want to review the handout for detailed explanation when implementing
     /// this function.
-    pub fn seek_to_key(&mut self, key: &[u8]) -> Result<()> {
+    pub fn seek_to_key(&mut self, key: KeySlice) -> Result<()> {
         unimplemented!()
     }
 }
 
 impl StorageIterator for SsTableIterator {
+    type KeyType<'a> = KeySlice<'a>;
+
     /// Return the `key` that's held by the underlying block iterator.
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         unimplemented!()
     }
 

@@ -21,6 +21,8 @@ code .
 
 ## Install Tools
 
+You will need the latest stable Rust to compile this project. The minimum requirement is `1.74`.
+
 ```
 cargo x install-tools
 ```

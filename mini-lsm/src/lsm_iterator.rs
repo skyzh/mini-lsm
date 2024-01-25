@@ -41,8 +41,8 @@ impl LsmIterator {
         }
         match self.end_bound.as_ref() {
             Bound::Unbounded => {}
-            Bound::Included(key) => self.is_valid = self.inner.key() <= key.as_ref(),
-            Bound::Excluded(key) => self.is_valid = self.inner.key() < key.as_ref(),
+            Bound::Included(key) => self.is_valid = self.inner.key().raw_ref() <= key.as_ref(),
+            Bound::Excluded(key) => self.is_valid = self.inner.key().raw_ref() < key.as_ref(),
         }
         Ok(())
     }
@@ -56,12 +56,14 @@ impl LsmIterator {
 }
 
 impl StorageIterator for LsmIterator {
+    type KeyType<'a> = &'a [u8];
+
     fn is_valid(&self) -> bool {
         self.is_valid
     }
 
     fn key(&self) -> &[u8] {
-        self.inner.key()
+        self.inner.key().raw_ref()
     }
 
     fn value(&self) -> &[u8] {
@@ -97,11 +99,13 @@ impl<I: StorageIterator> FusedIterator<I> {
 }
 
 impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
+    type KeyType<'a> = I::KeyType<'a> where Self: 'a;
+
     fn is_valid(&self) -> bool {
         !self.has_errored && self.iter.is_valid()
     }
 
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> Self::KeyType<'_> {
         if self.has_errored || !self.iter.is_valid() {
             panic!("invalid access to the underlying iterator");
         }

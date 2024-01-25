@@ -4,12 +4,13 @@ use wrapper::mini_lsm_wrapper;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
 use clap::Parser;
 use mini_lsm_wrapper::compact::{
     LeveledCompactionController, LeveledCompactionOptions, SimpleLeveledCompactionController,
     SimpleLeveledCompactionOptions, TieredCompactionController, TieredCompactionOptions,
 };
+use mini_lsm_wrapper::key::KeyBytes;
 use mini_lsm_wrapper::lsm_storage::LsmStorageState;
 use mini_lsm_wrapper::mem_table::MemTable;
 use mini_lsm_wrapper::table::SsTable;
@@ -135,11 +136,11 @@ impl MockStorage {
                             "invalid file arrangement in L{}: id={}, range={:x}..={:x}; id={}, range={:x}..={:x}",
                             level,
                             this_file.sst_id(),
-                            this_file.first_key().clone().get_u64(),
-                            this_file.last_key().clone().get_u64(),
+                            this_file.first_key().for_testing_key_ref().get_u64(),
+                            this_file.last_key().for_testing_key_ref().get_u64(),
                             next_file.sst_id(),
-                            next_file.first_key().clone().get_u64(),
-                            next_file.last_key().clone().get_u64()
+                            next_file.first_key().for_testing_key_ref().get_u64(),
+                            next_file.last_key().for_testing_key_ref().get_u64()
                         );
                     }
                 }
@@ -184,7 +185,7 @@ impl MockStorage {
     }
 }
 
-fn generate_random_key_range() -> (Bytes, Bytes) {
+fn generate_random_key_range() -> (KeyBytes, KeyBytes) {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let begin: usize = rng.gen_range(0..(1 << 31));
@@ -193,16 +194,19 @@ fn generate_random_key_range() -> (Bytes, Bytes) {
     let mut end_bytes = BytesMut::new();
     begin_bytes.put_u64(begin as u64);
     end_bytes.put_u64(end as u64);
-    (begin_bytes.into(), end_bytes.into())
+    (
+        KeyBytes::for_testing_from_bytes_no_ts(begin_bytes.freeze()),
+        KeyBytes::for_testing_from_bytes_no_ts(end_bytes.freeze()),
+    )
 }
 
 fn generate_random_split(
-    mut begin_bytes: Bytes,
-    mut end_bytes: Bytes,
+    begin_bytes: KeyBytes,
+    end_bytes: KeyBytes,
     split: usize,
-) -> Vec<(Bytes, Bytes)> {
-    let begin = begin_bytes.get_u64();
-    let end = end_bytes.get_u64();
+) -> Vec<(KeyBytes, KeyBytes)> {
+    let begin = begin_bytes.for_testing_key_ref().get_u64();
+    let end = end_bytes.for_testing_key_ref().get_u64();
     let len = end - begin + 1;
     let mut result = Vec::new();
     let split = split as u64;
@@ -214,7 +218,10 @@ fn generate_random_split(
         let mut end_bytes = BytesMut::new();
         begin_bytes.put_u64(nb);
         end_bytes.put_u64(ne);
-        result.push((begin_bytes.into(), end_bytes.into()));
+        result.push((
+            KeyBytes::for_testing_from_bytes_no_ts(begin_bytes.freeze()),
+            KeyBytes::for_testing_from_bytes_no_ts(end_bytes.freeze()),
+        ));
     }
     result
 }
@@ -502,8 +509,14 @@ fn main() {
                             .map(|id| format!(
                                 "{}.sst {:x}..={:x}",
                                 id,
-                                storage.snapshot.sstables[id].first_key().clone().get_u64(),
-                                storage.snapshot.sstables[id].last_key().clone().get_u64()
+                                storage.snapshot.sstables[id]
+                                    .first_key()
+                                    .for_testing_key_ref()
+                                    .get_u64(),
+                                storage.snapshot.sstables[id]
+                                    .last_key()
+                                    .for_testing_key_ref()
+                                    .get_u64()
                             ))
                             .collect::<Vec<_>>()
                             .join(", ")
@@ -516,8 +529,14 @@ fn main() {
                             .map(|id| format!(
                                 "{}.sst {:x}..={:x}",
                                 id,
-                                storage.snapshot.sstables[id].first_key().clone().get_u64(),
-                                storage.snapshot.sstables[id].last_key().clone().get_u64()
+                                storage.snapshot.sstables[id]
+                                    .first_key()
+                                    .for_testing_key_ref()
+                                    .get_u64(),
+                                storage.snapshot.sstables[id]
+                                    .last_key()
+                                    .for_testing_key_ref()
+                                    .get_u64()
                             ))
                             .collect::<Vec<_>>()
                             .join(", ")
@@ -529,8 +548,14 @@ fn main() {
                             .map(|id| format!(
                                 "{}.sst {:x}..={:x}",
                                 id,
-                                storage.snapshot.sstables[id].first_key().clone().get_u64(),
-                                storage.snapshot.sstables[id].last_key().clone().get_u64()
+                                storage.snapshot.sstables[id]
+                                    .first_key()
+                                    .for_testing_key_ref()
+                                    .get_u64(),
+                                storage.snapshot.sstables[id]
+                                    .last_key()
+                                    .for_testing_key_ref()
+                                    .get_u64()
                             ))
                             .collect::<Vec<_>>()
                             .join(", ")

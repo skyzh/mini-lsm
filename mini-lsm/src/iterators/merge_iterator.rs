@@ -4,6 +4,8 @@ use std::collections::BinaryHeap;
 
 use anyhow::Result;
 
+use crate::key::KeySlice;
+
 use super::StorageIterator;
 
 struct HeapWrapper<I: StorageIterator>(pub usize, pub Box<I>);
@@ -19,7 +21,7 @@ impl<I: StorageIterator> Eq for HeapWrapper<I> {}
 impl<I: StorageIterator> PartialOrd for HeapWrapper<I> {
     #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        match self.1.key().cmp(other.1.key()) {
+        match self.1.key().cmp(&other.1.key()) {
             cmp::Ordering::Greater => Some(cmp::Ordering::Greater),
             cmp::Ordering::Less => Some(cmp::Ordering::Less),
             cmp::Ordering::Equal => self.0.partial_cmp(&other.0),
@@ -75,8 +77,12 @@ impl<I: StorageIterator> MergeIterator<I> {
     }
 }
 
-impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
-    fn key(&self) -> &[u8] {
+impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIterator
+    for MergeIterator<I>
+{
+    type KeyType<'a> = KeySlice<'a>;
+
+    fn key(&self) -> KeySlice {
         self.current.as_ref().unwrap().1.key()
     }
 
