@@ -7,7 +7,7 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use super::{BlockMeta, SsTable};
-use crate::{block::BlockBuilder, lsm_storage::BlockCache};
+use crate::{block::BlockBuilder, key::KeySlice, lsm_storage::BlockCache};
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
@@ -29,7 +29,7 @@ impl SsTableBuilder {
     ///
     /// Note: You should split a new block when the current block is full.(`std::mem::replace` may
     /// be helpful here)
-    pub fn add(&mut self, key: &[u8], value: &[u8]) {
+    pub fn add(&mut self, key: KeySlice, value: &[u8]) {
         unimplemented!()
     }
 

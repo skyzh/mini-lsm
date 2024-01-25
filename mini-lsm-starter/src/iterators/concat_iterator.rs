@@ -6,7 +6,10 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use super::StorageIterator;
-use crate::table::{SsTable, SsTableIterator};
+use crate::{
+    key::KeySlice,
+    table::{SsTable, SsTableIterator},
+};
 
 /// Concat multiple iterators ordered in key order and their key ranges do not overlap. We do not want to create the
 /// iterators when initializing this iterator to reduce the overhead of seeking.
@@ -21,13 +24,15 @@ impl SstConcatIterator {
         unimplemented!()
     }
 
-    pub fn create_and_seek_to_key(sstables: Vec<Arc<SsTable>>, key: &[u8]) -> Result<Self> {
+    pub fn create_and_seek_to_key(sstables: Vec<Arc<SsTable>>, key: KeySlice) -> Result<Self> {
         unimplemented!()
     }
 }
 
 impl StorageIterator for SstConcatIterator {
-    fn key(&self) -> &[u8] {
+    type KeyType<'a> = KeySlice<'a>;
+
+    fn key(&self) -> KeySlice {
         unimplemented!()
     }
 

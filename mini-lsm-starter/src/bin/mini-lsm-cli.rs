@@ -1,5 +1,4 @@
 mod wrapper;
-use mini_lsm::iterators::StorageIterator;
 use wrapper::mini_lsm_wrapper;
 
 use anyhow::Result;
@@ -9,6 +8,7 @@ use mini_lsm_wrapper::compact::{
     CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
     TieredCompactionOptions,
 };
+use mini_lsm_wrapper::iterators::StorageIterator;
 use mini_lsm_wrapper::lsm_storage::{LsmStorageOptions, MiniLsm};
 use std::path::PathBuf;
 

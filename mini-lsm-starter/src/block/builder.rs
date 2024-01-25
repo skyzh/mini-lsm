@@ -1,10 +1,21 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
+use crate::key::{KeySlice, KeyVec};
+
 use super::Block;
 
 /// Builds a block.
-pub struct BlockBuilder {}
+pub struct BlockBuilder {
+    /// Offsets of each key-value entries.
+    offsets: Vec<u16>,
+    /// All serialized key-value pairs in the block.
+    data: Vec<u8>,
+    /// The expected block size.
+    block_size: usize,
+    /// The first key in the block
+    first_key: KeyVec,
+}
 
 impl BlockBuilder {
     /// Creates a new block builder.
@@ -14,7 +25,7 @@ impl BlockBuilder {
 
     /// Adds a key-value pair to the block. Returns false when the block is full.
     #[must_use]
-    pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
+    pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         unimplemented!()
     }
 

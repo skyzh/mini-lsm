@@ -1,5 +1,4 @@
 mod wrapper;
-use mini_lsm::key::KeyBytes;
 use wrapper::mini_lsm_wrapper;
 
 use std::collections::HashMap;
@@ -11,6 +10,7 @@ use mini_lsm_wrapper::compact::{
     LeveledCompactionController, LeveledCompactionOptions, SimpleLeveledCompactionController,
     SimpleLeveledCompactionOptions, TieredCompactionController, TieredCompactionOptions,
 };
+use mini_lsm_wrapper::key::KeyBytes;
 use mini_lsm_wrapper::lsm_storage::LsmStorageState;
 use mini_lsm_wrapper::mem_table::MemTable;
 use mini_lsm_wrapper::table::SsTable;

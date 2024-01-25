@@ -11,6 +11,7 @@ use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
+use crate::key::KeySlice;
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
@@ -115,11 +116,13 @@ pub struct MemTableIterator {
 }
 
 impl StorageIterator for MemTableIterator {
+    type KeyType<'a> = KeySlice<'a>;
+
     fn value(&self) -> &[u8] {
         unimplemented!()
     }
 
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         unimplemented!()
     }
 

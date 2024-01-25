@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use crate::key::{KeySlice, KeyVec};
+
 use super::Block;
 
 /// Iterates on a block.
@@ -10,20 +12,23 @@ pub struct BlockIterator {
     /// The internal `Block`, wrapped by an `Arc`
     block: Arc<Block>,
     /// The current key, empty represents the iterator is invalid
-    key: Vec<u8>,
+    key: KeyVec,
     /// the value range from the block
     value_range: (usize, usize),
     /// Current index of the key-value pair, should be in range of [0, num_of_elements)
     idx: usize,
+    /// The first key in the block
+    first_key: KeyVec,
 }
 
 impl BlockIterator {
     fn new(block: Arc<Block>) -> Self {
         Self {
             block,
-            key: Vec::new(),
+            key: KeyVec::new(),
             value_range: (0, 0),
             idx: 0,
+            first_key: KeyVec::new(),
         }
     }
 
@@ -33,12 +38,12 @@ impl BlockIterator {
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
-    pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
+    pub fn create_and_seek_to_key(block: Arc<Block>, key: KeySlice) -> Self {
         unimplemented!()
     }
 
     /// Returns the key of the current entry.
-    pub fn key(&self) -> &[u8] {
+    pub fn key(&self) -> KeySlice {
         unimplemented!()
     }
 
@@ -66,7 +71,7 @@ impl BlockIterator {
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
-    pub fn seek_to_key(&mut self, key: &[u8]) {
+    pub fn seek_to_key(&mut self, key: KeySlice) {
         unimplemented!()
     }
 }
