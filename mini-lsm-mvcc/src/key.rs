@@ -8,8 +8,11 @@ pub type KeySlice<'a> = Key<&'a [u8]>;
 pub type KeyVec = Key<Vec<u8>>;
 pub type KeyBytes = Key<Bytes>;
 
+/// For testing purpose, should not use anywhere in your implementation.
+pub const TS_ENABLED: bool = true;
+
 /// Temporary, should remove after implementing full week 3 day 1 + 2.
-pub const TS_DEFAULT: u64 = std::u64::MAX;
+pub const TS_DEFAULT: u64 = 0;
 
 pub const TS_MAX: u64 = std::u64::MAX;
 pub const TS_MIN: u64 = std::u64::MIN;
@@ -21,8 +24,12 @@ impl<T: AsRef<[u8]>> Key<T> {
         self.0
     }
 
-    pub fn len(&self) -> usize {
+    pub fn key_len(&self) -> usize {
         self.0.as_ref().len()
+    }
+
+    pub fn raw_len(&self) -> usize {
+        self.0.as_ref().len() + std::mem::size_of::<u64>()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -32,14 +39,10 @@ impl<T: AsRef<[u8]>> Key<T> {
 
 impl Key<Vec<u8>> {
     pub fn new() -> Self {
-        Self(Vec::new(), 0)
+        Self(Vec::new(), TS_DEFAULT)
     }
 
-    pub fn from_vec(key: Vec<u8>) -> Self {
-        unimplemented!()
-    }
-
-    /// Create a `KeyVec` from a `Vec<u8>`. Will be removed in week 3.
+    /// Create a `KeyVec` from a `Vec<u8>` and a ts. Will be removed in week 3.
     pub fn from_vec_with_ts(key: Vec<u8>, ts: u64) -> Self {
         Self(key, ts)
     }
@@ -54,10 +57,15 @@ impl Key<Vec<u8>> {
         self.0.extend(data)
     }
 
-    /// Set the key from a slice without re-allocating. The signature will change in week 3.
+    pub fn set_ts(&mut self, ts: u64) {
+        self.1 = ts;
+    }
+
+    /// Set the key from a slice without re-allocating.
     pub fn set_from_slice(&mut self, key_slice: KeySlice) {
         self.0.clear();
         self.0.extend(key_slice.0);
+        self.1 = key_slice.1;
     }
 
     pub fn as_key_slice(&self) -> KeySlice {
@@ -68,9 +76,12 @@ impl Key<Vec<u8>> {
         Key(self.0.into(), self.1)
     }
 
-    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
-    pub fn raw_ref(&self) -> &[u8] {
+    pub fn key_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+
+    pub fn ts(&self) -> u64 {
+        self.1
     }
 
     pub fn for_testing_key_ref(&self) -> &[u8] {
@@ -78,7 +89,7 @@ impl Key<Vec<u8>> {
     }
 
     pub fn for_testing_from_vec_no_ts(key: Vec<u8>) -> Self {
-        Self(key, 0)
+        Self(key, TS_DEFAULT)
     }
 }
 
@@ -87,23 +98,21 @@ impl Key<Bytes> {
         Key(&self.0, self.1)
     }
 
-    /// Create a `KeyBytes` from a `Bytes`. Will be removed in week 3.
-    pub fn from_bytes(bytes: Bytes) -> KeyBytes {
-        unimplemented!()
-    }
-
-    /// Create a `KeyBytes` from a `Bytes`. Will be removed in week 3.
+    /// Create a `KeyBytes` from a `Bytes` and a ts.
     pub fn from_bytes_with_ts(bytes: Bytes, ts: u64) -> KeyBytes {
         Key(bytes, ts)
     }
 
-    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
-    pub fn raw_ref(&self) -> &[u8] {
+    pub fn key_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
 
+    pub fn ts(&self) -> u64 {
+        self.1
+    }
+
     pub fn for_testing_from_bytes_no_ts(bytes: Bytes) -> KeyBytes {
-        Key(bytes, 0)
+        Key(bytes, TS_DEFAULT)
     }
 
     pub fn for_testing_key_ref(&self) -> &[u8] {
@@ -121,9 +130,12 @@ impl<'a> Key<&'a [u8]> {
         Self(slice, ts)
     }
 
-    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
-    pub fn raw_ref(self) -> &'a [u8] {
+    pub fn key_ref(self) -> &'a [u8] {
         self.0
+    }
+
+    pub fn ts(&self) -> u64 {
+        self.1
     }
 
     pub fn for_testing_key_ref(self) -> &'a [u8] {
@@ -131,7 +143,7 @@ impl<'a> Key<&'a [u8]> {
     }
 
     pub fn for_testing_from_slice_no_ts(slice: &'a [u8]) -> Self {
-        Self(slice, 0)
+        Self(slice, TS_DEFAULT)
     }
 }
 
@@ -143,7 +155,7 @@ impl<T: AsRef<[u8]> + Debug> Debug for Key<T> {
 
 impl<T: AsRef<[u8]> + Default> Default for Key<T> {
     fn default() -> Self {
-        Self(T::default(), 0)
+        Self(T::default(), TS_DEFAULT)
     }
 }
 
