@@ -8,26 +8,44 @@ use crate::{
 #[test]
 fn test_task1_memtable_get() {
     let memtable = MemTable::create(0);
-    memtable.put(b"key1", b"value1").unwrap();
-    memtable.put(b"key2", b"value2").unwrap();
-    memtable.put(b"key3", b"value3").unwrap();
-    assert_eq!(&memtable.get(b"key1").unwrap()[..], b"value1");
-    assert_eq!(&memtable.get(b"key2").unwrap()[..], b"value2");
-    assert_eq!(&memtable.get(b"key3").unwrap()[..], b"value3");
+    memtable.for_testing_put_slice(b"key1", b"value1").unwrap();
+    memtable.for_testing_put_slice(b"key2", b"value2").unwrap();
+    memtable.for_testing_put_slice(b"key3", b"value3").unwrap();
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key1").unwrap()[..],
+        b"value1"
+    );
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key2").unwrap()[..],
+        b"value2"
+    );
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key3").unwrap()[..],
+        b"value3"
+    );
 }
 
 #[test]
 fn test_task1_memtable_overwrite() {
     let memtable = MemTable::create(0);
-    memtable.put(b"key1", b"value1").unwrap();
-    memtable.put(b"key2", b"value2").unwrap();
-    memtable.put(b"key3", b"value3").unwrap();
-    memtable.put(b"key1", b"value11").unwrap();
-    memtable.put(b"key2", b"value22").unwrap();
-    memtable.put(b"key3", b"value33").unwrap();
-    assert_eq!(&memtable.get(b"key1").unwrap()[..], b"value11");
-    assert_eq!(&memtable.get(b"key2").unwrap()[..], b"value22");
-    assert_eq!(&memtable.get(b"key3").unwrap()[..], b"value33");
+    memtable.for_testing_put_slice(b"key1", b"value1").unwrap();
+    memtable.for_testing_put_slice(b"key2", b"value2").unwrap();
+    memtable.for_testing_put_slice(b"key3", b"value3").unwrap();
+    memtable.for_testing_put_slice(b"key1", b"value11").unwrap();
+    memtable.for_testing_put_slice(b"key2", b"value22").unwrap();
+    memtable.for_testing_put_slice(b"key3", b"value33").unwrap();
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key1").unwrap()[..],
+        b"value11"
+    );
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key2").unwrap()[..],
+        b"value22"
+    );
+    assert_eq!(
+        &memtable.for_testing_get_slice(b"key3").unwrap()[..],
+        b"value33"
+    );
 }
 
 #[test]

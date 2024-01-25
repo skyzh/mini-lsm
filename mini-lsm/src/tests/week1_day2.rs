@@ -17,12 +17,12 @@ use super::harness::{check_iter_result_by_key, expect_iter_error, MockIterator};
 fn test_task1_memtable_iter() {
     use std::ops::Bound;
     let memtable = MemTable::create(0);
-    memtable.put(b"key1", b"value1").unwrap();
-    memtable.put(b"key2", b"value2").unwrap();
-    memtable.put(b"key3", b"value3").unwrap();
+    memtable.for_testing_put_slice(b"key1", b"value1").unwrap();
+    memtable.for_testing_put_slice(b"key2", b"value2").unwrap();
+    memtable.for_testing_put_slice(b"key3", b"value3").unwrap();
 
     {
-        let mut iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
+        let mut iter = memtable.for_testing_scan_slice(Bound::Unbounded, Bound::Unbounded);
         assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
@@ -39,7 +39,8 @@ fn test_task1_memtable_iter() {
     }
 
     {
-        let mut iter = memtable.scan(Bound::Included(b"key1"), Bound::Included(b"key2"));
+        let mut iter =
+            memtable.for_testing_scan_slice(Bound::Included(b"key1"), Bound::Included(b"key2"));
         assert_eq!(iter.key().for_testing_key_ref(), b"key1");
         assert_eq!(iter.value(), b"value1");
         assert!(iter.is_valid());
@@ -52,7 +53,8 @@ fn test_task1_memtable_iter() {
     }
 
     {
-        let mut iter = memtable.scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
+        let mut iter =
+            memtable.for_testing_scan_slice(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
         assert_eq!(iter.key().for_testing_key_ref(), b"key2");
         assert_eq!(iter.value(), b"value2");
         assert!(iter.is_valid());
@@ -66,15 +68,17 @@ fn test_task1_empty_memtable_iter() {
     use std::ops::Bound;
     let memtable = MemTable::create(0);
     {
-        let iter = memtable.scan(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
+        let iter =
+            memtable.for_testing_scan_slice(Bound::Excluded(b"key1"), Bound::Excluded(b"key3"));
         assert!(!iter.is_valid());
     }
     {
-        let iter = memtable.scan(Bound::Included(b"key1"), Bound::Included(b"key2"));
+        let iter =
+            memtable.for_testing_scan_slice(Bound::Included(b"key1"), Bound::Included(b"key2"));
         assert!(!iter.is_valid());
     }
     {
-        let iter = memtable.scan(Bound::Unbounded, Bound::Unbounded);
+        let iter = memtable.for_testing_scan_slice(Bound::Unbounded, Bound::Unbounded);
         assert!(!iter.is_valid());
     }
 }
