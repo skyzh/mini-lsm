@@ -491,7 +491,7 @@ impl LsmStorageInner {
 
         let size;
         {
-            let guard = self.state.read();
+            let guard = self.state.write();
             guard.memtable.put(key, value)?;
             size = guard.memtable.approximate_size();
         }
@@ -507,7 +507,7 @@ impl LsmStorageInner {
 
         let size;
         {
-            let guard = self.state.read();
+            let guard = self.state.write();
             guard.memtable.put(key, b"")?;
             size = guard.memtable.approximate_size();
         }
