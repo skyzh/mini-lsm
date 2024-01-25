@@ -2,6 +2,8 @@ use std::fmt::Debug;
 
 use bytes::Bytes;
 
+pub const TS_ENABLED: bool = false;
+
 pub struct Key<T: AsRef<[u8]>>(T);
 
 pub type KeySlice<'a> = Key<&'a [u8]>;
