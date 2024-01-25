@@ -1,0 +1,41 @@
+[package]
+name = "mini-lsm-mvcc"
+version = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "A tutorial for building an LSM tree storage engine in a week."
+
+
+[dependencies]
+anyhow = "1"
+arc-swap = "1"
+bytes = "1"
+crossbeam-epoch = "0.9"
+crossbeam-skiplist = "0.1"
+parking_lot = "0.12"
+ouroboros = "0.18"
+moka = "0.9"
+clap = { version = "4.4.17", features = ["derive"] }
+rand = "0.8.5"
+crossbeam-channel = "0.5.11"
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+farmhash = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "mini-lsm-cli-mvcc-ref"
+path = "src/bin/mini-lsm-cli.rs"
+
+[[bin]]
+name = "mini-lsm-wrapper-mvcc-ref"
+path = "src/bin/wrapper.rs"
+
+[[bin]]
+name = "compaction-simulator-mvcc-ref"
+path = "src/bin/compaction-simulator.rs"

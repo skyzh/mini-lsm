@@ -425,6 +425,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "mini-lsm-mvcc"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bytes",
+ "clap",
+ "crossbeam-channel",
+ "crossbeam-epoch",
+ "crossbeam-skiplist",
+ "farmhash",
+ "moka",
+ "ouroboros",
+ "parking_lot",
+ "rand",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "mini-lsm-starter"
 version = "0.2.0"
 dependencies = [
