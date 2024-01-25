@@ -58,16 +58,16 @@ We are working on chapter 3 and more test cases for all existing contents.
 * Week 3: Multi-Version Concurrency Control
 * The Extra Week / Rest of Your Life: Optimizations  (unlikely to be available in 2024...)
 
-✅: finished \
+✅: Finished \
 🚧: WIP and will likely be available soon
 
 | Week + Chapter | Topic                                           | Solution | Starter Code | Writeup |
 | -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
-| 2.7            | Batch Write + Checksum                          | 🚧        | 🚧            |         |
-| 3.1            | Timestamp Key Encoding                          | 🚧        |              |         |
-| 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     |          |              |         |
-| 3.3            | Snapshot Read - Engine Read Path                |          |              |         |
-| 3.4            | Watermark and Garbage Collection                |          |              |         |
+| 2.7            | Batch Write + Checksum                          | ✅        | ✅            |         |
+| 3.1            | Timestamp Key Encoding                          | ✅        | 🚧            |         |
+| 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     | ✅        | 🚧            |         |
+| 3.3            | Snapshot Read - Engine Read Path                | 🚧        | 🚧            |         |
+| 3.4            | Watermark and Garbage Collection                | 🚧        | 🚧            |         |
 | 3.5            | Transactions and Optimistic Concurrency Control |          |              |         |
 | 3.6            | Serializable Snapshot Isolation                 |          |              |         |
 | 3.7            | TTL (Time-to-Live) Entries                      |          |              |         |

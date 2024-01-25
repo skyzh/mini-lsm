@@ -307,7 +307,6 @@ impl LsmStorageInner {
     }
 
     fn trigger_compaction(&self) -> Result<()> {
-        self.dump_structure();
         let snapshot = {
             let state = self.state.read();
             state.clone()
@@ -318,6 +317,7 @@ impl LsmStorageInner {
         let Some(task) = task else {
             return Ok(());
         };
+        self.dump_structure();
         println!("running compaction task: {:?}", task);
         let sstables = self.compact(&task)?;
         let output = sstables.iter().map(|x| x.sst_id()).collect::<Vec<_>>();

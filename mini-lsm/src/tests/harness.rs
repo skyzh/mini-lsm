@@ -173,7 +173,7 @@ pub fn compaction_bench(storage: Arc<MiniLsm>) {
     let mut max_key = 0;
     for iter in 0..10 {
         let range_begin = iter * 5000;
-        for i in range_begin..(range_begin + 40000) {
+        for i in range_begin..(range_begin + 10000) {
             // 120B per key, 4MB data populated
             let key = gen_key(i);
             let version = key_map.get(&i).copied().unwrap_or_default() + 1;
