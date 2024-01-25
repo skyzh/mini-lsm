@@ -2,39 +2,48 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 
-use crate::block::{Block, BlockBuilder, BlockIterator};
+use crate::{
+    block::{Block, BlockBuilder, BlockIterator},
+    key::{KeySlice, KeyVec},
+};
 
 #[test]
 fn test_block_build_single_key() {
     let mut builder = BlockBuilder::new(16);
-    assert!(builder.add(b"233", b"233333"));
+    assert!(builder.add(KeySlice::for_testing_from_slice_no_ts(b"233"), b"233333"));
     builder.build();
 }
 
 #[test]
 fn test_block_build_full() {
     let mut builder = BlockBuilder::new(16);
-    assert!(builder.add(b"11", b"11"));
-    assert!(!builder.add(b"22", b"22"));
+    assert!(builder.add(KeySlice::for_testing_from_slice_no_ts(b"11"), b"11"));
+    assert!(!builder.add(KeySlice::for_testing_from_slice_no_ts(b"22"), b"22"));
     builder.build();
 }
 
 #[test]
 fn test_block_build_large_1() {
     let mut builder = BlockBuilder::new(16);
-    assert!(builder.add(b"11", &b"1".repeat(100)));
+    assert!(builder.add(
+        KeySlice::for_testing_from_slice_no_ts(b"11"),
+        &b"1".repeat(100)
+    ));
     builder.build();
 }
 
 #[test]
 fn test_block_build_large_2() {
     let mut builder = BlockBuilder::new(16);
-    assert!(builder.add(b"11", b"1"));
-    assert!(!builder.add(b"11", &b"1".repeat(100)));
+    assert!(builder.add(KeySlice::for_testing_from_slice_no_ts(b"11"), b"1"));
+    assert!(!builder.add(
+        KeySlice::for_testing_from_slice_no_ts(b"11"),
+        &b"1".repeat(100)
+    ));
 }
 
-fn key_of(idx: usize) -> Vec<u8> {
-    format!("key_{:03}", idx * 5).into_bytes()
+fn key_of(idx: usize) -> KeyVec {
+    KeyVec::for_testing_from_vec_no_ts(format!("key_{:03}", idx * 5).into_bytes())
 }
 
 fn value_of(idx: usize) -> Vec<u8> {
@@ -50,7 +59,7 @@ fn generate_block() -> Block {
     for idx in 0..num_of_keys() {
         let key = key_of(idx);
         let value = value_of(idx);
-        assert!(builder.add(&key[..], &value[..]));
+        assert!(builder.add(key.as_key_slice(), &value[..]));
     }
     builder.build()
 }
@@ -88,11 +97,11 @@ fn test_block_iterator() {
             let key = iter.key();
             let value = iter.value();
             assert_eq!(
-                key,
-                key_of(i),
+                key.for_testing_key_ref(),
+                key_of(i).for_testing_key_ref(),
                 "expected key: {:?}, actual key: {:?}",
-                as_bytes(&key_of(i)),
-                as_bytes(key)
+                as_bytes(key_of(i).for_testing_key_ref()),
+                as_bytes(key.for_testing_key_ref())
             );
             assert_eq!(
                 value,
@@ -110,17 +119,17 @@ fn test_block_iterator() {
 #[test]
 fn test_block_seek_key() {
     let block = Arc::new(generate_block());
-    let mut iter = BlockIterator::create_and_seek_to_key(block, &key_of(0));
+    let mut iter = BlockIterator::create_and_seek_to_key(block, key_of(0).as_key_slice());
     for offset in 1..=5 {
         for i in 0..num_of_keys() {
             let key = iter.key();
             let value = iter.value();
             assert_eq!(
-                key,
-                key_of(i),
+                key.for_testing_key_ref(),
+                key_of(i).for_testing_key_ref(),
                 "expected key: {:?}, actual key: {:?}",
-                as_bytes(&key_of(i)),
-                as_bytes(key)
+                as_bytes(&key_of(i).for_testing_key_ref()),
+                as_bytes(key.for_testing_key_ref())
             );
             assert_eq!(
                 value,
@@ -129,8 +138,10 @@ fn test_block_seek_key() {
                 as_bytes(&value_of(i)),
                 as_bytes(value)
             );
-            iter.seek_to_key(&format!("key_{:03}", i * 5 + offset).into_bytes());
+            iter.seek_to_key(KeySlice::for_testing_from_slice_no_ts(
+                &format!("key_{:03}", i * 5 + offset).into_bytes(),
+            ));
         }
-        iter.seek_to_key(b"k");
+        iter.seek_to_key(KeySlice::for_testing_from_slice_no_ts(b"k"));
     }
 }

@@ -27,18 +27,22 @@ impl Key<Vec<u8>> {
         Self(Vec::new())
     }
 
+    /// Create a `KeyVec` from a `Vec<u8>`. Will be removed in week 3.
     pub fn from_vec(key: Vec<u8>) -> Self {
         Self(key)
     }
 
+    /// Clears the key and set ts to 0.
     pub fn clear(&mut self) {
         self.0.clear()
     }
 
+    /// Append a slice to the end of the key
     pub fn append(&mut self, data: &[u8]) {
         self.0.extend(data)
     }
 
+    /// Set the key from a slice without re-allocating. The signature will change in week 3.
     pub fn set_from_slice(&mut self, key_slice: KeySlice) {
         self.0.clear();
         self.0.extend(key_slice.0);
@@ -52,13 +56,17 @@ impl Key<Vec<u8>> {
         Key(self.0.into())
     }
 
+    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
+    pub fn raw_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
     pub fn for_testing_key_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
 
-    /// Always use `raw_ref` to access the key in week 1 + 2.
-    pub fn raw_ref(&self) -> &[u8] {
-        self.0.as_ref()
+    pub fn for_testing_from_vec_no_ts(key: Vec<u8>) -> Self {
+        Self(key)
     }
 }
 
@@ -67,20 +75,21 @@ impl Key<Bytes> {
         Key(&self.0)
     }
 
+    /// Create a `KeyBytes` from a `Bytes`. Will be removed in week 3.
     pub fn from_bytes(bytes: Bytes) -> KeyBytes {
         Key(bytes)
     }
 
-    pub fn for_testing_from_bytes_zero_ts(bytes: Bytes) -> KeyBytes {
+    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
+    pub fn raw_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    pub fn for_testing_from_bytes_no_ts(bytes: Bytes) -> KeyBytes {
         Key(bytes)
     }
 
     pub fn for_testing_key_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-
-    /// Always use `raw_ref` to access the key in week 1 + 2.
-    pub fn raw_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
 }
@@ -90,17 +99,22 @@ impl<'a> Key<&'a [u8]> {
         Key(self.0.to_vec())
     }
 
+    /// Create a key slice from a slice. Will be removed in week 3.
     pub fn from_slice(slice: &'a [u8]) -> Self {
         Self(slice)
+    }
+
+    /// Always use `raw_ref` to access the key in week 1 + 2. This function will be removed in week 3.
+    pub fn raw_ref(self) -> &'a [u8] {
+        self.0.as_ref()
     }
 
     pub fn for_testing_key_ref(self) -> &'a [u8] {
         self.0.as_ref()
     }
 
-    /// Always use `raw_ref` to access the key in week 1 + 2.
-    pub fn raw_ref(self) -> &'a [u8] {
-        self.0.as_ref()
+    pub fn for_testing_from_slice_no_ts(slice: &'a [u8]) -> Self {
+        Self(slice)
     }
 }
 

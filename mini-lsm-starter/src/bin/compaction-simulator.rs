@@ -195,8 +195,8 @@ fn generate_random_key_range() -> (KeyBytes, KeyBytes) {
     begin_bytes.put_u64(begin as u64);
     end_bytes.put_u64(end as u64);
     (
-        KeyBytes::for_testing_from_bytes_zero_ts(begin_bytes.freeze()),
-        KeyBytes::for_testing_from_bytes_zero_ts(end_bytes.freeze()),
+        KeyBytes::for_testing_from_bytes_no_ts(begin_bytes.freeze()),
+        KeyBytes::for_testing_from_bytes_no_ts(end_bytes.freeze()),
     )
 }
 
@@ -219,8 +219,8 @@ fn generate_random_split(
         begin_bytes.put_u64(nb);
         end_bytes.put_u64(ne);
         result.push((
-            KeyBytes::for_testing_from_bytes_zero_ts(begin_bytes.freeze()),
-            KeyBytes::for_testing_from_bytes_zero_ts(end_bytes.freeze()),
+            KeyBytes::for_testing_from_bytes_no_ts(begin_bytes.freeze()),
+            KeyBytes::for_testing_from_bytes_no_ts(end_bytes.freeze()),
         ));
     }
     result

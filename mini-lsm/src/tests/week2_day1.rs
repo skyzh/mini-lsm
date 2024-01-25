@@ -1,16 +1,15 @@
 use std::{ops::Bound, path::Path, sync::Arc};
 
+use self::harness::{check_iter_result_by_key, check_lsm_iter_result_by_key, sync};
 use bytes::Bytes;
 use tempfile::tempdir;
-use week2_day1::harness::sync;
-
-use self::harness::check_iter_result;
 
 use super::*;
 use crate::{
     iterators::{
         concat_iterator::SstConcatIterator, merge_iterator::MergeIterator, StorageIterator,
     },
+    key::KeySlice,
     lsm_storage::{LsmStorageInner, LsmStorageOptions, LsmStorageState},
     table::{SsTable, SsTableBuilder, SsTableIterator},
 };
@@ -51,7 +50,7 @@ fn test_task1_full_compaction() {
     sync(&storage);
     assert_eq!(storage.state.read().l0_sstables.len(), 3);
     let mut iter = construct_merge_iterator_over_storage(&storage.state.read());
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from_static(b"0"), Bytes::from_static(b"")),
@@ -62,7 +61,7 @@ fn test_task1_full_compaction() {
     storage.force_full_compaction().unwrap();
     assert!(storage.state.read().l0_sstables.is_empty());
     let mut iter = construct_merge_iterator_over_storage(&storage.state.read());
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![(Bytes::from_static(b"1"), Bytes::from_static(b"v2"))],
     );
@@ -72,7 +71,7 @@ fn test_task1_full_compaction() {
     storage.delete(b"1").unwrap();
     sync(&storage);
     let mut iter = construct_merge_iterator_over_storage(&storage.state.read());
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from_static(b"0"), Bytes::from_static(b"v3")),
@@ -83,7 +82,7 @@ fn test_task1_full_compaction() {
     storage.force_full_compaction().unwrap();
     assert!(storage.state.read().l0_sstables.is_empty());
     let mut iter = construct_merge_iterator_over_storage(&storage.state.read());
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from_static(b"0"), Bytes::from_static(b"v3")),
@@ -101,7 +100,10 @@ fn generate_concat_sst(
     let mut builder = SsTableBuilder::new(128);
     for idx in start_key..end_key {
         let key = format!("{:05}", idx);
-        builder.add(key.as_bytes(), b"test");
+        builder.add(
+            KeySlice::for_testing_from_slice_no_ts(key.as_bytes()),
+            b"test",
+        );
     }
     let path = dir.as_ref().join(format!("{id}.sst"));
     builder.build_for_test(path).unwrap()
@@ -122,22 +124,25 @@ fn test_task2_concat_iterator() {
     for key in 0..120 {
         let iter = SstConcatIterator::create_and_seek_to_key(
             sstables.clone(),
-            format!("{:05}", key).as_bytes(),
+            KeySlice::for_testing_from_slice_no_ts(format!("{:05}", key).as_bytes()),
         )
         .unwrap();
         if key < 10 {
             assert!(iter.is_valid());
-            assert_eq!(iter.key(), b"00010");
+            assert_eq!(iter.key().for_testing_key_ref(), b"00010");
         } else if key >= 110 {
             assert!(!iter.is_valid());
         } else {
             assert!(iter.is_valid());
-            assert_eq!(iter.key(), format!("{:05}", key).as_bytes());
+            assert_eq!(
+                iter.key().for_testing_key_ref(),
+                format!("{:05}", key).as_bytes()
+            );
         }
     }
     let iter = SstConcatIterator::create_and_seek_to_first(sstables.clone()).unwrap();
     assert!(iter.is_valid());
-    assert_eq!(iter.key(), b"00010");
+    assert_eq!(iter.key().for_testing_key_ref(), b"00010");
 }
 
 #[test]
@@ -169,7 +174,7 @@ fn test_task3_integration() {
     assert!(storage.state.read().l0_sstables.is_empty());
     assert!(!storage.state.read().levels[0].1.is_empty());
 
-    check_iter_result(
+    check_lsm_iter_result_by_key(
         &mut storage.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
         vec![
             (Bytes::from("0"), Bytes::from("2333333")),

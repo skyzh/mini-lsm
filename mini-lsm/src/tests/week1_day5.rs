@@ -1,7 +1,7 @@
 use std::ops::Bound;
 
-use self::harness::generate_sst;
-use self::harness::{check_iter_result, MockIterator};
+use self::harness::{check_iter_result_by_key, MockIterator};
+use self::harness::{check_lsm_iter_result_by_key, generate_sst};
 use bytes::Bytes;
 use tempfile::tempdir;
 
@@ -25,7 +25,7 @@ fn test_task1_merge_1() {
         (Bytes::from("d"), Bytes::from("4.2")),
     ]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.1")),
@@ -50,7 +50,7 @@ fn test_task1_merge_2() {
         (Bytes::from("d"), Bytes::from("4.2")),
     ]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.2")),
@@ -74,7 +74,7 @@ fn test_task1_merge_3() {
         (Bytes::from("d"), Bytes::from("4.2")),
     ]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("a"), Bytes::from("1.1")),
@@ -94,7 +94,7 @@ fn test_task1_merge_4() {
         (Bytes::from("d"), Bytes::from("4.2")),
     ]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("b"), Bytes::from("2.2")),
@@ -109,7 +109,7 @@ fn test_task1_merge_4() {
         (Bytes::from("d"), Bytes::from("4.2")),
     ]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(
+    check_iter_result_by_key(
         &mut iter,
         vec![
             (Bytes::from("b"), Bytes::from("2.2")),
@@ -124,7 +124,7 @@ fn test_task1_merge_5() {
     let i2 = MockIterator::new(vec![]);
     let i1 = MockIterator::new(vec![]);
     let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
-    check_iter_result(&mut iter, vec![])
+    check_iter_result_by_key(&mut iter, vec![])
 }
 
 #[test]
@@ -164,7 +164,7 @@ fn test_task2_storage_scan() {
         snapshot.sstables.insert(sst1.sst_id(), sst1.into());
         *state = snapshot.into();
     }
-    check_iter_result(
+    check_lsm_iter_result_by_key(
         &mut storage.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
         vec![
             (Bytes::from("0"), Bytes::from("2333333")),
@@ -173,13 +173,13 @@ fn test_task2_storage_scan() {
             (Bytes::from("3"), Bytes::from("23333")),
         ],
     );
-    check_iter_result(
+    check_lsm_iter_result_by_key(
         &mut storage
             .scan(Bound::Included(b"1"), Bound::Included(b"2"))
             .unwrap(),
         vec![(Bytes::from("2"), Bytes::from("2333"))],
     );
-    check_iter_result(
+    check_lsm_iter_result_by_key(
         &mut storage
             .scan(Bound::Excluded(b"1"), Bound::Excluded(b"3"))
             .unwrap(),

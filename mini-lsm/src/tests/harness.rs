@@ -5,7 +5,7 @@ use bytes::Bytes;
 
 use crate::{
     iterators::StorageIterator,
-    key::KeyBytes,
+    key::{KeyBytes, KeySlice},
     lsm_storage::{BlockCache, LsmStorageInner},
     table::{SsTable, SsTableBuilder},
 };
@@ -36,6 +36,8 @@ impl MockIterator {
 }
 
 impl StorageIterator for MockIterator {
+    type KeyType<'a> = KeySlice<'a>;
+
     fn next(&mut self) -> Result<()> {
         if self.index < self.data.len() {
             self.index += 1;
@@ -48,13 +50,13 @@ impl StorageIterator for MockIterator {
         Ok(())
     }
 
-    fn key(&self) -> &[u8] {
+    fn key(&self) -> KeySlice {
         if let Some(error_when) = self.error_when {
             if self.index >= error_when {
                 panic!("invalid access after next returns an error!");
             }
         }
-        self.data[self.index].0.as_ref()
+        KeySlice::for_testing_from_slice_no_ts(self.data[self.index].0.as_ref())
     }
 
     fn value(&self) -> &[u8] {
@@ -80,7 +82,35 @@ pub fn as_bytes(x: &[u8]) -> Bytes {
     Bytes::copy_from_slice(x)
 }
 
-pub fn check_iter_result(iter: &mut impl StorageIterator, expected: Vec<(Bytes, Bytes)>) {
+pub fn check_iter_result_by_key<I>(iter: &mut I, expected: Vec<(Bytes, Bytes)>)
+where
+    I: for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>,
+{
+    for (k, v) in expected {
+        assert!(iter.is_valid());
+        assert_eq!(
+            k,
+            iter.key().for_testing_key_ref(),
+            "expected key: {:?}, actual key: {:?}",
+            k,
+            as_bytes(iter.key().for_testing_key_ref()),
+        );
+        assert_eq!(
+            v,
+            iter.value(),
+            "expected value: {:?}, actual value: {:?}",
+            v,
+            as_bytes(iter.value()),
+        );
+        iter.next().unwrap();
+    }
+    assert!(!iter.is_valid());
+}
+
+pub fn check_lsm_iter_result_by_key<I>(iter: &mut I, expected: Vec<(Bytes, Bytes)>)
+where
+    I: for<'a> StorageIterator<KeyType<'a> = &'a [u8]>,
+{
     for (k, v) in expected {
         assert!(iter.is_valid());
         assert_eq!(
@@ -120,7 +150,7 @@ pub fn generate_sst(
 ) -> SsTable {
     let mut builder = SsTableBuilder::new(128);
     for (key, value) in data {
-        builder.add(&key[..], &value[..]);
+        builder.add(KeySlice::for_testing_from_slice_no_ts(&key[..]), &value[..]);
     }
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
