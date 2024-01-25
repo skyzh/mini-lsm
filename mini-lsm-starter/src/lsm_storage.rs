@@ -38,6 +38,11 @@ pub struct LsmStorageState {
     pub sstables: HashMap<usize, Arc<SsTable>>,
 }
 
+pub enum WriteBatchRecord<T: AsRef<[u8]>> {
+    Put(T, T),
+    Del(T),
+}
+
 impl LsmStorageState {
     fn create(options: &LsmStorageOptions) -> Self {
         let levels = match &options.compaction_options {
@@ -156,6 +161,10 @@ impl MiniLsm {
         }))
     }
 
+    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
+        self.inner.write_batch(batch)
+    }
+
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         self.inner.get(key)
     }
@@ -242,6 +251,11 @@ impl LsmStorageInner {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, _key: &[u8]) -> Result<Option<Bytes>> {
+        unimplemented!()
+    }
+
+    /// Write a batch of data into the storage. Implement in week 2 day 7.
+    pub fn write_batch<T: AsRef<[u8]>>(&self, _batch: &[WriteBatchRecord<T>]) -> Result<()> {
         unimplemented!()
     }
 

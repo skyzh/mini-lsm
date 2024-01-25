@@ -26,4 +26,8 @@ In this chapter, you will:
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
+## Bonus Tasks
+
+* **Try Recovering**. If there is a checksum error, open the database in a safe mode so that no writes can be performed and non-corrupted data can still be retrieved.
+
 {{#include copyright.md}}

@@ -63,7 +63,7 @@ We are working on chapter 3 and more test cases for all existing contents.
 
 | Week + Chapter | Topic                                           | Solution | Starter Code | Writeup |
 | -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
-| 2.7            | Batch Write + Checksum                          | 🚧        |              |         |
+| 2.7            | Batch Write + Checksum                          | 🚧        | 🚧            |         |
 | 3.1            | Timestamp Key Encoding                          | 🚧        |              |         |
 | 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     |          |              |         |
 | 3.3            | Snapshot Read - Engine Read Path                |          |              |         |
