@@ -5,7 +5,7 @@ use bytes::Bytes;
 
 use crate::{
     iterators::StorageIterator,
-    key::{KeyBytes, KeySlice},
+    key::KeySlice,
     lsm_storage::{BlockCache, LsmStorageInner},
     table::{SsTable, SsTableBuilder},
 };

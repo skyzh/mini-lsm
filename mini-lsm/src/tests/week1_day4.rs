@@ -91,7 +91,7 @@ fn test_sst_iterator() {
                 key.for_testing_key_ref(),
                 key_of(i).for_testing_key_ref(),
                 "expected key: {:?}, actual key: {:?}",
-                as_bytes(&key_of(i).for_testing_key_ref()),
+                as_bytes(key_of(i).for_testing_key_ref()),
                 as_bytes(key.for_testing_key_ref())
             );
             assert_eq!(
@@ -120,7 +120,7 @@ fn test_sst_seek_key() {
                 key.for_testing_key_ref(),
                 key_of(i).for_testing_key_ref(),
                 "expected key: {:?}, actual key: {:?}",
-                as_bytes(&key_of(i).for_testing_key_ref()),
+                as_bytes(key_of(i).for_testing_key_ref()),
                 as_bytes(key.for_testing_key_ref())
             );
             assert_eq!(
