@@ -288,7 +288,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             num_tiers,
             max_size_amplification_percent,
             size_ratio,
-            ..
+            min_merge_width,
         }) => {
             let size_ratio_trigger = (100.0 + size_ratio as f64) / 100.0;
             assert_eq!(l0_sst_num, 0);
@@ -296,20 +296,22 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             let mut sum_size = level_size[0];
             for idx in 1..level_size.len() {
                 let this_size = level_size[idx];
-                assert!(
-                    sum_size as f64 / this_size as f64 <= size_ratio_trigger,
-                    "sum(⬆️L{})/L{}, {}/{}>{}",
-                    state.levels[idx - 1].0,
-                    state.levels[idx].0,
-                    sum_size,
-                    this_size,
-                    size_ratio_trigger
-                );
+                if level_size.len() > min_merge_width {
+                    assert!(
+                        sum_size as f64 / this_size as f64 <= size_ratio_trigger,
+                        "violation of size ratio: sum(⬆️L{})/L{}, {}/{}>{}",
+                        state.levels[idx - 1].0,
+                        state.levels[idx].0,
+                        sum_size,
+                        this_size,
+                        size_ratio_trigger
+                    );
+                }
                 if idx + 1 == level_size.len() {
                     assert!(
                         sum_size as f64 / this_size as f64
                             <= max_size_amplification_percent as f64 / 100.0,
-                        "sum(⬆️L{})/L{}, {}/{}>{}%",
+                        "violation of space amp: sum(⬆️L{})/L{}, {}/{}>{}%",
                         state.levels[idx - 1].0,
                         state.levels[idx].0,
                         sum_size,
