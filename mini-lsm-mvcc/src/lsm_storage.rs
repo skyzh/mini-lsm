@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs::File;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -22,6 +22,7 @@ use crate::key::{self, KeySlice};
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::{Manifest, ManifestRecord};
 use crate::mem_table::{map_bound, map_key_bound_plus_ts, MemTable};
+use crate::mvcc::{LsmMvccInner, Transaction, TxnIterator};
 use crate::table::{FileObject, SsTable, SsTableBuilder, SsTableIterator};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -153,8 +154,7 @@ pub(crate) struct LsmStorageInner {
     pub(crate) options: Arc<LsmStorageOptions>,
     pub(crate) compaction_controller: CompactionController,
     pub(crate) manifest: Option<Manifest>,
-    pub(crate) ts: Arc<AtomicU64>,
-    pub(crate) write_lock: Mutex<()>,
+    pub(crate) mvcc: Option<LsmMvccInner>,
 }
 
 /// A thin wrapper for `LsmStorageInner` and the user interface for MiniLSM.
@@ -238,6 +238,10 @@ impl MiniLsm {
         }))
     }
 
+    pub fn new_txn(&self) -> Result<Arc<Transaction>> {
+        self.inner.new_txn()
+    }
+
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         self.inner.get(key)
     }
@@ -258,11 +262,7 @@ impl MiniLsm {
         self.inner.sync()
     }
 
-    pub fn scan(
-        &self,
-        lower: Bound<&[u8]>,
-        upper: Bound<&[u8]>,
-    ) -> Result<FusedIterator<LsmIterator>> {
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<TxnIterator> {
         self.inner.scan(lower, upper)
     }
 
@@ -287,6 +287,14 @@ impl LsmStorageInner {
     pub(crate) fn next_sst_id(&self) -> usize {
         self.next_sst_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
+
+    pub(crate) fn mvcc(&self) -> &LsmMvccInner {
+        self.mvcc.as_ref().unwrap()
+    }
+
+    pub(crate) fn manifest(&self) -> &Manifest {
+        self.manifest.as_ref().unwrap()
     }
 
     /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
@@ -408,8 +416,7 @@ impl LsmStorageInner {
             compaction_controller,
             manifest: Some(manifest),
             options: options.into(),
-            ts: Arc::new(AtomicU64::new(0)),
-            write_lock: Mutex::new(()),
+            mvcc: Some(LsmMvccInner::new(0)),
         };
         storage.sync_dir()?;
 
@@ -420,8 +427,17 @@ impl LsmStorageInner {
         self.state.read().memtable.sync_wal()
     }
 
+    pub fn new_txn(self: &Arc<Self>) -> Result<Arc<Transaction>> {
+        Ok(self.mvcc().new_txn(self.clone()))
+    }
+
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
-    pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
+    pub fn get(self: &Arc<Self>, key: &[u8]) -> Result<Option<Bytes>> {
+        let txn = self.mvcc().new_txn(self.clone());
+        txn.get(key)
+    }
+
+    pub(crate) fn get_with_ts(&self, key: &[u8], read_ts: u64) -> Result<Option<Bytes>> {
         let snapshot = {
             let guard = self.state.read();
             Arc::clone(&guard)
@@ -491,7 +507,7 @@ impl LsmStorageInner {
                 MergeIterator::create(level_iters),
             )?,
             Bound::Unbounded,
-            self.ts.load(Ordering::SeqCst),
+            read_ts,
         )?;
 
         if iter.is_valid() && iter.key() == key && !iter.value().is_empty() {
@@ -501,8 +517,8 @@ impl LsmStorageInner {
     }
 
     pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
-        let _lck = self.write_lock.lock();
-        let ts = self.ts.fetch_add(1, Ordering::Relaxed);
+        let _lck = self.mvcc().write_lock.lock();
+        let ts = self.mvcc().latest_commit_ts() + 1;
         for record in batch {
             match record {
                 WriteBatchRecord::Del(key) => {
@@ -531,6 +547,7 @@ impl LsmStorageInner {
                 }
             }
         }
+        self.mvcc().update_commit_ts(ts);
         Ok(())
     }
 
@@ -608,7 +625,7 @@ impl LsmStorageInner {
 
         self.freeze_memtable_with_memtable(memtable)?;
 
-        self.manifest.as_ref().unwrap().add_record(
+        self.manifest().add_record(
             state_lock_observer,
             ManifestRecord::NewMemtable(memtable_id),
         )?;
@@ -666,9 +683,7 @@ impl LsmStorageInner {
             std::fs::remove_file(self.path_of_wal(sst_id))?;
         }
 
-        self.manifest
-            .as_ref()
-            .unwrap()
+        self.manifest()
             .add_record(&state_lock, ManifestRecord::Flush(sst_id))?;
 
         self.sync_dir()?;
@@ -677,10 +692,20 @@ impl LsmStorageInner {
     }
 
     /// Create an iterator over a range of keys.
-    pub fn scan(
+    pub fn scan<'a>(
+        self: &'a Arc<Self>,
+        lower: Bound<&[u8]>,
+        upper: Bound<&[u8]>,
+    ) -> Result<TxnIterator> {
+        let txn = self.mvcc().new_txn(self.clone());
+        txn.scan(lower, upper)
+    }
+
+    pub(crate) fn scan_with_ts(
         &self,
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
+        read_ts: u64,
     ) -> Result<FusedIterator<LsmIterator>> {
         let snapshot = {
             let guard = self.state.read();
@@ -773,7 +798,7 @@ impl LsmStorageInner {
         Ok(FusedIterator::new(LsmIterator::new(
             iter,
             map_bound(upper),
-            self.ts.load(Ordering::SeqCst),
+            read_ts,
         )?))
     }
 }

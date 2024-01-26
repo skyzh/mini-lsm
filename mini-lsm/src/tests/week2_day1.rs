@@ -39,7 +39,10 @@ fn construct_merge_iterator_over_storage(
 fn test_task1_full_compaction() {
     // We do not use LSM iterator in this test because it's implemented as part of task 3
     let dir = tempdir().unwrap();
-    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
+    #[allow(clippy::let_unit_value)]
+    let _txn = storage.new_txn().unwrap();
     storage.put(b"0", b"v1").unwrap();
     sync(&storage);
     storage.put(b"0", b"v2").unwrap();
@@ -211,7 +214,8 @@ fn test_task2_concat_iterator() {
 #[test]
 fn test_task3_integration() {
     let dir = tempdir().unwrap();
-    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
     storage.put(b"0", b"2333333").unwrap();
     storage.put(b"00", b"2333333").unwrap();
     storage.put(b"4", b"23").unwrap();

@@ -1,4 +1,4 @@
-use std::{ops::Bound, time::Duration};
+use std::{ops::Bound, sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use tempfile::tempdir;
@@ -14,7 +14,8 @@ use crate::{
 #[test]
 fn test_task1_storage_scan() {
     let dir = tempdir().unwrap();
-    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
     storage.put(b"0", b"2333333").unwrap();
     storage.put(b"00", b"2333333").unwrap();
     storage.put(b"4", b"23").unwrap();
@@ -67,7 +68,8 @@ fn test_task1_storage_scan() {
 #[test]
 fn test_task1_storage_get() {
     let dir = tempdir().unwrap();
-    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
     storage.put(b"0", b"2333333").unwrap();
     storage.put(b"00", b"2333333").unwrap();
     storage.put(b"4", b"23").unwrap();
@@ -137,7 +139,8 @@ fn test_task2_auto_flush() {
 #[test]
 fn test_task3_sst_filter() {
     let dir = tempdir().unwrap();
-    let storage = LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
 
     for i in 1..=10000 {
         if i % 1000 == 0 {

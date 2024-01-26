@@ -17,4 +17,5 @@ This is an advanced part that deep dives into optimizations and applications of 
 | 4.11           | Key-Value Separation                 |          |              |         |
 | 4.12           | Column Families                      |          |              |         |
 | 4.13           | Sharding                             |          |              |         |
-| 4.14           | SQL over Mini-LSM                    |          |              |         |
+| 4.14           | Compaction Optimizations             |          |              |         |
+| 4.15           | SQL over Mini-LSM                    |          |              |         |

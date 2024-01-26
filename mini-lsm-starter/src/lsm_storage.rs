@@ -162,6 +162,10 @@ impl MiniLsm {
         }))
     }
 
+    pub fn new_txn(&self) -> Result<()> {
+        self.inner.new_txn()
+    }
+
     pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
         self.inner.write_batch(batch)
     }
@@ -298,6 +302,11 @@ impl LsmStorageInner {
     /// Force flush the earliest-created immutable memtable to disk
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
         unimplemented!()
+    }
+
+    pub fn new_txn(&self) -> Result<()> {
+        // no-op
+        Ok(())
     }
 
     /// Create an iterator over a range of keys.

@@ -256,6 +256,10 @@ impl MiniLsm {
         self.inner.sync()
     }
 
+    pub fn new_txn(&self) -> Result<()> {
+        self.inner.new_txn()
+    }
+
     pub fn scan(
         &self,
         lower: Bound<&[u8]>,
@@ -665,6 +669,11 @@ impl LsmStorageInner {
 
         self.sync_dir()?;
 
+        Ok(())
+    }
+
+    pub fn new_txn(&self) -> Result<()> {
+        // no-op
         Ok(())
     }
 
