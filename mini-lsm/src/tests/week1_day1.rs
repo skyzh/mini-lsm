@@ -71,8 +71,9 @@ fn test_task2_storage_integration() {
 #[test]
 fn test_task3_storage_integration() {
     let dir = tempdir().unwrap();
-    let storage =
-        LsmStorageInner::open(dir.path(), LsmStorageOptions::default_for_week1_test()).unwrap();
+    let storage = Arc::new(
+        LsmStorageInner::open(dir.path(), LsmStorageOptions::default_for_week1_test()).unwrap(),
+    );
     storage.put(b"1", b"233").unwrap();
     storage.put(b"2", b"2333").unwrap();
     storage.put(b"3", b"23333").unwrap();

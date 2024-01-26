@@ -556,14 +556,26 @@ impl LsmStorageInner {
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.write_batch(&[WriteBatchRecord::Put(key, value)])?;
+    pub fn put(self: &Arc<Self>, key: &[u8], value: &[u8]) -> Result<()> {
+        if !self.options.serializable {
+            self.write_batch(&[WriteBatchRecord::Put(key, value)])?;
+        } else {
+            let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
+            txn.put(key, value);
+            txn.commit()?;
+        }
         Ok(())
     }
 
     /// Remove a key from the storage by writing an empty value.
-    pub fn delete(&self, key: &[u8]) -> Result<()> {
-        self.write_batch(&[WriteBatchRecord::Del(key)])?;
+    pub fn delete(self: &Arc<Self>, key: &[u8]) -> Result<()> {
+        if !self.options.serializable {
+            self.write_batch(&[WriteBatchRecord::Del(key)])?;
+        } else {
+            let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
+            txn.delete(key);
+            txn.commit()?;
+        }
         Ok(())
     }
 
