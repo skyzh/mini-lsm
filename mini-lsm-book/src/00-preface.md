@@ -84,6 +84,9 @@ You may join skyzh's Discord server and study with the mini-lsm community.
 
 [![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
 
+## Get Started
+
+Now, you may go ahead and get an overview of the LSM structure in [Mini-LSM Course Overview](./00-overview.md).
 
 ## About the Author
 

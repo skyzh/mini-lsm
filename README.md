@@ -2,12 +2,11 @@
 
 [![CI (main)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml/badge.svg)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml)
 
-Build a simple key-value storage engine in a week!
+Build a simple key-value storage engine in a week! And extend your LSM engine on the second + third week.
 
-## Tutorial
+## [Tutorial](https://skyzh.github.io/mini-lsm)
 
-The tutorial is available at [https://skyzh.github.io/mini-lsm](https://skyzh.github.io/mini-lsm). You can use the provided starter
-code to kick off your project, and follow the tutorial to implement the LSM tree.
+The Mini-LSM book is available at [https://skyzh.github.io/mini-lsm](https://skyzh.github.io/mini-lsm).
 
 ## Community
 

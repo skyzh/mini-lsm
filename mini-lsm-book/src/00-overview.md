@@ -1,4 +1,4 @@
-# Mini-LSM Overview
+# Mini-LSM Course Overview
 
 ## Overview of LSM
 
@@ -54,5 +54,11 @@ There are two types of read: lookup and scan. Lookup finds one key in the LSM tr
 ![Tutorial Overview](lsm-tutorial/00-full-overview.svg)
 
 We have 3 parts (weeks) for this tutorial. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will dive into compactions in depth and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
+
+* [The First Week: Mini-LSM](./week1-overview.md)
+* [The Second Week: Compaction and Persistence](./week2-overview.md)
+* [The Third Week: Multi-Version Concurrency Control](./week3-overview.md)
+
+To set up the environment, please take a look at [Environment Setup](./00-get-started.md).
 
 {{#include copyright.md}}

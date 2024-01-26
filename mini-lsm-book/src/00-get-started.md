@@ -34,4 +34,6 @@ cargo x copy-test --week 1 --day 1
 cargo x scheck
 ```
 
+Now, you can go ahead and start [Week 1: Mini-LSM](./week1-overview.md).
+
 {{#include copyright.md}}

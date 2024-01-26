@@ -7,13 +7,13 @@ In the last week, you have implemented all necessary structures for an LSM stora
 We have 7 chapters (days) in this part:
 
 
-* Day 1: Compaction Implementation. You will merge all L0 SSTs into a sorted run.
-* Day 2: Simple Leveled Compaction. You will implement a classic leveled compaction algorithm and use compaction simulator to see how well it works.
-* Day 3: Tiered/Universal Compaction. You will implement the RocksDB universal compaction algorithm and understand the pros/cons.
-* Day 4: Leveled Compaction. You will implement the RocksDB leveled compaction algorithm. This compaction algorithm also supports partial compaction, so as to reduce peak space usage.
-* Day 5: Manifest. You will store the LSM state on the disk and recover from the state.
-* Day 6: WAL. User requests will be routed to both memtable and WAL.
-* Day 7: Write batch interface and checksums.
+* [Day 1: Compaction Implementation](./week2-01-compaction.md). You will merge all L0 SSTs into a sorted run.
+* [Day 2: Simple Leveled Compaction](./week2-02-simple.md). You will implement a classic leveled compaction algorithm and use compaction simulator to see how well it works.
+* [Day 3: Tiered/Universal Compaction](./week2-03-tiered.md). You will implement the RocksDB universal compaction algorithm and understand the pros/cons.
+* [Day 4: Leveled Compaction](./week2-04-leveled.md). You will implement the RocksDB leveled compaction algorithm. This compaction algorithm also supports partial compaction, so as to reduce peak space usage.
+* [Day 5: Manifest](./week2-05-manifest.md). You will store the LSM state on the disk and recover from the state.
+* [Day 6: Write-Ahead Log (WAL)](./week2-06-wal.md). User requests will be routed to both memtable and WAL so that all operations will be persisted.
+* [Day 7: Write Batch and Checksums](./week2-07-snacks.md). You will implement write batch API (for preparation for week 3 MVCC) and checksums for all of your storage formats.
 
 ## Compaction and Read Amplification
 
