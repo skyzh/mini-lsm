@@ -28,7 +28,8 @@ To do this, use `cargo x sync`.
 
 ## Structure
 
-* mini-lsm: the final solution code
+* mini-lsm: the final solution code for <= week 2
+* mini-lsm-mvcc: the final solution code for week 3 MVCC
 * mini-lsm-starter: the starter code
 * mini-lsm-book: the tutorial
 
@@ -40,14 +41,15 @@ You can run the reference solution by yourself to gain an overview of the system
 
 ```
 cargo run --bin mini-lsm-cli-ref
+cargo run --bin mini-lsm-cli-mvcc-ref
 ```
 
 And we have a compaction simulator to experiment with your compaction algorithm implementation,
 
 ```
 cargo run --bin compaction-simulator-ref
+cargo run --bin compaction-simulator-mvcc-ref
 ```
-
 
 ## Progress
 
