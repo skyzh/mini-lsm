@@ -29,6 +29,8 @@ struct Args {
     compaction: CompactionStrategy,
     #[arg(long)]
     enable_wal: bool,
+    #[arg(long)]
+    serializable: bool,
 }
 
 fn main() -> Result<()> {
@@ -64,6 +66,7 @@ fn main() -> Result<()> {
                 }
             },
             enable_wal: args.enable_wal,
+            serializable: args.serializable,
         },
     )?;
     let mut epoch = 0;

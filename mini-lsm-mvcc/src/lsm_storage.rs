@@ -22,7 +22,8 @@ use crate::key::{self, KeySlice};
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::{Manifest, ManifestRecord};
 use crate::mem_table::{map_bound, map_key_bound_plus_ts, MemTable};
-use crate::mvcc::{LsmMvccInner, Transaction, TxnIterator};
+use crate::mvcc::txn::{Transaction, TxnIterator};
+use crate::mvcc::LsmMvccInner;
 use crate::table::{FileObject, SsTable, SsTableBuilder, SsTableIterator};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -79,6 +80,7 @@ pub struct LsmStorageOptions {
     pub num_memtable_limit: usize,
     pub compaction_options: CompactionOptions,
     pub enable_wal: bool,
+    pub serializable: bool,
 }
 
 impl LsmStorageOptions {
@@ -89,6 +91,7 @@ impl LsmStorageOptions {
             compaction_options: CompactionOptions::NoCompaction,
             enable_wal: false,
             num_memtable_limit: 50,
+            serializable: false,
         }
     }
 
@@ -99,6 +102,7 @@ impl LsmStorageOptions {
             compaction_options: CompactionOptions::NoCompaction,
             enable_wal: false,
             num_memtable_limit: 2,
+            serializable: false,
         }
     }
 
@@ -109,6 +113,7 @@ impl LsmStorageOptions {
             compaction_options,
             enable_wal: false,
             num_memtable_limit: 2,
+            serializable: false,
         }
     }
 }
@@ -246,7 +251,7 @@ impl MiniLsm {
         self.inner.get(key)
     }
 
-    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
+    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
         self.inner.write_batch(batch)
     }
 
@@ -428,12 +433,11 @@ impl LsmStorageInner {
     }
 
     pub fn new_txn(self: &Arc<Self>) -> Result<Arc<Transaction>> {
-        Ok(self.mvcc().new_txn(self.clone()))
+        Ok(self.mvcc().new_txn(self.clone(), self.options.serializable))
     }
-
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(self: &Arc<Self>, key: &[u8]) -> Result<Option<Bytes>> {
-        let txn = self.mvcc().new_txn(self.clone());
+        let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
         txn.get(key)
     }
 
@@ -516,7 +520,7 @@ impl LsmStorageInner {
         Ok(None)
     }
 
-    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
+    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
         let _lck = self.mvcc().write_lock.lock();
         let ts = self.mvcc().latest_commit_ts() + 1;
         for record in batch {
@@ -548,17 +552,19 @@ impl LsmStorageInner {
             }
         }
         self.mvcc().update_commit_ts(ts);
-        Ok(())
+        Ok(ts)
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.write_batch(&[WriteBatchRecord::Put(key, value)])
+        self.write_batch(&[WriteBatchRecord::Put(key, value)])?;
+        Ok(())
     }
 
     /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, key: &[u8]) -> Result<()> {
-        self.write_batch(&[WriteBatchRecord::Del(key)])
+        self.write_batch(&[WriteBatchRecord::Del(key)])?;
+        Ok(())
     }
 
     fn try_freeze(&self, estimated_size: usize) -> Result<()> {
@@ -697,7 +703,7 @@ impl LsmStorageInner {
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> Result<TxnIterator> {
-        let txn = self.mvcc().new_txn(self.clone());
+        let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
         txn.scan(lower, upper)
     }
 

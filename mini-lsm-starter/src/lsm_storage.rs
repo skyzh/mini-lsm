@@ -74,6 +74,7 @@ pub struct LsmStorageOptions {
     pub num_memtable_limit: usize,
     pub compaction_options: CompactionOptions,
     pub enable_wal: bool,
+    pub serializable: bool,
 }
 
 impl LsmStorageOptions {
@@ -84,6 +85,7 @@ impl LsmStorageOptions {
             compaction_options: CompactionOptions::NoCompaction,
             enable_wal: false,
             num_memtable_limit: 50,
+            serializable: false,
         }
     }
 
@@ -94,6 +96,7 @@ impl LsmStorageOptions {
             compaction_options: CompactionOptions::NoCompaction,
             enable_wal: false,
             num_memtable_limit: 2,
+            serializable: false,
         }
     }
 
@@ -104,6 +107,7 @@ impl LsmStorageOptions {
             compaction_options,
             enable_wal: false,
             num_memtable_limit: 2,
+            serializable: false,
         }
     }
 }
