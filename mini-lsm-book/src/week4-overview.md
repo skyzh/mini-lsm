@@ -13,7 +13,8 @@ This is an advanced part that deep dives into optimizations and applications of 
 | 4.7            | Build Your Own SkipList              |          |              |         |
 | 4.8            | Async Engine                         |          |              |         |
 | 4.9            | IO-uring-based I/O engine            |          |              |         |
-| 4.10           | Key-Value Separation                 |          |              |         |
-| 4.11           | Column Families                      |          |              |         |
-| 4.12           | Sharding                             |          |              |         |
-| 4.13           | SQL over Mini-LSM                    |          |              |         |
+| 4.10           | Prefetching                          |          |              |         |
+| 4.11           | Key-Value Separation                 |          |              |         |
+| 4.12           | Column Families                      |          |              |         |
+| 4.13           | Sharding                             |          |              |         |
+| 4.14           | SQL over Mini-LSM                    |          |              |         |

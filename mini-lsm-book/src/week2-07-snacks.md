@@ -2,7 +2,7 @@
 
 <!-- ![Chapter Overview](./lsm-tutorial/week2-07-overview.svg) -->
 
-at the end of each week, we will have some easy, not important, while interesting things
+In the previous chapter, you already built a full LSM-based storage engine with. At the end of this week, we will implement some easy but important optimizations of the storage engine. Welcome to Mini-LSM's week w snack time!
 
 In this chapter, you will:
 

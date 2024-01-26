@@ -128,7 +128,7 @@ impl LsmStorageInner {
             let builder_inner = builder.as_mut().unwrap();
             builder_inner.add(iter.key(), iter.value());
 
-            let same_as_last_key = iter.key().key_ref() == &last_key;
+            let same_as_last_key = iter.key().key_ref() == last_key;
 
             if builder_inner.estimated_size() >= self.options.target_sst_size && !same_as_last_key {
                 let sst_id = self.next_sst_id();

@@ -68,6 +68,7 @@ impl LsmStorageState {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct LsmStorageOptions {
     // Block size in bytes
     pub block_size: usize,
@@ -363,7 +364,7 @@ impl LsmStorageInner {
                     table_id,
                     Some(block_cache.clone()),
                     FileObject::open(&Self::path_of_sst_static(path, table_id))
-                        .context("failed to open SST")?,
+                        .with_context(|| format!("failed to open SST: {}", table_id))?,
                 )?;
                 state.sstables.insert(table_id, Arc::new(sst));
                 sst_cnt += 1;

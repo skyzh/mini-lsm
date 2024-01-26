@@ -68,6 +68,7 @@ impl LsmStorageState {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct LsmStorageOptions {
     // Block size in bytes
     pub block_size: usize,

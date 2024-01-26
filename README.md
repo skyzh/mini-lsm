@@ -71,18 +71,6 @@ We are working on chapter 3 and more test cases for all existing contents.
 | 3.5            | Transactions and Optimistic Concurrency Control |          |              |         |
 | 3.6            | Serializable Snapshot Isolation                 |          |              |         |
 | 3.7            | TTL (Time-to-Live) Entries                      |          |              |         |
-| 4.1            | Benchmarking                                    |          |              |         |
-| 4.2            | Block Compression                               |          |              |         |
-| 4.3            | Trivial Move and Parallel Compaction            |          |              |         |
-| 4.4            | Alternative Block Encodings                     |          |              |         |
-| 4.5            | Rate Limiter and I/O Optimizations              |          |              |         |
-| 4.6            | Build Your Own Block Cache                      |          |              |         |
-| 4.7            | Build Your Own SkipList                         |          |              |         |
-| 4.8            | Async Engine                                    |          |              |         |
-| 4.9            | Key-Value Separation                            |          |              |         |
-| 4.10           | Column Families                                 |          |              |         |
-| 4.11           | Sharding                                        |          |              |         |
-| 4.12           | SQL over Mini-LSM                               |          |              |         |
 
 ## License
 
