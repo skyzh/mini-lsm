@@ -34,7 +34,7 @@
 
 ---
 
-# Mini-LSM v1
+# DEPRECATED Mini-LSM v1
 
 - [Overview](./00-v1.md)
   - [Store key-value pairs in little blocks](./01-block.md)
