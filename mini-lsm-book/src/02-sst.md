@@ -63,7 +63,7 @@ After finishing **Task 1**, you should be able to pass all the current tests exc
 
 ## Task 2 - SST Iterator
 
-Like `BlockIteartor`, you will need to implement an iterator over an SST. Note that you should load data on demand. For
+Like `BlockIterator`, you will need to implement an iterator over an SST. Note that you should load data on demand. For
 example, if your iterator is at block 1, it should not hold any other block content in memory until it reaches the next
 block.
 
