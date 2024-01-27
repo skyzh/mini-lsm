@@ -37,6 +37,8 @@ src/lsm_storage.rs
 
 `MemTable` has a WAL field. If the `wal` field is set to `Some(wal)`, you will need to append to the WAL when updating the memtable. In your LSM engine, you will need to create WALs if `enable_wal = true`. You will also need update the manifest using the `ManifestRecord::NewMemtable` record when new memtable is created.
 
+You can create a memtable with WAL by using the `create_with_wal` function. WAL should be written to `<memtable_id>.wal` in the storage directory. The memtable id should be the same as the SST id if this memtable gets flushed as an L0 SST.
+
 ## Task 3: Recover from the WALs
 
 In this task, you will need to modify:
@@ -50,6 +52,8 @@ If WAL is enabled, you will need to recover the memtables based on WALs when loa
 ```
 cargo run --bin mini-lsm-cli -- --enable-wal
 ```
+
+Remember to recover the correct `next_sst_id` from the state, which should be `max{memtable id, sst id}` + 1. In your `close` function, you should not flush memtables to SSTs if `enable_wal` is set to true, as WAL itself provides persistency.
 
 ## Test Your Understanding
 
