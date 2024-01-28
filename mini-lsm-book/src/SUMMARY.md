@@ -24,8 +24,8 @@
 
 - [Week 3 Overview: MVCC (WIP)](./week3-overview.md)
   - [Timestamp Encoding + Refactor](./week3-01-ts-key-refactor.md)
-  - [Snapshots - Memtables and SSTs](./week3-02-snapshot-read-part-1.md)
-  - [Snapshots - Engine Read Path](./week3-03-snapshot-read-part-2.md)
+  - [Snapshots - Memtables and Timestamps](./week3-02-snapshot-read-part-1.md)
+  - [Snapshots - Transaction API](./week3-03-snapshot-read-part-2.md)
   - [Watermark and GC](./week3-04-watermark.md)
   - [Transaction and OCC](./week3-05-txn-occ.md)
   - [Serializable Snapshot Isolation](./week3-06-serializable.md)
