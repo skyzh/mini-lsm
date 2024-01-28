@@ -1,5 +1,6 @@
 // Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
 
+use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
 
 /// Implements a bloom filter
@@ -45,13 +46,13 @@ impl<T: AsMut<[u8]>> BitSliceMut for T {
 
 impl Bloom {
     /// Decode a bloom filter
-    pub fn decode(buf: &[u8]) -> Self {
+    pub fn decode(buf: &[u8]) -> Result<Self> {
         let filter = &buf[..buf.len() - 1];
         let k = buf[buf.len() - 1];
-        Self {
+        Ok(Self {
             filter: filter.to_vec().into(),
             k,
-        }
+        })
     }
 
     /// Encode a bloom filter

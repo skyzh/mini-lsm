@@ -21,7 +21,17 @@ src/manifest.rs
 
 We encode the manifest records using JSON. You may use `serde_json::to_vec` to encode a manifest record to a json, write it to the manifest file, and do a fsync. When you read from the manifest file, you may use `serde_json::Deserializer::from_slice` and it will return a stream of records. You do not need to store the record length or so, as `serde_json` can automatically find the split of the records.
 
+
+The manifest format is like:
+
+```
+| JSON record | JSON record | JSON record | JSON record |
+```
+
+Again, note that we do not record the information of how many bytes each record has.
+
 After the engine runs for several hours, the manifest file might get very large. At that time, you may periodically compact the manifest file to store the current snapshot and truncate the logs. This is an optimization you may implement as part of bonus tasks.
+
 
 ## Task 2: Write Manifests
 

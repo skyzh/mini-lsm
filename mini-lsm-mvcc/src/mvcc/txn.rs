@@ -101,7 +101,7 @@ impl Transaction {
                 let committed_txns = self.inner.mvcc().committed_txns.lock();
                 for (_, txn_data) in committed_txns.range(self.read_ts..) {
                     for key_hash in read_set {
-                        if txn_data.key_hashes.contains(&key_hash) {
+                        if txn_data.key_hashes.contains(key_hash) {
                             bail!("serializable check failed");
                         }
                     }

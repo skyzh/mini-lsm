@@ -89,6 +89,15 @@ src/lsm_storage.rs
 
 For the bloom filter encoding, you can append the bloom filter to the end of your SST file. You will need to store the bloom filter offset at the end of the file, and compute meta offsets accordingly.
 
+```plaintext
+-----------------------------------------------------------------------------------------------------
+|         Block Section         |                            Meta Section                           |
+-----------------------------------------------------------------------------------------------------
+| data block | ... | data block | metadata | meta block offset | bloom filter | bloom filter offset |
+|                               |  varlen  |         u32       |    varlen    |        u32          |
+-----------------------------------------------------------------------------------------------------
+```
+
 We use the `farmhash` crate to compute the hashes of the keys. When building the SST, you will need also to build the bloom filter by computing the key hash using `farmhash::fingerprint32`. You will need to encode/decode the bloom filters with the block meta. You can choose false positive rate 0.01 for your bloom filter. You may need to add new fields to the structures apart from the ones provided in the starter code as necessary.
 
 After that, you can modify the `get` read path to filter SSTs based on bloom filters.

@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::hash::Hasher;
-use std::io::{Read, Write};
+use std::io::{BufWriter, Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,20 +10,20 @@ use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
 
 pub struct Wal {
-    file: Arc<Mutex<File>>,
+    file: Arc<Mutex<BufWriter<File>>>,
 }
 
 impl Wal {
     pub fn create(path: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
-            file: Arc::new(Mutex::new(
+            file: Arc::new(Mutex::new(BufWriter::new(
                 OpenOptions::new()
                     .read(true)
                     .create_new(true)
                     .write(true)
                     .open(path)
                     .context("failed to create WAL")?,
-            )),
+            ))),
         })
     }
 
@@ -56,7 +56,7 @@ impl Wal {
             skiplist.insert(key, value);
         }
         Ok(Self {
-            file: Arc::new(Mutex::new(file)),
+            file: Arc::new(Mutex::new(BufWriter::new(file))),
         })
     }
 
@@ -80,8 +80,9 @@ impl Wal {
     }
 
     pub fn sync(&self) -> Result<()> {
-        let file = self.file.lock();
-        file.sync_all()?;
+        let mut file = self.file.lock();
+        file.flush()?;
+        file.get_mut().sync_all()?;
         Ok(())
     }
 }

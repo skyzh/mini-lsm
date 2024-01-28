@@ -146,7 +146,7 @@ impl SsTable {
         let raw_bloom_offset = file.read(len - 4, 4)?;
         let bloom_offset = (&raw_bloom_offset[..]).get_u32() as u64;
         let raw_bloom = file.read(bloom_offset, len - 4 - bloom_offset)?;
-        let bloom_filter = Bloom::decode(&raw_bloom);
+        let bloom_filter = Bloom::decode(&raw_bloom)?;
         let raw_meta_offset = file.read(bloom_offset - 4, 4)?;
         let block_meta_offset = (&raw_meta_offset[..]).get_u32() as u64;
         let raw_meta = file.read(block_meta_offset, bloom_offset - 4 - block_meta_offset)?;

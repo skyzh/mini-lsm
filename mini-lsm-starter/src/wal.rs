@@ -1,6 +1,7 @@
 #![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 
 use std::fs::File;
+use std::io::BufWriter;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,7 +11,7 @@ use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
 
 pub struct Wal {
-    file: Arc<Mutex<File>>,
+    file: Arc<Mutex<BufWriter<File>>>,
 }
 
 impl Wal {

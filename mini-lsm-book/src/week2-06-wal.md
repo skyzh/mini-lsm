@@ -25,6 +25,8 @@ The WAL encoding is simply a list of key-value pairs.
 
 You will also need to implement the `recover` function to read the WAL and recover the state of a memtable.
 
+Note that we are using a `BufWriter` for writing the WAL. Using a `BufWriter` can reduce the number of syscalls into the OS, so as to reduce the latency of the write path. The data is not guaranteed to be written to the disk when the user modifies a key. Instead, the engine only guarantee that the data is persisted when `sync` is called. To correctly persist the data to the disk, you will need to first flush the data from the buffer writer to the file object by calling `flush()`, and then do a fsync on the file by using `get_mut().sync_all()`.
+
 ## Task 2: Integrate WALs
 
 In this task, you will need to modify:
