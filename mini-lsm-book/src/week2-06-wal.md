@@ -55,7 +55,7 @@ If WAL is enabled, you will need to recover the memtables based on WALs when loa
 cargo run --bin mini-lsm-cli -- --enable-wal
 ```
 
-Remember to recover the correct `next_sst_id` from the state, which should be `max{memtable id, sst id}` + 1. In your `close` function, you should not flush memtables to SSTs if `enable_wal` is set to true, as WAL itself provides persistency.
+Remember to recover the correct `next_sst_id` from the state, which should be `max{memtable id, sst id}` + 1. In your `close` function, you should not flush memtables to SSTs if `enable_wal` is set to true, as WAL itself provides persistency. You should wait until all compaction and flush threads to exit before closing the database.
 
 ## Test Your Understanding
 

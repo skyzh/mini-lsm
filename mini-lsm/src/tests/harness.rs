@@ -401,12 +401,13 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
 }
 
 pub fn dump_files_in_dir(path: impl AsRef<Path>) {
+    println!("--- DIR DUMP ---");
     for f in path.as_ref().read_dir().unwrap() {
         let f = f.unwrap();
+        print!("{}", f.path().display());
         println!(
-            "{}, size={:.3}KB",
-            f.path().display(),
+            ", size={:.3}KB",
             f.metadata().unwrap().size() as f64 / 1024.0
-        )
+        );
     }
 }

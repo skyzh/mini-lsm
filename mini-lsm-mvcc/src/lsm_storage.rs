@@ -188,12 +188,6 @@ impl MiniLsm {
         self.compaction_notifier.send(()).ok();
         self.flush_notifier.send(()).ok();
 
-        if self.inner.options.enable_wal {
-            self.inner.sync()?;
-            self.inner.sync_dir()?;
-            return Ok(());
-        }
-
         let mut compaction_thread = self.compaction_thread.lock();
         if let Some(compaction_thread) = compaction_thread.take() {
             compaction_thread
@@ -205,6 +199,12 @@ impl MiniLsm {
             flush_thread
                 .join()
                 .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        }
+
+        if self.inner.options.enable_wal {
+            self.inner.sync()?;
+            self.inner.sync_dir()?;
+            return Ok(());
         }
 
         // create memtable and skip updating manifest
