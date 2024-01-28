@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use std::thread;
+use rand::RngCore;
 
 use tempfile::tempdir;
 
@@ -145,4 +147,35 @@ fn test_task4_storage_integration() {
     assert_eq!(&storage.get(b"2").unwrap(), &None);
     assert_eq!(&storage.get(b"3").unwrap().unwrap()[..], b"233333");
     assert_eq!(&storage.get(b"4").unwrap().unwrap()[..], b"23333");
+}
+
+#[test]
+fn test_multi_thread_puts() {
+    let dir = tempdir().unwrap();
+    let mut options = LsmStorageOptions::default_for_week1_test().clone();
+    options.target_sst_size = 1 << 11;
+
+    let storage = Arc::new(
+        LsmStorageInner::open(dir.path(), options).unwrap(),
+    );
+
+    thread::scope(|s| {
+        for _ in 0..4 {
+            s.spawn(|| {
+                let mut key = [0u8; 8];
+                let mut value = [0u8; 64];
+                let storage = storage.clone();
+                for _ in 0..5000 {
+                    rand::thread_rng().fill_bytes(&mut key);
+                    rand::thread_rng().fill_bytes(&mut value);
+                    storage.put(&key, &value).unwrap();
+                }
+            });
+        }
+    });
+
+    // freezed memtable should not be too small
+    for memtable in &storage.state.read().imm_memtables {
+        assert!(memtable.approximate_size() > 1 << 11 / 2)
+    }
 }

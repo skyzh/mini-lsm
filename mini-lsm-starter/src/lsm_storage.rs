@@ -345,22 +345,15 @@ impl LsmStorageInner {
 
     /// Force freeze the current memtable to an immutable memtable
     pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
+        // TODO should probably create the new memtable outside of the state lock
         let new_memtable = Arc::new(MemTable::create(self.next_sst_id()));
         {
             let mut guard = self.state.write();
-            let mut imm_memtables = guard.imm_memtables.clone();
-            imm_memtables.insert(0, guard.memtable.clone());
+            let mut state_snapshot = guard.as_ref().clone();
+            state_snapshot.imm_memtables.insert(0, state_snapshot.memtable);
+            state_snapshot.memtable = new_memtable;
 
-            // TODO how to do otherwise ???
-            // TODO how to mutate struct field under Arc ???
-            let new_state = LsmStorageState {
-                memtable: new_memtable,
-                imm_memtables,
-                l0_sstables: guard.l0_sstables.clone(),
-                levels: guard.levels.clone(),
-                sstables: guard.sstables.clone(),
-            };
-            (*guard) = Arc::new(new_state);
+            (*guard) = Arc::new(state_snapshot);
         }
         Ok(())
     }
