@@ -18,6 +18,7 @@ use crate::compact::{
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::Manifest;
 use crate::mem_table::MemTable;
+use crate::mvcc::LsmMvccInner;
 use crate::table::SsTable;
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -122,6 +123,7 @@ pub(crate) struct LsmStorageInner {
     pub(crate) options: Arc<LsmStorageOptions>,
     pub(crate) compaction_controller: CompactionController,
     pub(crate) manifest: Option<Manifest>,
+    pub(crate) mvcc: Option<LsmMvccInner>,
 }
 
 /// A thin wrapper for `LsmStorageInner` and the user interface for MiniLSM.
@@ -249,6 +251,7 @@ impl LsmStorageInner {
             compaction_controller,
             manifest: None,
             options: options.into(),
+            mvcc: None,
         };
 
         Ok(storage)

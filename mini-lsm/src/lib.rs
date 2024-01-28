@@ -7,6 +7,7 @@ pub mod lsm_iterator;
 pub mod lsm_storage;
 pub mod manifest;
 pub mod mem_table;
+pub mod mvcc;
 pub mod table;
 pub mod wal;
 

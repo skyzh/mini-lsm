@@ -33,7 +33,7 @@ We have 7 chapters (days) in this part:
 
 * [Day 1: Timestamp Key Refactor](./week3-01-ts-key-refactor.md). You will change the `key` module to the MVCC one and refactor your system to use key with timestamp.
 * [Day 2: Snapshot Read - Memtables and SSTs](./week3-02-snapshot-read-part-1.md). You will refactor the memtable and the SST format to support multiple version.
-* [Day 3: Snapshot Read - Engine Read Path](./week3-03-snapshot-read-part-2.md). You will implement a timestamp oracle to assign the timestamps and add multi-version support to the LSM engine by using the transaction API.
+* [Day 3: Snapshot Read - Transaction API](./week3-03-snapshot-read-part-2.md). You will implement a timestamp oracle to assign the timestamps and add multi-version support to the LSM engine by using the transaction API.
 * [Day 4: Watermark and Garbage Collection](./week3-04-watermark.md). You will implement the watermark computation algorithm and implement garbage collection at compaction time to remove old versions.
 * [Day 5: Transaction and Optimistic Concurrency Control](./week3-05-txn-occ.md). You will create a private workspace for all transactions and commit them in batch so that the modifications of a transaction will not be visible to other transactions.
 * [Day 6: Serializable Snapshot Isolation](./week3-06-serializable.md). You will implement the OCC serializable checks to ensure the modifications to the database is serializable and abort transactions that violates serializability.  
