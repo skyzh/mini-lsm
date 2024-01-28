@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="-5 170 704 599" width="704" height="599">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="-5 170 875 599" width="875" height="599">
   <defs>
     <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
       <g>
@@ -8,11 +8,15 @@
       </g>
     </marker>
   </defs>
-  <g id="00-full-overview" fill="none" stroke="none" fill-opacity="1" stroke-dasharray="none" stroke-opacity="1">
+  <g id="00-full-overview" stroke-dasharray="none" stroke-opacity="1" fill="none" fill-opacity="1" stroke="none">
     <title>00-full-overview</title>
-    <rect fill="white" x="-5" y="170" width="704" height="599"/>
+    <rect fill="white" x="-5" y="170" width="875" height="599"/>
     <g id="00-full-overview_Layer_1">
       <title>Layer 1</title>
+      <g id="Graphic_76">
+        <rect x="661" y="192.5359" width="207.588" height="575.4802" fill="white"/>
+        <path d="M 661 192.5359 L 868.588 192.5359 L 868.588 768.0161 L 661 768.0161 Z" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
       <g id="Graphic_73">
         <rect x="80.01552" y="343.5" width="553.4845" height="181.45023" fill="white"/>
         <path d="M 80.01552 343.5 L 633.5 343.5 L 633.5 524.9502 L 80.01552 524.9502 Z" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
@@ -90,7 +94,7 @@
         </text>
       </g>
       <g id="Line_37">
-        <line x1="7" y1="319" x2="697.696" y2="319" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+        <line x1="7" y1="319" x2="646" y2="319" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
       </g>
       <g id="Graphic_36">
         <text transform="translate(12 325)" fill="black">
@@ -301,6 +305,73 @@
       <g id="Graphic_74">
         <text transform="translate(573.412 500.4861)" fill="black">
           <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="33679726e-19" y="16">Week 2</tspan>
+        </text>
+      </g>
+      <g id="Graphic_75">
+        <rect x="688.2882" y="245.974" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="245.974" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 257.5)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="29.72179" y="15">Write Batch</tspan>
+        </text>
+      </g>
+      <g id="Graphic_77">
+        <text transform="translate(808.5 743.552)" fill="black">
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="33679726e-19" y="16">Week 3</tspan>
+        </text>
+      </g>
+      <g id="Graphic_78">
+        <rect x="688.2882" y="394.026" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="394.026" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 405.552)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="30.31379" y="15">Transaction</tspan>
+        </text>
+      </g>
+      <g id="Line_79">
+        <line x1="688.2882" y1="266.5547" x2="624.40074" y2="266.4133" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_80">
+        <rect x="688.2882" y="468.052" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="468.052" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 479.578)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="32.68179" y="15">Watermark</tspan>
+        </text>
+      </g>
+      <g id="Graphic_81">
+        <rect x="688.2882" y="542.078" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="542.078" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 545.408)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="15" fill="black" x="37.46329" y="14">Optimistic </tspan>
+          <tspan font-family="Helvetica Neue" font-size="15" fill="black" x="1.9132907" y="31.42">Concurrency Control</tspan>
+        </text>
+      </g>
+      <g id="Graphic_82">
+        <rect x="688.2882" y="320" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="320" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 331.526)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="16.23379" y="15">Snapshot Read</tspan>
+        </text>
+      </g>
+      <g id="Graphic_83">
+        <rect x="688.2882" y="616.104" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="616.104" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 618.406)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="30.78579" y="15">Serializable </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="4.977791" y="33.448">Snapshot Isolation</tspan>
+        </text>
+      </g>
+      <g id="Graphic_84">
+        <rect x="688.2882" y="690.13" width="153.01158" height="41.5" fill="white"/>
+        <rect x="688.2882" y="690.13" width="153.01158" height="41.5" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(693.2882 701.656)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="27.63379" y="15">Timestamps</tspan>
+        </text>
+      </g>
+      <g id="Line_85">
+        <path d="M 688.2882 710.88 C 688.2882 710.88 649.96164 734.792 579 738.552 C 508.03836 742.312 437.8103 724.152 437.8103 724.152" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_86">
+        <text transform="translate(685.218 197.5359)" fill="black">
+          <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="18758328e-19" y="16">Concurrency Control</tspan>
         </text>
       </g>
     </g>
