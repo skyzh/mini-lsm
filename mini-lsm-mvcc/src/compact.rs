@@ -153,18 +153,21 @@ impl LsmStorageInner {
             }
 
             let builder_inner = builder.as_mut().unwrap();
-            builder_inner.add(iter.key(), iter.value());
 
             if builder_inner.estimated_size() >= self.options.target_sst_size && !same_as_last_key {
-                let sst_id = self.next_sst_id();
-                let builder = builder.take().unwrap();
-                let sst = Arc::new(builder.build(
+                let sst_id: usize = self.next_sst_id();
+                let old_builder = builder.take().unwrap();
+                let sst = Arc::new(old_builder.build(
                     sst_id,
                     Some(self.block_cache.clone()),
                     self.path_of_sst(sst_id),
                 )?);
                 new_sst.push(sst);
+                builder = Some(SsTableBuilder::new(self.options.block_size));
             }
+
+            let builder_inner = builder.as_mut().unwrap();
+            builder_inner.add(iter.key(), iter.value());
 
             if !same_as_last_key {
                 last_key.clear();

@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, ops::Bound, path::Path, sync::Arc, time::Duration};
+use std::{
+    collections::BTreeMap, ops::Bound, os::unix::fs::MetadataExt, path::Path, sync::Arc,
+    time::Duration,
+};
 
 use anyhow::{bail, Result};
 use bytes::Bytes;
@@ -111,6 +114,36 @@ where
     assert!(!iter.is_valid());
 }
 
+pub fn check_iter_result_by_key_and_ts<I>(iter: &mut I, expected: Vec<((Bytes, u64), Bytes)>)
+where
+    I: for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>,
+{
+    for ((k, ts), v) in expected {
+        assert!(iter.is_valid());
+        assert_eq!(
+            (&k[..], ts),
+            (
+                iter.key().for_testing_key_ref(),
+                iter.key().for_testing_ts()
+            ),
+            "expected key: {:?}@{}, actual key: {:?}@{}",
+            k,
+            ts,
+            as_bytes(iter.key().for_testing_key_ref()),
+            iter.key().for_testing_ts(),
+        );
+        assert_eq!(
+            v,
+            iter.value(),
+            "expected value: {:?}, actual value: {:?}",
+            v,
+            as_bytes(iter.value()),
+        );
+        iter.next().unwrap();
+    }
+    assert!(!iter.is_valid());
+}
+
 pub fn check_lsm_iter_result_by_key<I>(iter: &mut I, expected: Vec<(Bytes, Bytes)>)
 where
     I: for<'a> StorageIterator<KeyType<'a> = &'a [u8]>,
@@ -159,6 +192,22 @@ pub fn generate_sst(
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
 
+pub fn generate_sst_with_ts(
+    id: usize,
+    path: impl AsRef<Path>,
+    data: Vec<((Bytes, u64), Bytes)>,
+    block_cache: Option<Arc<BlockCache>>,
+) -> SsTable {
+    let mut builder = SsTableBuilder::new(128);
+    for ((key, ts), value) in data {
+        builder.add(
+            KeySlice::for_testing_from_slice_with_ts(&key[..], ts),
+            &value[..],
+        );
+    }
+    builder.build(id, block_cache, path.as_ref()).unwrap()
+}
+
 pub fn sync(storage: &LsmStorageInner) {
     storage
         .force_freeze_memtable(&storage.state_lock.lock())
@@ -184,6 +233,7 @@ pub fn compaction_bench(storage: Arc<MiniLsm>) {
             max_key = max_key.max(i);
         }
     }
+
     std::thread::sleep(Duration::from_secs(1)); // wait until all memtables flush
     while {
         let snapshot = storage.inner.state.read();
@@ -352,6 +402,11 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
 
 pub fn dump_files_in_dir(path: impl AsRef<Path>) {
     for f in path.as_ref().read_dir().unwrap() {
-        println!("{}", f.unwrap().path().display())
+        let f = f.unwrap();
+        println!(
+            "{}, size={:.3}KB",
+            f.path().display(),
+            f.metadata().unwrap().size() as f64 / 1024.0
+        )
     }
 }
