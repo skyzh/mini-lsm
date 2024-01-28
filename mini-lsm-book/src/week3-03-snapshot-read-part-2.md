@@ -1,18 +1,26 @@
 # Snapshot Read - Engine Read Path and Transaction API
 
-## Task 1: Store Largest Timestamp in SST
+In this chapter, you will:
 
-## Task 2: Recover Commit Timestamp
+* Finish the read path based on previous chapter to support snapshot read.
+* Implement the transaction API to support snapshot read.
+* Implement the engine recovery process to correctly recover the commit timestamp.
 
-## Task 3: Lsm Iterator with Read Timestamp
+At the end of the day, your engine will be able to give the user a consistent view of the storage key space.
 
-## Task 4: Multi-Version Scan and Get
+## Task 1: Lsm Iterator with Read Timestamp
+
+## Task 2: Multi-Version Scan and Get
 
 For now, inner = `Fused<LsmIterator>`, do not use `TxnLocalIterator`
 
 explain why store txn inside iterator
 
 do not implement put and delete
+
+## Task 3: Store Largest Timestamp in SST
+
+## Task 4: Recover Commit Timestamp
 
 ## Test Your Understanding
 

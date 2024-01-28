@@ -3,6 +3,7 @@
 In this chapter, you will:
 
 * Refactor your implementation to use key+ts representation.
+* Make your code compile with the new key representation.
 
 ## Task 0: Use MVCC Key Encoding
 

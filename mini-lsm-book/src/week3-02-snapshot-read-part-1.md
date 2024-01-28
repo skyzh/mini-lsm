@@ -1,5 +1,12 @@
 # Snapshot Read - Memtables and Timestamps
 
+In this chapter, you will:
+
+* Refactor your memtable/WAL to store multiple versions of a key.
+* Implement the new engine write path to assign each key a timestamp.
+* Make your compaction process aware of multi-version keys.
+* Implement the new engine read path to return the latest version of a key.
+
 During the refactor, you might need to change the signature of some functions from `&self` to `self: &Arc<Self>` as necessary.
 
 ## Task 1: MemTable, Write-Ahead Log, and Read Path

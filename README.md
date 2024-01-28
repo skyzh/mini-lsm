@@ -14,6 +14,10 @@ You may join skyzh's Discord server and study with the mini-lsm community.
 
 [![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
 
+**Add Your Solution**
+
+If you finished at least one full week of this tutorial, you can add your solution to the community solution list at [SOLUTIONS.md](./SOLUTIONS.md). You can submit a pull request and we might do a quick review of your code in return of your hard work.
+
 ## Development
 
 ```
