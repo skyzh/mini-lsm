@@ -9,7 +9,7 @@ In this chapter, you will:
 * Implement the batch write interface.
 * Add checksums to the blocks, SST metadata, manifest, and WALs.
 
-**Note: We do not have unit tests for this chapter. As long as you pass all previous tests and ensure checksums are written to your file, it would be fine.**
+**Note: We do not have unit tests for this chapter. As long as you pass all previous tests and ensure checksums are properly encoded in your file format, it would be fine.**
 
 ## Task 1: Write Batch Interface
 
@@ -114,6 +114,6 @@ We do not provide reference answers to the questions, and feel free to discuss a
 
 ## Bonus Tasks
 
-* **Recovering on Corruption**. If there is a checksum error, open the database in a safe mode so that no writes can be performed and non-corrupted data can still be retrieved.
+* **Recovering when Corruption**. If there is a checksum error, open the database in a safe mode so that no writes can be performed and non-corrupted data can still be retrieved.
 
 {{#include copyright.md}}
