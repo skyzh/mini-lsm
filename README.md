@@ -64,11 +64,10 @@ We are working on chapter 3 and more test cases for all existing contents.
 
 | Week + Chapter | Topic                                           | Solution | Starter Code | Writeup |
 | -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
-| 2.7            | Batch Write + Checksum                          | ✅        | ✅            |         |
-| 3.1            | Timestamp Key Encoding                          | ✅        | 🚧            |         |
-| 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     | ✅        | 🚧            |         |
-| 3.3            | Snapshot Read - Engine Read Path                | ✅        | 🚧            |         |
-| 3.4            | Watermark and Garbage Collection                | ✅        | 🚧            |         |
+| 3.1            | Timestamp Key Encoding                          | ✅        | ✅            | ✅       |
+| 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     | ✅        | 🚧            | 🚧       |
+| 3.3            | Snapshot Read - Engine Read Path                | ✅        | 🚧            | 🚧       |
+| 3.4            | Watermark and Garbage Collection                | ✅        | 🚧            | 🚧       |
 | 3.5            | Transactions and Optimistic Concurrency Control | ✅        |              |         |
 | 3.6            | Serializable Snapshot Isolation                 | ✅        |              |         |
 | 3.7            | Compaction Filter                               | 🚧        |              |         |
