@@ -5,3 +5,6 @@
 ## Task 2: Get and Scan
 
 ## Task 3: Commit
+
+
+{{#include copyright.md}}

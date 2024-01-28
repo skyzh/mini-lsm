@@ -24,3 +24,8 @@ pass all tests except week 2 day 6
 
 * What is the difference of `get` in the MVCC engine and the engine you built in week 2?
 * In week 2, you stop at the first memtable/level where a key is found when `get`. Can you do the same in the MVCC version?
+
+We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+
+
+{{#include copyright.md}}
