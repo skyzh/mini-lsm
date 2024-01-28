@@ -12,8 +12,10 @@ assign mvcc object, take write lock, increase ts by 1
 
 ## Task 3: MVCC Compaction
 
-keep all versions
+keep all versions, split file, run merge iterator tests
 
 ## Task 4: LSM Iterator
 
 return the latest version
+
+pass all tests except week 2 day 6
