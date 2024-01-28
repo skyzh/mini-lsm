@@ -20,6 +20,22 @@ If you finished at least one full week of this tutorial, you can add your soluti
 
 ## Development
 
+**For Students**
+
+You should modify code in `mini-lsm-starter` directory.
+
+```
+cargo x install-tools
+cargo copy-test --week 1 --day 1
+cargo x scheck
+cargo run --bin mini-lsm-cli
+cargo run --bin compaction-simulator
+```
+
+**For Course Developers**
+
+You should modify `mini-lsm` and `mini-lsm-mvcc`
+
 ```
 cargo x install-tools
 cargo x check
