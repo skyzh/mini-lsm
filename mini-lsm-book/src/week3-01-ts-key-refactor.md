@@ -105,7 +105,6 @@ Now that we have a timestamp in the key, and when creating the iterators, we wil
 
 When you check if a user key is in a table, you can simply compare the user key without comparing the timestamp.
 
-At this point, you should build your implementation and pass all week 1 test cases. We will make the engine fully multi-version and pass all test cases in the next two chapters.
-
+At this point, you should build your implementation and pass all week 1 test cases. All keys stored in the system will use `TS_DEFAULT` (which is timestamp 0). We will make the engine fully multi-version and pass all test cases in the next two chapters.
 
 {{#include copyright.md}}

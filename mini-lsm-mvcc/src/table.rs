@@ -244,4 +244,10 @@ impl SsTable {
     pub fn sst_id(&self) -> usize {
         self.id
     }
+
+    pub fn max_ts(&self) -> u64 {
+        // TODO(you): implement me
+        // self.max_ts
+        0
+    }
 }

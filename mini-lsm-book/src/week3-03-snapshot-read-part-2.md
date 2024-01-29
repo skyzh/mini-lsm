@@ -22,6 +22,8 @@ do not implement put and delete
 
 ## Task 4: Recover Commit Timestamp
 
+We do not have test cases for this section. You should pass all persistence tests from previous chapters (2.5 and 2.6) after finishing this section.
+
 ## Test Your Understanding
 
 * So far, we have assumed that our SST files use a monotonically increasing id as the file name. Is it okay to use `<level>_<begin_key>_<end_key>_<max_ts>.sst` as the SST file name? What might be the potential problems with that?

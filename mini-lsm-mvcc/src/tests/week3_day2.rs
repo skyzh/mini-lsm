@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[test]
-fn test_task_1_2_integration() {
+fn test_task3_compaction_integration() {
     let dir = tempdir().unwrap();
     let mut options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
     options.enable_wal = true;

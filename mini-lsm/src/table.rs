@@ -133,6 +133,7 @@ pub struct SsTable {
     first_key: KeyBytes,
     last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
+    max_ts: u64,
 }
 impl SsTable {
     #[cfg(test)]
@@ -160,6 +161,7 @@ impl SsTable {
             id,
             block_cache,
             bloom: Some(bloom_filter),
+            max_ts: 0,
         })
     }
 
@@ -179,6 +181,7 @@ impl SsTable {
             first_key,
             last_key,
             bloom: None,
+            max_ts: 0,
         }
     }
 
@@ -239,5 +242,9 @@ impl SsTable {
 
     pub fn sst_id(&self) -> usize {
         self.id
+    }
+
+    pub fn max_ts(&self) -> u64 {
+        self.max_ts
     }
 }

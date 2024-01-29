@@ -96,6 +96,8 @@ pub struct SsTable {
     first_key: KeyBytes,
     last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
+    /// The maximum timestamp stored in this SST, implemented in week 3.
+    max_ts: u64,
 }
 
 impl SsTable {
@@ -125,6 +127,7 @@ impl SsTable {
             first_key,
             last_key,
             bloom: None,
+            max_ts: 0,
         }
     }
 
@@ -164,5 +167,9 @@ impl SsTable {
 
     pub fn sst_id(&self) -> usize {
         self.id
+    }
+
+    pub fn max_ts(&self) -> u64 {
+        self.max_ts
     }
 }
