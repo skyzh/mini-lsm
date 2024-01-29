@@ -18,7 +18,7 @@ pub struct Key<T: AsRef<[u8]>>(T);
 ...to:
 
 ```rust,no_run
-pub struct Key<T: AsRef<[u8]>>(T, u64);
+pub struct Key<T: AsRef<[u8]>>(T /* user key */, u64 /* timestamp */);
 ```
 
 ...where we have a timestamp associated with the keys. We only use this key representation internally in the system. On the user interface side, we do not ask users to provide a timestamp, and therefore some structures still use `&[u8]` instead of `KeySlice` in the engine. We will cover the places where we need to change the signature of the functions later. For now, you only need to run,
