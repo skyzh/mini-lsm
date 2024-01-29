@@ -9,6 +9,15 @@ In this chapter, you will:
 
 During the refactor, you might need to change the signature of some functions from `&self` to `self: &Arc<Self>` as necessary.
 
+To run test cases,
+
+```
+cargo x copy-test --week 3 --day 2
+cargo x scheck
+```
+
+**Note: You will also need to pass everything <= 2.4 after finishing this chapter.**
+
 ## Task 1: MemTable, Write-Ahead Log, and Read Path
 
 In this task, you will need to modify:

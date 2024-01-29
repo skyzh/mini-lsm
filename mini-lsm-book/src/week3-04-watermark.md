@@ -2,6 +2,13 @@
 
 In this chapter, you will implement necessary structures to track the lowest read timestamp being used by the user, and collect unused versions from SSTs when doing the compaction.
 
+To run test cases,
+
+```
+cargo x copy-test --week 3 --day 4
+cargo x scheck
+```
+
 ## Task 1: Implement Watermark
 
 In this task, you will need to modify:

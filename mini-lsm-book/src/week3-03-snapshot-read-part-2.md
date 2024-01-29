@@ -10,6 +10,15 @@ At the end of the day, your engine will be able to give the user a consistent vi
 
 During the refactor, you might need to change the signature of some functions from `&self` to `self: &Arc<Self>` as necessary.
 
+To run test cases,
+
+```
+cargo x copy-test --week 3 --day 3
+cargo x scheck
+```
+
+**Note: You will also need to pass test cases for 2.5 and 2.6 after finishing this chapter.**
+
 ## Task 1: LSM Iterator with Read Timestamp
 
 The goal of this chapter is to have something like:

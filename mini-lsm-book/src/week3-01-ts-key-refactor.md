@@ -5,6 +5,15 @@ In this chapter, you will:
 * Refactor your implementation to use key+ts representation.
 * Make your code compile with the new key representation.
 
+To run test cases,
+
+```
+cargo x copy-test --week 3 --day 1
+cargo x scheck
+```
+
+**Note: We do not have full unit tests for this chapter. All you need to do is to make your code compile.**
+
 ## Task 0: Use MVCC Key Encoding
 
 You will need to replace the key encoding module to the MVCC one. We have removed some interfaces from the original key module and implemented new comparators for the keys. If you followed the instructions in the previous chapters and did not use `into_inner` on the key, you should pass all test cases on day 3 after all the refactors. Otherwise, you will need to look carefully on the places where you only compare the keys without looking at the timestamps.
