@@ -22,14 +22,14 @@
   - [Write-Ahead Log (WAL)](./week2-06-wal.md)
   - [Snack Time: Batch Write and Checksums](./week2-07-snacks.md)
 
-- [Week 3 Overview: MVCC (WIP)](./week3-overview.md)
+- [Week 3 Overview: MVCC](./week3-overview.md)
   - [Timestamp Encoding + Refactor](./week3-01-ts-key-refactor.md)
   - [Snapshots - Memtables and Timestamps](./week3-02-snapshot-read-part-1.md)
   - [Snapshots - Transaction API](./week3-03-snapshot-read-part-2.md)
   - [Watermark and GC](./week3-04-watermark.md)
-  - [Transaction and OCC](./week3-05-txn-occ.md)
-  - [Serializable Snapshot Isolation](./week3-06-serializable.md)
-  - [Snack Time: Compaction Filter](./week3-07-compaction-filter.md)
+  - [Transaction and OCC (WIP)](./week3-05-txn-occ.md)
+  - [Serializable Snapshot Isolation (WIP)](./week3-06-serializable.md)
+  - [Snack Time: Compaction Filter (WIP)](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
 ---
