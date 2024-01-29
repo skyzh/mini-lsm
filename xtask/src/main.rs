@@ -131,7 +131,11 @@ fn sync() -> Result<()> {
 
 fn copy_test_case(test: CopyTestAction) -> Result<()> {
     use std::fmt::Write;
-    let src_dir = "mini-lsm/src/tests";
+    let src_dir = if test.week >= 3 {
+        "mini-lsm-mvcc/src/tests"
+    } else {
+        "mini-lsm/src/tests"
+    };
     let target_dir = "mini-lsm-starter/src/tests";
     if !Path::new(target_dir).exists() {
         std::fs::create_dir(target_dir)?;
