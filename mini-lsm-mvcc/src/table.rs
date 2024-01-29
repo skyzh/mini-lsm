@@ -29,8 +29,8 @@ pub struct BlockMeta {
 
 impl BlockMeta {
     /// Encode block meta to a buffer.
-    pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
-        let mut estimated_size = std::mem::size_of::<u32>();
+    pub fn encode_block_meta(block_meta: &[BlockMeta], max_ts: u64, buf: &mut Vec<u8>) {
+        let mut estimated_size = std::mem::size_of::<u32>(); // number of blocks
         for meta in block_meta {
             // The size of offset
             estimated_size += std::mem::size_of::<u32>();
@@ -43,7 +43,9 @@ impl BlockMeta {
             // The size of actual key
             estimated_size += meta.last_key.raw_len();
         }
-        estimated_size += std::mem::size_of::<u32>();
+        estimated_size += std::mem::size_of::<u64>(); // max timestamp
+        estimated_size += std::mem::size_of::<u32>(); // checksum
+
         // Reserve the space to improve performance, especially when the size of incoming data is
         // large
         buf.reserve(estimated_size);
@@ -58,12 +60,13 @@ impl BlockMeta {
             buf.put_slice(meta.last_key.key_ref());
             buf.put_u64(meta.last_key.ts());
         }
+        buf.put_u64(max_ts);
         buf.put_u32(crc32fast::hash(&buf[original_len + 4..]));
         assert_eq!(estimated_size, buf.len() - original_len);
     }
 
     /// Decode block meta from a buffer.
-    pub fn decode_block_meta(mut buf: &[u8]) -> Result<Vec<BlockMeta>> {
+    pub fn decode_block_meta(mut buf: &[u8]) -> Result<(Vec<BlockMeta>, u64)> {
         let mut block_meta = Vec::new();
         let num = buf.get_u32() as usize;
         let checksum = crc32fast::hash(&buf[..buf.remaining() - 4]);
@@ -81,11 +84,12 @@ impl BlockMeta {
                 last_key,
             });
         }
+        let max_ts = buf.get_u64();
         if buf.get_u32() != checksum {
             bail!("meta checksum mismatched");
         }
 
-        Ok(block_meta)
+        Ok((block_meta, max_ts))
     }
 }
 
@@ -137,6 +141,7 @@ pub struct SsTable {
     first_key: KeyBytes,
     last_key: KeyBytes,
     pub(crate) bloom: Option<Bloom>,
+    max_ts: u64,
 }
 impl SsTable {
     #[cfg(test)]
@@ -154,7 +159,7 @@ impl SsTable {
         let raw_meta_offset = file.read(bloom_offset - 4, 4)?;
         let block_meta_offset = (&raw_meta_offset[..]).get_u32() as u64;
         let raw_meta = file.read(block_meta_offset, bloom_offset - 4 - block_meta_offset)?;
-        let block_meta = BlockMeta::decode_block_meta(&raw_meta[..])?;
+        let (block_meta, max_ts) = BlockMeta::decode_block_meta(&raw_meta[..])?;
         Ok(Self {
             file,
             first_key: block_meta.first().unwrap().first_key.clone(),
@@ -164,6 +169,7 @@ impl SsTable {
             id,
             block_cache,
             bloom: Some(bloom_filter),
+            max_ts,
         })
     }
 
@@ -183,6 +189,7 @@ impl SsTable {
             first_key,
             last_key,
             bloom: None,
+            max_ts: 0,
         }
     }
 
@@ -246,8 +253,6 @@ impl SsTable {
     }
 
     pub fn max_ts(&self) -> u64 {
-        // TODO(you): implement me
-        // self.max_ts
-        0
+        self.max_ts
     }
 }

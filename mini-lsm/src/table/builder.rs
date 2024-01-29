@@ -104,6 +104,7 @@ impl SsTableBuilder {
             block_meta_offset: meta_offset,
             block_cache,
             bloom: Some(bloom),
+            max_ts: 0, // will be changed to latest ts in week 2
         })
     }
 

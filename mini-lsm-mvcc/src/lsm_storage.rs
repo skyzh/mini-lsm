@@ -304,6 +304,8 @@ impl LsmStorageInner {
 
     /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
     /// not exist.
+    /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
+    /// not exist.
     pub(crate) fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Self> {
         let mut state = LsmStorageState::create(&options);
         let path = path.as_ref();
@@ -328,6 +330,7 @@ impl LsmStorageInner {
             std::fs::create_dir_all(path).context("failed to create DB dir")?;
         }
         let manifest_path = path.join("MANIFEST");
+        let mut last_commit_ts = 0;
         if !manifest_path.exists() {
             if options.enable_wal {
                 state.memtable = Arc::new(MemTable::create_with_wal(
@@ -381,6 +384,7 @@ impl LsmStorageInner {
                     FileObject::open(&Self::path_of_sst_static(path, table_id))
                         .context("failed to open SST")?,
                 )?;
+                last_commit_ts = last_commit_ts.max(sst.max_ts());
                 state.sstables.insert(table_id, Arc::new(sst));
                 sst_cnt += 1;
             }
@@ -394,6 +398,13 @@ impl LsmStorageInner {
                 for id in memtables.iter() {
                     let memtable =
                         MemTable::recover_from_wal(*id, Self::path_of_wal_static(path, *id))?;
+                    let max_ts = memtable
+                        .map
+                        .iter()
+                        .map(|x| x.key().ts())
+                        .max()
+                        .unwrap_or_default();
+                    last_commit_ts = last_commit_ts.max(max_ts);
                     if !memtable.is_empty() {
                         state.imm_memtables.insert(0, Arc::new(memtable));
                         wal_cnt += 1;
@@ -421,7 +432,7 @@ impl LsmStorageInner {
             compaction_controller,
             manifest: Some(manifest),
             options: options.into(),
-            mvcc: Some(LsmMvccInner::new(0)),
+            mvcc: Some(LsmMvccInner::new(last_commit_ts)),
         };
         storage.sync_dir()?;
 
