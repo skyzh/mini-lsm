@@ -84,5 +84,6 @@ We do not provide reference answers to the questions, and feel free to discuss a
 ## Bonus Tasks
 
 * **The Cost of Dynamic Dispatch.** Implement a `Box<dyn StorageIterator>` version of merge iterators and benchmark to see the performance differences.
+* **Parallel Seek.** Creating a merge iterator requires loading the first block of all underlying SSTs (when you create `SSTIterator`). You may parallelize the process of creating iterators.
 
 {{#include copyright.md}}

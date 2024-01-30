@@ -87,5 +87,6 @@ get 1500
 ## Bonus Tasks
 
 * **Manifest Compaction.** When the number of logs in the manifest file gets too large, you can rewrite the manifest file to only store the current snapshot and append new logs to that file.
+* **Parallel Open.** After you collect the list of SSTs to open, you can open and decode them in parallel, instead of doing it one by one, therefore accelerating the recovery process.
 
 {{#include copyright.md}}
