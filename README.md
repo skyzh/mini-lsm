@@ -45,7 +45,7 @@ cargo x book
 If you changed public API in the reference solution, you might also need to synchronize it to the starter crate.
 To do this, use `cargo x sync`.
 
-## Structure
+## Code Structure
 
 * mini-lsm: the final solution code for <= week 2
 * mini-lsm-mvcc: the final solution code for week 3 MVCC
@@ -70,27 +70,38 @@ cargo run --bin compaction-simulator-ref
 cargo run --bin compaction-simulator-mvcc-ref
 ```
 
-## Progress
+## Tutorial Structure
 
-We are working on chapter 3 and more test cases for all existing contents.
+We have 3 weeks + 1 extra week (in progress) for this tutorial.
 
 * Week 1: Storage Format + Engine Skeleton
 * Week 2: Compaction and Persistence
 * Week 3: Multi-Version Concurrency Control
-* The Extra Week / Rest of Your Life: Optimizations  (unlikely to be available in 2024...)
+* The Extra Week / Rest of Your Life: Optimizations (unlikely to be available in 2024...)
 
-✅: Finished \
-🚧: WIP and will likely be available soon
-
-| Week + Chapter | Topic                                           | Solution | Starter Code | Writeup |
-| -------------- | ----------------------------------------------- | -------- | ------------ | ------- |
-| 3.1            | Timestamp Key Encoding                          | ✅        | ✅            | ✅       |
-| 3.2            | Snapshot Read - Blocks, Memtables, and SSTs     | ✅        | ✅            | ✅       |
-| 3.3            | Snapshot Read - Engine Read Path                | ✅        | ✅            | ✅       |
-| 3.4            | Watermark and Garbage Collection                | ✅        | ✅            | ✅       |
-| 3.5            | Transactions and Optimistic Concurrency Control | ✅        | ✅            | ✅       |
-| 3.6            | Serializable Snapshot Isolation                 | ✅        | ✅            | ✅       |
-| 3.7            | Compaction Filter                               | 🚧        |              |         |
+| Week + Chapter | Topic                                                       |
+| -------------- | ----------------------------------------------------------- |
+| 1.1            | Memtable                                                    |
+| 1.2            | Merge Iterator                                              |
+| 1.3            | Block                                                       |
+| 1.4            | Sorted String Table (SST)                                   |
+| 1.5            | Read Path                                                   |
+| 1.6            | Write Path                                                  |
+| 1.7            | SST Optimizations: Prefix Key Encoding + Bloom Filters      |
+| 2.1            | Compaction Implementation                                   |
+| 2.2            | Simple Compaction Strategy (Traditional Leveled Compaction) |
+| 2.3            | Tiered Compaction Strategy (RocksDB Universal Compaction)   |
+| 2.4            | Leveled Compaction Strategy (RocksDB Leveled Compaction)    |
+| 2.5            | Manifest                                                    |
+| 2.6            | Write-Ahead Log (WAL)                                       |
+| 2.7            | Batch Write and Checksums                                   |
+| 3.1            | Timestamp Key Encoding                                      |
+| 3.2            | Snapshot Read - Memtables and Timestamps                    |
+| 3.3            | Snapshot Read - Transaction API                             |
+| 3.4            | Watermark and Garbage Collection                            |
+| 3.5            | Transactions and Optimistic Concurrency Control             |
+| 3.6            | Serializable Snapshot Isolation                             |
+| 3.7            | Compaction Filters                                          |
 
 ## License
 

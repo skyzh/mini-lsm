@@ -29,7 +29,7 @@
   - [Watermark and GC](./week3-04-watermark.md)
   - [Transaction and OCC](./week3-05-txn-occ.md)
   - [Serializable Snapshot Isolation](./week3-06-serializable.md)
-  - [Snack Time: Compaction Filter (WIP)](./week3-07-compaction-filter.md)
+  - [Snack Time: Compaction Filters](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
 ---

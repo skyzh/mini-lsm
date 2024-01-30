@@ -148,6 +148,11 @@ fn key_within(user_key: &[u8], table_begin: KeySlice, table_end: KeySlice) -> bo
     table_begin.raw_ref() <= user_key && user_key <= table_end.raw_ref()
 }
 
+#[derive(Clone, Debug)]
+pub enum CompactionFilter {
+    Prefix(Bytes),
+}
+
 /// The storage interface of the LSM tree.
 pub(crate) struct LsmStorageInner {
     pub(crate) state: Arc<RwLock<Arc<LsmStorageState>>>,
@@ -160,6 +165,8 @@ pub(crate) struct LsmStorageInner {
     pub(crate) manifest: Option<Manifest>,
     #[allow(dead_code)]
     pub(crate) mvcc: Option<LsmMvccInner>,
+    #[allow(dead_code)]
+    pub(crate) compaction_filters: Arc<Mutex<Vec<CompactionFilter>>>,
 }
 
 /// A thin wrapper for `LsmStorageInner` and the user interface for MiniLSM.
@@ -241,6 +248,10 @@ impl MiniLsm {
             compaction_notifier: tx1,
             compaction_thread: Mutex::new(compaction_thread),
         }))
+    }
+
+    pub fn add_compaction_filter(&self, compaction_filter: CompactionFilter) {
+        self.inner.add_compaction_filter(compaction_filter)
     }
 
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
@@ -418,6 +429,7 @@ impl LsmStorageInner {
             manifest: Some(manifest),
             options: options.into(),
             mvcc: None,
+            compaction_filters: Arc::new(Mutex::new(Vec::new())),
         };
         storage.sync_dir()?;
 
@@ -426,6 +438,11 @@ impl LsmStorageInner {
 
     pub fn sync(&self) -> Result<()> {
         self.state.read().memtable.sync_wal()
+    }
+
+    pub fn add_compaction_filter(&self, compaction_filter: CompactionFilter) {
+        let mut compaction_filters = self.compaction_filters.lock();
+        compaction_filters.push(compaction_filter);
     }
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.

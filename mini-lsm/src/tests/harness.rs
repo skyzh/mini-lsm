@@ -341,6 +341,9 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             for idx in 1..level_size.len() {
                 let prev_size = level_size[idx - 1];
                 let this_size = level_size[idx];
+                if this_size == 0 {
+                    continue;
+                }
                 assert!(
                     // do not add hard requirement on level size multiplier considering bloom filters...
                     this_size as f64 / prev_size as f64 >= (level_size_multiplier as f64 - 0.5),
