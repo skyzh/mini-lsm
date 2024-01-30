@@ -114,6 +114,7 @@ where
     assert!(!iter.is_valid());
 }
 
+#[allow(dead_code)]
 pub fn check_iter_result_by_key_and_ts<I>(iter: &mut I, expected: Vec<((Bytes, u64), Bytes)>)
 where
     I: for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>,
@@ -192,6 +193,7 @@ pub fn generate_sst(
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
 
+#[allow(dead_code)]
 pub fn generate_sst_with_ts(
     id: usize,
     path: impl AsRef<Path>,

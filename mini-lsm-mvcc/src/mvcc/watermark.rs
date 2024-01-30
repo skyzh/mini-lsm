@@ -4,6 +4,12 @@ pub struct Watermark {
     readers: BTreeMap<u64, usize>,
 }
 
+impl Default for Watermark {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Watermark {
     pub fn new() -> Self {
         Self {

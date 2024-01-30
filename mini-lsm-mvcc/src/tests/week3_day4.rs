@@ -1,15 +1,10 @@
-use std::ops::Bound;
-
 use bytes::Bytes;
 use tempfile::tempdir;
 
 use crate::{
     compact::CompactionOptions,
-    key::KeySlice,
     lsm_storage::{LsmStorageOptions, MiniLsm, WriteBatchRecord},
     mvcc::watermark::Watermark,
-    table::SsTableBuilder,
-    tests::harness::check_lsm_iter_result_by_key,
 };
 
 use super::harness::{check_iter_result_by_key, construct_merge_iterator_over_storage};
