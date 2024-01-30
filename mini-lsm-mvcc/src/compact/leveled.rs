@@ -119,20 +119,6 @@ impl LeveledCompactionController {
         }
         priorities.sort_by(|a, b| a.partial_cmp(b).unwrap().reverse());
 
-        println!(
-            "target level sizes: {:?}, real level sizes: {:?}, base_level: {}",
-            target_level_size
-                .iter()
-                .map(|x| format!("{:.3}MB", *x as f64 / 1024.0 / 1024.0))
-                .collect::<Vec<_>>(),
-            real_level_size
-                .iter()
-                .map(|x| format!("{:.3}MB", *x as f64 / 1024.0 / 1024.0))
-                .collect::<Vec<_>>(),
-            base_level,
-        );
-        println!("compaction triggered by priority: {:?}", priorities);
-
         let priority = priorities.first();
         if let Some((_, level)) = priority {
             println!(

@@ -327,7 +327,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             }
             assert!(
                 num_iters <= l0_sst_num + num_memtables + max_levels,
-                "did you use concat iterators?"
+                "we found {num_iters} iterators in your implementation, (l0_sst_num={l0_sst_num}, num_memtables={num_memtables}, max_levels={max_levels}) did you use concat iterators?"
             );
         }
         CompactionOptions::Leveled(LeveledCompactionOptions {
@@ -355,7 +355,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             }
             assert!(
                 num_iters <= l0_sst_num + num_memtables + max_levels,
-                "did you use concat iterators?"
+                "we found {num_iters} iterators in your implementation, (l0_sst_num={l0_sst_num}, num_memtables={num_memtables}, max_levels={max_levels}) did you use concat iterators?"
             );
         }
         CompactionOptions::Tiered(TieredCompactionOptions {
@@ -397,7 +397,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
             }
             assert!(
                 num_iters <= num_memtables + num_tiers,
-                "did you use concat iterators?"
+                "we found {num_iters} iterators in your implementation, (num_memtables={num_memtables}, num_tiers={num_tiers}) did you use concat iterators?"
             );
         }
     }
