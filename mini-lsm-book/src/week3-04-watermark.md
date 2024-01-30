@@ -70,6 +70,11 @@ d@3=del (can be removed if compacting to bottom-most level)
 
 Assume these are all keys in the engine. If we do a scan at ts=3, we will get `a=3,b=1,c=4` before/after compaction. If we do a scan at ts=4, we will get `b=1,c=4` before/after compaction. Compaction *will not* and *should not* affect transactions with read timestamp >= watermark.
 
+## Test Your Understanding
+
+* In our implementation, we manage watermarks by ourselves with the lifecycle of `Transaction` (so-called un-managed mode). If the user intends to manage key timestamps and the watermarks by themselves (i.e., when they have their own timestamp generator), what do you need to do in the write_batch/get/scan API to validate their requests? Is there any architectural assumption we had that might be hard to maintain in this case?
+* Why do we need to store an `Arc` of `Transaction` inside a transaction iterator?
+
 ## Bonus Tasks
 
 * **O(1) Watermark.** You may implement an amortized O(1) watermark structure by using a hash map or a cyclic queue.

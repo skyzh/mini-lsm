@@ -44,5 +44,10 @@ Your commit implementation should simply collect all key-value pairs from the lo
 ## Test Your Understanding
 
 * With all the things we have implemented up to this point, does the system satisfy snapshot isolation? If not, what else do we need to do to support snapshot isolation? (Note: snapshot isolation is different from serializable snapshot isolation we will talk about in the next chapter)
+* What if the user wants to batch import data (i.e., 1TB?) If they use the transaction API to do that, will you give them some advice? Is there any opportunity to optimize for this case?
+
+## Bonus Tasks
+
+* **Spill to Disk.** If the private workspace of a transaction gets too large, you may flush some of the data to the disk.
 
 {{#include copyright.md}}
