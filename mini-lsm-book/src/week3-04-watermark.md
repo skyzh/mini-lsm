@@ -74,6 +74,8 @@ Assume these are all keys in the engine. If we do a scan at ts=3, we will get `a
 
 * In our implementation, we manage watermarks by ourselves with the lifecycle of `Transaction` (so-called un-managed mode). If the user intends to manage key timestamps and the watermarks by themselves (i.e., when they have their own timestamp generator), what do you need to do in the write_batch/get/scan API to validate their requests? Is there any architectural assumption we had that might be hard to maintain in this case?
 * Why do we need to store an `Arc` of `Transaction` inside a transaction iterator?
+* What is the condition to fully remove a key from the SST file?
+* For now, we only remove a key when compacting to the bottom-most level. Is there any other prior time that we can remove the key? (Hint: you know the start/end key of each SST in all levels.)
 
 ## Bonus Tasks
 
