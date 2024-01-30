@@ -255,7 +255,6 @@ impl Repl {
                 continue;
             }
             let command = Command::parse(&readline)?;
-            println!("{:?}", command);
             self.handler.handle(&command)?;
             self.editor.add_history_entry(readline)?;
         }
