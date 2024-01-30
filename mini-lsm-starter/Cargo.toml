@@ -19,6 +19,8 @@ crossbeam-channel = "0.5.11"
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
 farmhash = "1"
+nom = "7.1.3"
+rustyline = "13.0.0"
 
 [dev-dependencies]
 tempfile = "3"
