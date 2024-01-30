@@ -34,6 +34,12 @@ You will need to add the `read_ts` to the watermark when a transaction starts, a
 
 ## Task 3: Garbage Collection in Compaction
 
+In this task, you will need to modify:
+
+```
+src/compact.rs
+```
+
 Now that we have a watermark for the system, we can clean up unused versions during the compaction process.
 
 * If a version of a key is above watermark, keep it.

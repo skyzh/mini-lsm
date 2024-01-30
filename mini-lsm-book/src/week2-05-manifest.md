@@ -46,6 +46,8 @@ For now, we only use two types of the manifest records: SST flush and compaction
 
 To sync the directory, you may implement the `sync_dir` function, where you can use `File::open(dir).sync_all()?` to sync it. On Linux, directory is a file that contains the list of files in the directory. By doing fsync on the directory, you will ensure that the newly-written (or removed) files can be visible to the user if the power goes off.
 
+Remember to write a compaction manifest record for both the background compaction trigger (leveled/simple/universal) and when the user requests to do a force compaction.
+
 ## Task 3: Flush on Close
 
 In this task, you will need to modify:

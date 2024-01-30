@@ -1,8 +1,10 @@
-# Snapshot Isolation and Serializable Snapshot Isolation
+# Serializable Snapshot Isolation
 
-## Task 1: Snapshot Isolation: Detect Write-Write Conflict
+Now, we are going to add a conflict detection algorithm at the transaction commit time, so as to make the engine serializable.
 
-## Task 2: Serializable: Record Read Set and Write Set
+## Task 1: Track Read Set in Get and Write Set
+
+## Task 2: Track Read Set in Scan
 
 ## Task 3: Serializable Verification
 
@@ -14,6 +16,7 @@ We do not provide reference answers to the questions, and feel free to discuss a
 
 ## Bonus Tasks
 
-* **Read-Only Transactions.**
+* **Read-Only Transactions.** With serializable enabled, we will need to keep track of the read set for a transaction.
+* **Precision/Predicate Locking.** The read set can be maintained using a range instead of a single key. This would be useful when a user scans the full key space.
 
 {{#include copyright.md}}
