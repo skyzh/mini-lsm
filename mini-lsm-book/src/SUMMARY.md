@@ -27,8 +27,8 @@
   - [Snapshots - Memtables and Timestamps](./week3-02-snapshot-read-part-1.md)
   - [Snapshots - Transaction API](./week3-03-snapshot-read-part-2.md)
   - [Watermark and GC](./week3-04-watermark.md)
-  - [Transaction and OCC (WIP)](./week3-05-txn-occ.md)
-  - [Serializable Snapshot Isolation (WIP)](./week3-06-serializable.md)
+  - [Transaction and OCC](./week3-05-txn-occ.md)
+  - [Serializable Snapshot Isolation](./week3-06-serializable.md)
   - [Snack Time: Compaction Filter (WIP)](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 

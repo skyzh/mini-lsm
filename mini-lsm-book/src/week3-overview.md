@@ -2,6 +2,8 @@
 
 In this part, you will implement MVCC over the LSM engine that you have built in the previous two weeks. We will add timestamp encoding in the keys to maintain multiple versions of a key, and change some part of the engine to ensure old data are either retained or garbage-collected based on whether there are users reading an old version.
 
+The general approach of the MVCC part in this tutorial is inspired and partially based on [BadgerDB](https://github.com/dgraph-io/badger).
+
 The key of MVCC is to store and access multiple versions of a key in the storage engine. Therefore, we will need to change the key format to `user_key + timestamp (u64)`. And on the user interface side, we will need to have new APIs to help users to gain access to a history version. In summary, we will add a monotonically-increasing timestamp to the key.
 
 In previous parts, we assumed that newer keys are in the upper level of the LSM tree, and older keys are in the lower level of the LSM tree. During compaction, we only keep the latest version of a key if multiple versions are found in multiple levels, and the compaction process will ensure that newer keys will be kept on the upper level by only merging adjacent levels/tiers. In the MVCC implementation, the key with a larger timestamp is the newest key. During compaction, we can only remove the key if no user is accessing an older version of the database. Though not keeping the latest version of key in the upper level may still yield a correct result for the MVCC LSM implementation, in our tutorial, we choose to keep the invariant, and if there are multiple versions of a key, a later version will always appear in a upper level.
@@ -16,7 +18,7 @@ put/delete/write_batch(key, timestamp)
 set_watermark(timestamp) # we will talk about watermarks soon!
 ```
 
-**Un-managed Mode APIs**
+**Un-managed/Normal Mode APIs**
 ```
 get(key) -> value
 scan(key_range) -> iterator<key, value>
