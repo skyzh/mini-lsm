@@ -295,6 +295,11 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
         };
         level_size.push(size);
     }
+    let extra_iterators = if TS_ENABLED {
+        1 /* txn local iterator for OCC */
+    } else {
+        0
+    };
     let num_iters = storage
         .scan(Bound::Unbounded, Bound::Unbounded)
         .unwrap()
@@ -326,7 +331,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
                 );
             }
             assert!(
-                num_iters <= l0_sst_num + num_memtables + max_levels,
+                num_iters <= l0_sst_num + num_memtables + max_levels + extra_iterators,
                 "we found {num_iters} iterators in your implementation, (l0_sst_num={l0_sst_num}, num_memtables={num_memtables}, max_levels={max_levels}) did you use concat iterators?"
             );
         }
@@ -354,7 +359,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
                 );
             }
             assert!(
-                num_iters <= l0_sst_num + num_memtables + max_levels,
+                num_iters <= l0_sst_num + num_memtables + max_levels + extra_iterators,
                 "we found {num_iters} iterators in your implementation, (l0_sst_num={l0_sst_num}, num_memtables={num_memtables}, max_levels={max_levels}) did you use concat iterators?"
             );
         }
@@ -396,7 +401,7 @@ pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {
                 sum_size += this_size;
             }
             assert!(
-                num_iters <= num_memtables + num_tiers,
+                num_iters <= num_memtables + num_tiers + extra_iterators,
                 "we found {num_iters} iterators in your implementation, (num_memtables={num_memtables}, num_tiers={num_tiers}) did you use concat iterators?"
             );
         }
