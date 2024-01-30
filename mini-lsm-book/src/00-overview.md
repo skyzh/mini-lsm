@@ -1,5 +1,17 @@
 # Mini-LSM Course Overview
 
+## Tutorial Structure
+
+![Tutorial Overview](lsm-tutorial/00-full-overview.svg)
+
+We have 3 parts (weeks) for this tutorial. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will dive into compactions in depth and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
+
+* [The First Week: Mini-LSM](./week1-overview.md)
+* [The Second Week: Compaction and Persistence](./week2-overview.md)
+* [The Third Week: Multi-Version Concurrency Control](./week3-overview.md)
+
+To set up the environment, please take a look at [Environment Setup](./00-get-started.md).
+
 ## Overview of LSM
 
 An LSM storage engine generally contains 3 parts:
@@ -48,17 +60,5 @@ When we want to read a key,
 2. If the key is not found, we will then search the entire LSM tree containing SSTs to find the data.
 
 There are two types of read: lookup and scan. Lookup finds one key in the LSM tree, while scan iterates all keys within a range in the storage engine. We will cover both of them throughout the tutorial.
-
-## Tutorial Structure
-
-![Tutorial Overview](lsm-tutorial/00-full-overview.svg)
-
-We have 3 parts (weeks) for this tutorial. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will dive into compactions in depth and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
-
-* [The First Week: Mini-LSM](./week1-overview.md)
-* [The Second Week: Compaction and Persistence](./week2-overview.md)
-* [The Third Week: Multi-Version Concurrency Control](./week3-overview.md)
-
-To set up the environment, please take a look at [Environment Setup](./00-get-started.md).
 
 {{#include copyright.md}}

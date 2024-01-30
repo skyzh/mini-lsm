@@ -1,6 +1,6 @@
 # Preface
 
-![Tutorial Overview](lsm-tutorial/00-full-overview.svg)
+![Banner](./mini-lsm-logo.png)
 
 In this tutorial, you will learn how to build a simple LSM-Tree storage engine in the Rust programming language.
 

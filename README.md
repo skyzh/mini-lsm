@@ -1,3 +1,5 @@
+![banner](./mini-lsm-book/src/mini-lsm-logo.png)
+
 # LSM in a Week
 
 [![CI (main)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml/badge.svg)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml)
