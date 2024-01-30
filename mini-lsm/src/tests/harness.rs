@@ -11,10 +11,10 @@ use crate::{
         CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
         TieredCompactionOptions,
     },
-    iterators::StorageIterator,
+    iterators::{merge_iterator::MergeIterator, StorageIterator},
     key::{KeySlice, TS_ENABLED},
-    lsm_storage::{BlockCache, LsmStorageInner, MiniLsm},
-    table::{SsTable, SsTableBuilder},
+    lsm_storage::{BlockCache, LsmStorageInner, LsmStorageState, MiniLsm},
+    table::{SsTable, SsTableBuilder, SsTableIterator},
 };
 
 #[derive(Clone)]
@@ -410,4 +410,25 @@ pub fn dump_files_in_dir(path: impl AsRef<Path>) {
             f.metadata().unwrap().size() as f64 / 1024.0
         );
     }
+}
+
+pub fn construct_merge_iterator_over_storage(
+    state: &LsmStorageState,
+) -> MergeIterator<SsTableIterator> {
+    let mut iters = Vec::new();
+    for t in &state.l0_sstables {
+        iters.push(Box::new(
+            SsTableIterator::create_and_seek_to_first(state.sstables.get(t).cloned().unwrap())
+                .unwrap(),
+        ));
+    }
+    for (_, files) in &state.levels {
+        for f in files {
+            iters.push(Box::new(
+                SsTableIterator::create_and_seek_to_first(state.sstables.get(f).cloned().unwrap())
+                    .unwrap(),
+            ));
+        }
+    }
+    MergeIterator::create(iters)
 }

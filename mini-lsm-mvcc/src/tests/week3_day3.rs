@@ -247,6 +247,18 @@ fn test_task2_lsm_iterator_mvcc() {
             (Bytes::from("c"), Bytes::from("5")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot6
+            .scan(Bound::Included(b"a"), Bound::Included(b"a"))
+            .unwrap(),
+        vec![(Bytes::from("a"), Bytes::from("4"))],
+    );
+    check_lsm_iter_result_by_key(
+        &mut snapshot6
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![],
+    );
 }
 
 #[test]

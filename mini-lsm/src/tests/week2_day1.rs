@@ -3,6 +3,7 @@ use std::{ops::Bound, path::Path, sync::Arc};
 use self::harness::{check_iter_result_by_key, check_lsm_iter_result_by_key, sync};
 use bytes::Bytes;
 use tempfile::tempdir;
+use week2_day1::harness::construct_merge_iterator_over_storage;
 
 use super::*;
 use crate::{
@@ -13,27 +14,6 @@ use crate::{
     lsm_storage::{LsmStorageInner, LsmStorageOptions, LsmStorageState},
     table::{SsTable, SsTableBuilder, SsTableIterator},
 };
-
-fn construct_merge_iterator_over_storage(
-    state: &LsmStorageState,
-) -> MergeIterator<SsTableIterator> {
-    let mut iters = Vec::new();
-    for t in &state.l0_sstables {
-        iters.push(Box::new(
-            SsTableIterator::create_and_seek_to_first(state.sstables.get(t).cloned().unwrap())
-                .unwrap(),
-        ));
-    }
-    for (_, files) in &state.levels {
-        for f in files {
-            iters.push(Box::new(
-                SsTableIterator::create_and_seek_to_first(state.sstables.get(f).cloned().unwrap())
-                    .unwrap(),
-            ));
-        }
-    }
-    MergeIterator::create(iters)
-}
 
 #[test]
 fn test_task1_full_compaction() {
