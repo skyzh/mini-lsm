@@ -28,7 +28,7 @@ You should modify code in `mini-lsm-starter` directory.
 
 ```
 cargo x install-tools
-cargo copy-test --week 1 --day 1
+cargo x copy-test --week 1 --day 1
 cargo x scheck
 cargo run --bin mini-lsm-cli
 cargo run --bin compaction-simulator
