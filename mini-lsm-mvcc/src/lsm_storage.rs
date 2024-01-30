@@ -243,15 +243,11 @@ impl MiniLsm {
         }))
     }
 
-    pub fn new_txn(&self) -> Result<Arc<Transaction>> {
-        self.inner.new_txn()
-    }
-
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         self.inner.get(key)
     }
 
-    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
+    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
         self.inner.write_batch(batch)
     }
 
@@ -265,6 +261,10 @@ impl MiniLsm {
 
     pub fn sync(&self) -> Result<()> {
         self.inner.sync()
+    }
+
+    pub fn new_txn(&self) -> Result<Arc<Transaction>> {
+        self.inner.new_txn()
     }
 
     pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<TxnIterator> {
@@ -302,8 +302,6 @@ impl LsmStorageInner {
         self.manifest.as_ref().unwrap()
     }
 
-    /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
-    /// not exist.
     /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
     /// not exist.
     pub(crate) fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Self> {
@@ -443,9 +441,6 @@ impl LsmStorageInner {
         self.state.read().memtable.sync_wal()
     }
 
-    pub fn new_txn(self: &Arc<Self>) -> Result<Arc<Transaction>> {
-        Ok(self.mvcc().new_txn(self.clone(), self.options.serializable))
-    }
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(self: &Arc<Self>, key: &[u8]) -> Result<Option<Bytes>> {
         let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
@@ -531,7 +526,7 @@ impl LsmStorageInner {
         Ok(None)
     }
 
-    pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
+    pub fn write_batch_inner<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
         let _lck = self.mvcc().write_lock.lock();
         let ts = self.mvcc().latest_commit_ts() + 1;
         for record in batch {
@@ -566,10 +561,33 @@ impl LsmStorageInner {
         Ok(ts)
     }
 
+    pub fn write_batch<T: AsRef<[u8]>>(
+        self: &Arc<Self>,
+        batch: &[WriteBatchRecord<T>],
+    ) -> Result<()> {
+        if !self.options.serializable {
+            self.write_batch_inner(batch)?;
+        } else {
+            let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
+            for record in batch {
+                match record {
+                    WriteBatchRecord::Del(key) => {
+                        txn.delete(key.as_ref());
+                    }
+                    WriteBatchRecord::Put(key, value) => {
+                        txn.put(key.as_ref(), value.as_ref());
+                    }
+                }
+            }
+            txn.commit()?;
+        }
+        Ok(())
+    }
+
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(self: &Arc<Self>, key: &[u8], value: &[u8]) -> Result<()> {
         if !self.options.serializable {
-            self.write_batch(&[WriteBatchRecord::Put(key, value)])?;
+            self.write_batch_inner(&[WriteBatchRecord::Put(key, value)])?;
         } else {
             let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
             txn.put(key, value);
@@ -581,7 +599,7 @@ impl LsmStorageInner {
     /// Remove a key from the storage by writing an empty value.
     pub fn delete(self: &Arc<Self>, key: &[u8]) -> Result<()> {
         if !self.options.serializable {
-            self.write_batch(&[WriteBatchRecord::Del(key)])?;
+            self.write_batch_inner(&[WriteBatchRecord::Del(key)])?;
         } else {
             let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
             txn.delete(key);
@@ -718,6 +736,10 @@ impl LsmStorageInner {
         self.sync_dir()?;
 
         Ok(())
+    }
+
+    pub fn new_txn(self: &Arc<Self>) -> Result<Arc<Transaction>> {
+        Ok(self.mvcc().new_txn(self.clone(), self.options.serializable))
     }
 
     /// Create an iterator over a range of keys.

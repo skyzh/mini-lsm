@@ -46,11 +46,30 @@ fn test_txn_integration() {
         ],
     );
     let txn4 = storage.new_txn().unwrap();
+    assert_eq!(txn4.get(b"test1").unwrap(), Some(Bytes::from("233")));
+    assert_eq!(txn4.get(b"test2").unwrap(), Some(Bytes::from("233")));
     check_lsm_iter_result_by_key(
         &mut txn4.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
         vec![
             (Bytes::from("test1"), Bytes::from("233")),
             (Bytes::from("test2"), Bytes::from("233")),
         ],
+    );
+    txn4.put(b"test2", b"2333");
+    assert_eq!(txn4.get(b"test1").unwrap(), Some(Bytes::from("233")));
+    assert_eq!(txn4.get(b"test2").unwrap(), Some(Bytes::from("2333")));
+    check_lsm_iter_result_by_key(
+        &mut txn4.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
+        vec![
+            (Bytes::from("test1"), Bytes::from("233")),
+            (Bytes::from("test2"), Bytes::from("2333")),
+        ],
+    );
+    txn4.delete(b"test2");
+    assert_eq!(txn4.get(b"test1").unwrap(), Some(Bytes::from("233")));
+    assert_eq!(txn4.get(b"test2").unwrap(), None);
+    check_lsm_iter_result_by_key(
+        &mut txn4.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
+        vec![(Bytes::from("test1"), Bytes::from("233"))],
     );
 }
