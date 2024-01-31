@@ -39,7 +39,6 @@ In this task, you will need to modify:
 
 ```
 src/lsm_storage.rs
-src/mem_table.rs
 ```
 
 Now, we will add our first data structure, the memtable, to the LSM state. In `LsmStorageState::create`, you will find that when a LSM structure is created, we will initialize a memtable of id 0. This is the **mutable memtable** in the initial state. At any point of the time, the engine will have only one single mutable memtable. A memtable usually has a size limit (i.e., 256MB), and it will be frozen to an immutable memtable when it reaches the size limit.
