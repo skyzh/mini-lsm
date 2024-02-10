@@ -229,7 +229,11 @@ fn test_task2_merge_error() {
         ],
         1,
     );
-    let iter = MergeIterator::<MockIterator>::create(vec![Box::new(i1), Box::new(i2)]);
+    let iter = MergeIterator::<MockIterator>::create(vec![
+        Box::new(i1.clone()),
+        Box::new(i1),
+        Box::new(i2),
+    ]);
     // your implementation should correctly throw an error instead of panic
     expect_iter_error(iter);
 }
