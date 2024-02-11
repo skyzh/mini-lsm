@@ -119,8 +119,7 @@ impl MemTable {
             item: (Bytes::new(), Bytes::new()),
         }
         .build();
-        let entry = iter.with_iter_mut(|iter| MemTableIterator::entry_to_item(iter.next()));
-        iter.with_mut(|x| *x.item = entry);
+        iter.next().unwrap();
         iter
     }
 
