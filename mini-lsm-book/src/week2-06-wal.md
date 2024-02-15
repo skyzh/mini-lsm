@@ -7,6 +7,13 @@ In this chapter, you will:
 * Implement encoding and decoding of the write-ahead log file.
 * Recover memtables from the WALs when the system restarts.
 
+To copy the test cases into the starter code and run them,
+
+```
+cargo x copy-test --week 2 --day 6
+cargo x scheck
+```
+
 ## Task 1: WAL Encoding
 
 In this task, you will need to modify:
