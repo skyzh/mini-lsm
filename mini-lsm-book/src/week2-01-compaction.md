@@ -15,6 +15,12 @@ cargo x copy-test --week 2 --day 1
 cargo x scheck
 ```
 
+<div class="warning">
+
+It might be helpful to take a look at [week 2 overview](./week2-overview.md) before reading this chapter to have a general overview of compactions.
+
+</div>
+
 ## Task 1: Compaction Implementation
 
 In this task, you will implement the core logic of doing a compaction -- merge sort a set of SST files into a sorted run. You will need to modify:

@@ -16,6 +16,12 @@ cargo x copy-test --week 2 --day 3
 cargo x scheck
 ```
 
+<div class="warning">
+
+It might be helpful to take a look at [week 2 overview](./week2-overview.md) before reading this chapter to have a general overview of compactions.
+
+</div>
+
 ## Task 1: Universal Compaction
 
 In this chapter, you will implement RocksDB's universal compaction, which is of the tiered compaction family compaction strategies. Similar to the simple leveled compaction strategy, we only use number of files as the indicator in this compaction strategy. And when we trigger the compaction jobs, we always include a full sorted run (tier) in the compaction job.
@@ -28,7 +34,7 @@ In this task, you will need to modify:
 src/compact/tiered.rs
 ```
 
-In universal compaction, we do not use L0 SSTs in the LSM state. Instead, we directly flush new SSTs to a single sorted run (called tier). In the LSM state, `levels` will now include all tiers, where the lowest index is the latest SST flushed. The compaction simulator generates tier id based on the first SST id, and you should do the same in your implementation.
+In universal compaction, we do not use L0 SSTs in the LSM state. Instead, we directly flush new SSTs to a single sorted run (called tier). In the LSM state, `levels` will now include all tiers, where **the lowest index is the latest SST flushed**. Each element in the `levels` vector stores a tuple: level ID (used as tier ID) and the SSTs in that level. Every time you flush L0 SSTs, you should flush the SST into a tier placed at the front of the vector. The compaction simulator generates tier id based on the first SST id, and you should do the same in your implementation.
 
 Universal compaction will only trigger tasks when the number of tiers (sorted runs) is larger than `num_tiers`. Otherwise, it does not trigger any compaction.
 

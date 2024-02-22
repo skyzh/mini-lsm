@@ -14,6 +14,12 @@ cargo x copy-test --week 2 --day 2
 cargo x scheck
 ```
 
+<div class="warning">
+
+It might be helpful to take a look at [week 2 overview](./week2-overview.md) before reading this chapter to have a general overview of compactions.
+
+</div>
+
 ## Task 1: Simple Leveled Compaction
 
 In this chapter, we are going to implement our first compaction strategy -- simple leveled compaction. In this task, you will need to modify:
