@@ -77,7 +77,7 @@ In this task, you will need to modify:
 src/block/iterator.rs
 ```
 
-Now that we have an encoded block, we will need to implement the `StorageIterator` interface, so that the user can lookup/scan keys in the block.
+Now that we have an encoded block, we will need to implement the `BlockIterator` interface, so that the user can lookup/scan keys in the block.
 
 `BlockIterator` can be created with an `Arc<Block>`. If `create_and_seek_to_first` is called, it will be positioned at the first key in the block. If `create_and_seek_to_key` is called, the iterator will be positioned at the first key that is `>=` the provided key. For example, if `1, 3, 5` is in a block.
 
