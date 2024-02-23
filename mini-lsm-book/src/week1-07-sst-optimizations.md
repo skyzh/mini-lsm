@@ -23,9 +23,11 @@ Bloom filters are probabilistic data structures that maintains a set of keys. Yo
 
 You usually need to have a hash function in order to construct a bloom filter, and a key can have multiple hashes. Let us take a look at the below example. Assume that we already have hashes of some keys and the bloom filter has 7 bits.
 
+[Note: If you want to understand bloom filters better, look [here](https://samwho.dev/bloom-filters/)]
+
 ```plaintext 
 hash1 = ((character - a) * 13) % 7
-hash1 = ((character - a) * 11) % 7
+hash2 = ((character - a) * 11) % 7
 b -> 6 4
 c -> 5 1
 d -> 4 5
@@ -34,7 +36,7 @@ g -> 1 3
 h -> 0 0
 ```
 
-If we insert b, c, d into the 6-bit bloom filter, we will get:
+If we insert b, c, d into the 7-bit bloom filter, we will get:
 
 ```
     bit  0123456
