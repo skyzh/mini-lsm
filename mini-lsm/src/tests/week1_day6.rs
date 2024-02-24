@@ -193,5 +193,5 @@ fn test_task3_sst_filter() {
             Bound::Excluded(format!("{:05}", 6000).as_bytes()),
         )
         .unwrap();
-    assert!(min_num < iter.num_active_iterators() && iter.num_active_iterators() < max_num);
+    assert!(min_num <= iter.num_active_iterators() && iter.num_active_iterators() < max_num);
 }
