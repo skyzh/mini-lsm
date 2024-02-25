@@ -89,4 +89,47 @@ impl<
     fn num_active_iterators(&self) -> usize {
         self.a.num_active_iterators() + self.b.num_active_iterators()
     }
+
+    fn print(&self) {
+        let x_separator = "x".repeat(10);
+        let dash_separator = "-".repeat(10);
+        println!(
+            "{} {} {}",
+            x_separator,
+            format!("{:^25}", "TWO_MERGE_ITERATOR"),
+            x_separator
+        );
+        println!(
+            "{} {} {}",
+            dash_separator,
+            format!("{:^25}", "ITERATOR A"),
+            dash_separator
+        );
+        self.a.print();
+        println!(
+            "{} {} {}\n",
+            dash_separator,
+            format!("{:^25}", "END ITERATOR A"),
+            dash_separator
+        );
+        println!(
+            "{} {} {}",
+            dash_separator,
+            format!("{:^25}", "ITERATOR B"),
+            dash_separator
+        );
+        self.b.print();
+        println!(
+            "{} {} {}",
+            dash_separator,
+            format!("{:^25}", "END ITERATOR B"),
+            dash_separator
+        );
+        println!(
+            "{} {} {}\n",
+            x_separator,
+            format!("{:^25}", "END TWO_MERGE_ITERATOR"),
+            x_separator
+        );
+    }
 }

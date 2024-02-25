@@ -40,4 +40,56 @@ impl Block {
         let data = data[0..data_end].to_vec();
         Self { data, offsets }
     }
+
+    pub fn print(&self) {
+        let sep = "=".repeat(10);
+        println!("{} {} {}", sep, format!("{:^10}", "Block"), sep);
+
+        let mut first_key: &[u8] = &[];
+        for (i, &offset) in self.offsets.iter().enumerate() {
+            let entry_start = offset as usize;
+            // Determine next offset or end of data for entry boundary
+            let entry_end = if i + 1 < self.offsets.len() {
+                self.offsets[i + 1] as usize
+            } else {
+                self.data.len()
+            };
+
+            // Extracting the entry data
+            let entry_data = &self.data[entry_start..entry_end];
+
+            // Decode the overlap
+            let key_overlap = u16::from_be_bytes([entry_data[0], entry_data[1]]) as usize;
+
+            // Decode the rest of the key length
+            let rest_of_key_len = u16::from_be_bytes([entry_data[2], entry_data[3]]) as usize;
+
+            // Decode the rest of the key
+            let rest_of_key = &entry_data[4..4 + rest_of_key_len];
+
+            if first_key.len() == 0 {
+                first_key = rest_of_key;
+            }
+            let full_key = &mut first_key[..key_overlap].to_vec();
+            full_key.extend_from_slice(rest_of_key);
+
+            // Decode the value length
+            let value_length_pos = 4 + rest_of_key_len;
+            let value_length = u16::from_be_bytes([
+                entry_data[value_length_pos],
+                entry_data[value_length_pos + 1],
+            ]) as usize;
+
+            // Decode the value
+            let value = &entry_data[value_length_pos + 2..value_length_pos + 2 + value_length];
+
+            // Print key and value
+            println!("{:<10}: {}", "Index", i);
+            println!("{:<10}: {}", "Key", String::from_utf8_lossy(full_key));
+            println!("{:<10}: {}", "Value", String::from_utf8_lossy(value));
+            println!("{}", "-".repeat(20));
+        }
+        println!("Offsets: {:?}", self.offsets);
+        println!("{} {} {}", sep, format!("{:^10}", "End Block"), sep);
+    }
 }

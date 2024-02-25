@@ -23,4 +23,9 @@ pub trait StorageIterator {
     fn num_active_iterators(&self) -> usize {
         1
     }
+
+    /// Print the current state of the iterator to the console
+    fn print(&self) {
+        println!("Print functionality not implemented for this iterator");
+    }
 }

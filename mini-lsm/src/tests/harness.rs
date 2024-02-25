@@ -83,6 +83,40 @@ impl StorageIterator for MockIterator {
         }
         self.index < self.data.len()
     }
+
+    /// Prints the current state of the iterator, including the current key-value pair and the position.
+    fn print(&self) {
+        let separator = "-".repeat(10);
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "MOCK_ITERATOR"),
+            separator
+        );
+        if self.is_valid() {
+            let (key, value) = &self.data[self.index];
+            let key_str = String::from_utf8_lossy(key);
+            let value_str = String::from_utf8_lossy(value);
+            println!(
+                "Index: {}, Key: {}, Value: {}",
+                self.index, key_str, value_str
+            );
+        } else {
+            println!("Index: {}, Iterator is not valid.", self.index);
+        }
+
+        if let Some(error_when) = self.error_when {
+            if self.index == error_when {
+                println!("An error is scheduled to occur at this index.");
+            }
+        }
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "MOCK_ITERATOR_END"),
+            separator
+        );
+    }
 }
 
 pub fn as_bytes(x: &[u8]) -> Bytes {
@@ -165,6 +199,7 @@ where
             v,
             as_bytes(iter.value()),
         );
+        iter.print();
         iter.next().unwrap();
     }
     assert!(!iter.is_valid());
