@@ -49,21 +49,25 @@ You will need to compute the target sizes of the levels. Assume `base_level_size
 [0 0 0 0 0 200MB]
 ```
 
-When the levels grow in size as more SSTs get compacted to that level, we will compute the target size based on the size of the last level. When the actual size of SST files in the last level reaches 200MB, for example, 300MB, we will compute the target size of the other levels by dividing the `level_size_multiplier`. Assume `level_size_multiplier=10`.
+Before the bottom level exceeds `base_level_size_mb`, all other intermediate levels will have target sizes of 0. The idea is that when the total amount of data is small, it's wasteful to create intermediate levels.
+
+When the bottom level reaches or exceeds `base_level_size_mb`, we will compute the target size of the other levels by dividing the `level_size_multiplier` from the size. Assume the bottom level contains 300MB of data, and `level_size_multiplier=10`.
 
 ```
 0 0 0 0 30MB 300MB
 ```
 
-We will only keep at most *one* level below `base_level_size_mb`, and in this case, it is L5. Assume we now have 30GB files in the last level, the target sizes will be,
+In addition, at most *one* level can have a positive target size below `base_level_size_mb`. Assume we now have 30GB files in the last level, the target sizes will be,
 
 ```
 0 0 30MB 300MB 3GB 30GB
 ```
 
+Notice in this case L1 and L2 have target size of 0, and L3 is the only level with a postive target size below `base_level_size_mb`.
+
 ### Task 1.2: Decide Base Level
 
-Now, let us solve the problem that SSTs may be compacted across empty levels in the simple leveled compaction strategy. When we compact L0 SSTs with lower levels, we do not directly put it to L1. Instead, we compact it with the first level with `target size > 0``. For example, when the target level sizes are:
+Now, let us solve the problem that SSTs may be compacted across empty levels in the simple leveled compaction strategy. When we compact L0 SSTs with lower levels, we do not directly put it to L1. Instead, we compact it with the first level with `target size > 0`. For example, when the target level sizes are:
 
 ```
 0 0 0 0 30MB 300MB
@@ -95,7 +99,7 @@ The number of levels in the compaction simulator is 4. Therefore, the SSTs shoul
 
 ### Task 1.3: Decide Level Priorities
 
-Now that we will need to handle compactions below L0. L0 compaction always has the top priority, that you should compact L0 with other levels first if it reaches the threshold. After that, we can compute the compaction priorities of each level by `current_size / target_size`. We only compact levels with this ratio `> 1.0` The one with the largest ratio will be chosen for compaction with the lower level. For example, if we have:
+Now that we will need to handle compactions below L0. L0 compaction always has the top priority, thus you should compact L0 with other levels first if it reaches the threshold. After that, we can compute the compaction priorities of each level by `current_size / target_size`. We only compact levels with this ratio `> 1.0` The one with the largest ratio will be chosen for compaction with the lower level. For example, if we have:
 
 ```
 L3: 200MB, target_size=20MB
