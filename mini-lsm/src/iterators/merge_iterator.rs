@@ -172,7 +172,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
 
         // Print the state of iterators in the heap
         println!();
-        println!("Iterators in Heap:");
+        println!("Iterators in Heap: {}", self.iters.len());
         for heap_wrapper in self.iters.iter() {
             let valid_status = if heap_wrapper.1.is_valid() {
                 "Valid"
