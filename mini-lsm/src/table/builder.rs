@@ -37,24 +37,18 @@ impl SsTableBuilder {
 
     /// Adds a key-value pair to SSTable
     pub fn add(&mut self, key: KeySlice, value: &[u8]) {
-        if self.first_key.is_empty() {
-            self.first_key.set_from_slice(key);
-        }
-
-        self.key_hashes.push(farmhash::fingerprint32(key.raw_ref()));
-
         if self.builder.add(key, value) {
+            if self.first_key.is_empty() {
+                self.first_key.set_from_slice(key);
+            }
             self.last_key.set_from_slice(key);
+            self.key_hashes.push(farmhash::fingerprint32(key.raw_ref()));
             return;
         }
 
         // create a new block builder and append block data
         self.finish_block();
-
-        // add the key-value pair to the next block
-        assert!(self.builder.add(key, value));
-        self.first_key.set_from_slice(key);
-        self.last_key.set_from_slice(key);
+        self.add(key, value)
     }
 
     /// Get the estimated size of the SSTable.
