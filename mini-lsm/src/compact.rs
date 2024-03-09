@@ -203,7 +203,7 @@ impl LsmStorageInner {
                         upper_ssts.push(snapshot.sstables.get(id).unwrap().clone());
                     }
                     let upper_iter = SstConcatIterator::create_and_seek_to_first(upper_ssts)?;
-                    let mut lower_ssts = Vec::with_capacity(upper_level_sst_ids.len());
+                    let mut lower_ssts = Vec::with_capacity(lower_level_sst_ids.len());
                     for id in lower_level_sst_ids.iter() {
                         lower_ssts.push(snapshot.sstables.get(id).unwrap().clone());
                     }
@@ -221,7 +221,7 @@ impl LsmStorageInner {
                         )?));
                     }
                     let upper_iter = MergeIterator::create(upper_iters);
-                    let mut lower_ssts = Vec::with_capacity(upper_level_sst_ids.len());
+                    let mut lower_ssts = Vec::with_capacity(lower_level_sst_ids.len());
                     for id in lower_level_sst_ids.iter() {
                         lower_ssts.push(snapshot.sstables.get(id).unwrap().clone());
                     }
