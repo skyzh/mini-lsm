@@ -82,7 +82,7 @@ The current trigger only reduces space amplification. We will need to add new tr
 
 ### Task 1.2: Triggered by Size Ratio
 
-The next trigger is the size ratio trigger. For all tiers, if there is a tier `n` that `size of all previous tiers / this tier >= (1 + size_ratio) * 100%`, we will compact all `n` tiers. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+The next trigger is the size ratio trigger. For all tiers, if there is a tier `n` that `size of all previous tiers / this tier >= (100 + size_ratio) * 100%`, we will compact all `n` tiers. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
 
 With this trigger, you will observe the following in the compaction simulator:
 
