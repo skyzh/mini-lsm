@@ -74,7 +74,7 @@ There are some things that you might need to think about.
 In this task, you will need to modify,
 
 ```
-src/iterators/concat.rs
+src/iterators/concat_iterator.rs
 ```
 
 Now that you have created sorted runs in your system, it is possible to do a simple optimization over the read path. You do not always need to create merge iterators for your SSTs. If SSTs belong to one sorted run, you can create a concat iterator that simply iterates the keys in each SST in order, because SSTs in one sorted run do not contain overlapping key ranges and they are sorted by their first key. We do not want to create all SST iterators in advance (because it will lead to one block read), and therefore we only store SST objects in this iterator.
