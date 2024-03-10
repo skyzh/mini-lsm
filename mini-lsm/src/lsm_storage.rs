@@ -503,7 +503,7 @@ impl LsmStorageInner {
         let l0_iter = MergeIterator::create(l0_iters);
         let mut level_iters = Vec::with_capacity(snapshot.levels.len());
         for (_, level_sst_ids) in &snapshot.levels {
-            let mut level_ssts = Vec::with_capacity(snapshot.levels[0].1.len());
+            let mut level_ssts = Vec::with_capacity(level_sst_ids.len());
             for table in level_sst_ids {
                 let table = snapshot.sstables[table].clone();
                 if keep_table(key, &table) {
