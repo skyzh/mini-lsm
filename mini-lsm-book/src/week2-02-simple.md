@@ -30,11 +30,11 @@ src/compact/simple_leveled.rs
 
 Simple leveled compaction is similar the original LSM paper's compaction strategy. It maintains a number of levels for the LSM tree. When a level (>= L1) is too large, it will merge all of this level's SSTs with next level. The compaction strategy is controlled by 3 parameters as defined in `SimpleLeveledCompactionOptions`.
 
-* `size_ratio_percent`: lower level number of files / upper level number of files. In reality, we should compute the actual size of the files. However, we simplified the equation to use number of files to make it easier to do the simulation. When the ratio is too high (upper level has too many files), we should trigger a compaction.
+* `size_ratio_percent`: lower level number of files / upper level number of files. In reality, we should compute the actual size of the files. However, we simplified the equation to use number of files to make it easier to do the simulation. When the ratio is too low (upper level has too many files), we should trigger a compaction.
 * `level0_file_num_compaction_trigger`: when the number of SSTs in L0 is larger than or equal to this number, trigger a compaction of L0 and L1.
 * `max_levels`: the number of levels (excluding L0) in the LSM tree.
 
-Assume size_ratio_percent=200, max_levels=3, level0_file_num_compaction_trigger=2, let us take a look at the below example.
+Assume size_ratio_percent=200 (Lower level should have 2x number of files as the upper level), max_levels=3, level0_file_num_compaction_trigger=2, let us take a look at the below example.
 
 Assume the engine flushes two L0 SSTs. This reaches the `level0_file_num_compaction_trigger`, and your controller should trigger an L0->L1 compaction.
 
@@ -51,7 +51,7 @@ L2 (0): []
 L3 (0): []
 ```
 
-Now, L2 is empty while L1 has two files. The size ratio for L1 and L2 is `L2/L1=0/2=0 < size_ratio`. Therefore, we will trigger a L1+L2 compaction to push the data lower to L2. The same applies to L2 and these two SSTs will be placed at the bottom-most level after 2 compactions.
+Now, L2 is empty while L1 has two files. The size ratio percent for L1 and L2 is `(L2/L1) * 100 = (0/2) * 100 = 0 < size_ratio_percent (200)`. Therefore, we will trigger a L1+L2 compaction to push the data lower to L2. The same applies to L2 and these two SSTs will be placed at the bottom-most level after 2 compactions.
 
 ```
 --- After Compaction ---
@@ -75,7 +75,7 @@ L2 (2): [13, 14]
 L3 (2): [7, 8]
 ```
 
-At this point, `L3/L2=1 < size_ratio`. Therefore, we need to trigger a compaction between L2 and L3.
+At this point, `L3/L2= (1 / 1) * 100 = 100 < size_ratio_percent (200)`. Therefore, we need to trigger a compaction between L2 and L3.
 
 ```
 --- After Compaction ---
@@ -100,7 +100,7 @@ L2 (2): [23, 24]
 L3 (4): [15, 16, 17, 18]
 ```
 
-Because `L3/L2 = 2 >= size_ratio`, we do not need to merge L2 and L3 and will end up with the above state. Simple leveled compaction strategy always compact a full level, and keep a fanout size between levels, so that the lower level is always some multiplier times larger than the upper level.
+Because `L3/L2 = (4 / 2) * 100 = 200 >= size_ratio_percent (200)`, we do not need to merge L2 and L3 and will end up with the above state. Simple leveled compaction strategy always compact a full level, and keep a fanout size between levels, so that the lower level is always some multiplier times larger than the upper level.
 
 We have already initialized the LSM state to have `max_level` levels. You should first implement `generate_compaction_task` that generates a compaction task based on the above 3 criteria. After that, implement `apply_compaction_result`. We recommend you implement L0 trigger first, run a compaction simulation, and then implement the size ratio trigger, and then run a compaction simulation. To run the compaction simulation,
 
