@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="271 448 689 464" width="689" height="464">
+  <defs/>
+  <g id="week2-00-triangle" fill="none" stroke="none" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none">
+    <title>week2-00-triangle</title>
+    <rect fill="white" x="271" y="448" width="689" height="464"/>
+    <g id="week2-00-triangle_Layer_1">
+      <title>Layer 1</title>
+      <g id="Graphic_2">
+        <path d="M 747.5 806.5 L 564.25 498 L 381 806.5 Z" fill="white"/>
+        <path d="M 747.5 806.5 L 564.25 498 L 381 806.5 Z" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_20">
+        <circle cx="564.25" cy="681.605" r="57.7500922788345" fill="white"/>
+        <path d="M 605.0854 640.7696 C 627.63825 663.3224 627.63825 699.8876 605.0854 722.4404 C 582.5326 744.99325 545.9674 744.99325 523.4146 722.4404 C 500.86175 699.8876 500.86175 663.3224 523.4146 640.7696 C 545.9674 618.21675 582.5326 618.21675 605.0854 640.7696" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_3">
+        <text transform="translate(516.842 474.552)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">Faster Reads</tspan>
+        </text>
+      </g>
+      <g id="Graphic_4">
+        <text transform="translate(293.024 810)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">Less Writes</tspan>
+        </text>
+      </g>
+      <g id="Graphic_5">
+        <text transform="translate(752.5 810)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="0" y="15">Less Space</tspan>
+        </text>
+      </g>
+      <g id="Graphic_6">
+        <text transform="translate(505.9885 453.744)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="11" fill="black" x="5186962e-19" y="10">Low Read Amplification</tspan>
+        </text>
+      </g>
+      <g id="Graphic_7">
+        <text transform="translate(276.454 838.448)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="11" fill="black" x="8952838e-19" y="10">Low Write Amplification</tspan>
+        </text>
+      </g>
+      <g id="Graphic_8">
+        <text transform="translate(733.2725 838.448)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="11" fill="black" x="53290705e-20" y="10">Low Space Amplification</tspan>
+        </text>
+      </g>
+      <g id="Graphic_9">
+        <circle cx="565.75" cy="536.818" r="6.75001078583768" fill="#3a8eed"/>
+      </g>
+      <g id="Graphic_10">
+        <text transform="translate(648.5 520.426)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="17053026e-20" y="15">Always Full Compaction</tspan>
+          <tspan font-family="Helvetica Neue" font-size="12" fill="black" x="39.214" y="29.447998">(High Write Amp.)</tspan>
+        </text>
+      </g>
+      <g id="Line_11">
+        <line x1="572.5" y1="536.818" x2="643.5" y2="536.818" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_14">
+        <circle cx="417.25" cy="791.75" r="6.75001078583775" fill="#3a8eed"/>
+      </g>
+      <g id="Graphic_13">
+        <text transform="translate(422.794 874)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="1278977e-19" y="15">No Compaction</tspan>
+          <tspan font-family="Helvetica Neue" font-size="12" fill="black" x="9.224" y="29.447998">(High Read Amp.)</tspan>
+        </text>
+      </g>
+      <g id="Line_12">
+        <line x1="420.8428" y1="797.4661" x2="465.80437" y2="869" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_17">
+        <circle cx="538.25" cy="658.75" r="6.75001078583767" stroke="#003776" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_18">
+        <circle cx="544.75" cy="713.75" r="6.75001078583765" stroke="#003776" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_19">
+        <circle cx="589.25" cy="686.25" r="6.75001078583768" stroke="#003776" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Graphic_21">
+        <text transform="translate(724.5 666.241)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="10.654" y="15">Good Compaction Strategies</tspan>
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="58264504e-20" y="28.447998">Explore strategies that can balance 3 amplifications</tspan>
+        </text>
+      </g>
+      <g id="Line_22">
+        <line x1="622" y1="681.605" x2="719.5" y2="681.605" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+    </g>
+  </g>
+</svg>
