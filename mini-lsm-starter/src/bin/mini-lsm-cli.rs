@@ -121,7 +121,10 @@ impl ReplHandler {
                 self.lsm.force_full_compaction()?;
                 println!("full compaction success");
             }
-            Command::Quit | Command::Close => std::process::exit(0),
+            Command::Quit | Command::Close => {
+                self.lsm.close()?;
+                std::process::exit(0);
+            }
         };
 
         self.epoch += 1;
