@@ -382,6 +382,19 @@ impl LsmStorageInner {
             let (mut snapshot, files_to_remove) = self
                 .compaction_controller
                 .apply_compaction_result(&snapshot, &task, &output);
+
+            if let CompactionTask::Leveled(leveled_task) = &task {
+                let new_lower_level_ssts = &mut snapshot.levels[leveled_task.lower_level - 1].1;
+                new_lower_level_ssts.sort_by(|x, y| {
+                    snapshot
+                        .sstables
+                        .get(x)
+                        .unwrap()
+                        .first_key()
+                        .cmp(snapshot.sstables.get(y).unwrap().first_key())
+                });
+            }
+
             let mut ssts_to_remove = Vec::with_capacity(files_to_remove.len());
             for file_to_remove in &files_to_remove {
                 let result = snapshot.sstables.remove(file_to_remove);
