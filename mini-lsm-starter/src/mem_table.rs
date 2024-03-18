@@ -2,7 +2,7 @@
 
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -37,8 +37,20 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 
 impl MemTable {
     /// Create a new mem-table.
-    pub fn create(_id: usize) -> Self {
-        unimplemented!()
+    pub fn create(id: usize) -> Self {
+        MemTable {
+            map: Arc::new(SkipMap::new()),
+            wal: None,
+            id,
+            approximate_size: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    pub fn clear(&mut self) -> Result<()> {
+        self.id += 1;
+        self.map = Arc::new(SkipMap::new());
+        self.approximate_size.swap(0, Ordering::Relaxed);
+        Ok(())
     }
 
     /// Create a new mem-table with WAL
@@ -68,16 +80,91 @@ impl MemTable {
     }
 
     /// Get a value by key.
-    pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
-        unimplemented!()
+    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
+        self.map.get(key).map(|k| k.value().clone())
     }
 
     /// Put a key-value pair into the mem-table.
     ///
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
-        unimplemented!()
+    // pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    //     let existing_bytes = match self.get(key) {
+    //         None => 0,
+    //         Some(bytes) => key.bytes().size_hint().0 + bytes.bytes().size_hint().0,
+    //     };
+    //     if existing_bytes == 0 && value.bytes().size_hint().0 == 0 {
+    //         Ok(())
+    //     } else {
+    //         let key_cpy = Bytes::copy_from_slice(key);
+    //         let val_cpy = Bytes::copy_from_slice(value);
+    //
+    //
+    //
+    //         let to_add: usize = if existing_bytes == 0 {
+    //             key.bytes().size_hint().0 + value.bytes().size_hint().0
+    //         } else {
+    //           value.bytes().size_hint().0
+    //         };
+    //         let to_subtract: usize = if value.bytes().size_hint().0 == 0 {
+    //             existing_bytes
+    //         }  else {
+    //             0
+    //         };
+    //
+    //         let _result_size = self.approximate_size.fetch_add(to_add, Ordering::AcqRel);
+    //         let _result_size = self
+    //             .approximate_size
+    //             .fetch_sub(to_subtract, Ordering::AcqRel);
+    //         self.map.insert(key_cpy, val_cpy);
+    //         Ok(())
+    //     }
+    // }
+    // pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+    //     let estimated_size = key.len() + value.len();
+    //     // let existing = self.get(key);
+    //     // let prev_value_exists = existing.is_some();
+    //     //
+    //     // let existing_value_bytes = match existing {
+    //     //     None => 0,
+    //     //     Some(bytes) => bytes.bytes().size_hint().0,
+    //     // };
+    //     //
+    //     let key_cpy = Bytes::copy_from_slice(key);
+    //     let val_cpy = Bytes::copy_from_slice(value);
+    //     // let value_bytes = value.bytes().size_hint().0;
+    //     // let key_bytes = key.bytes().size_hint().0;
+    //     //
+    //     // let to_add: usize = if prev_value_exists {
+    //     //     value_bytes
+    //     // } else {
+    //     //     key_bytes + value_bytes
+    //     // };
+    //     // // let to_subtract: usize = if prev_value_exists && value_bytes == 0 {
+    //     // //     existing_value_bytes
+    //     // // }  else {
+    //     // //     0
+    //     // // };
+    //
+    //     let _result_size = self
+    //         .approximate_size
+    //         .fetch_add(estimated_size, Ordering::Relaxed);
+    //     // let _result_size = self
+    //     //     .approximate_size
+    //     //     .fetch_sub(to_subtract, Ordering::AcqRel);
+    //     self.map.insert(key_cpy, val_cpy);
+    //     Ok(())
+    // }
+
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        let estimated_size = key.len() + value.len();
+        let key_cpy = Bytes::copy_from_slice(key);
+        let val_cpy = Bytes::copy_from_slice(value);
+        let _result_size = self
+            .approximate_size
+            .fetch_add(estimated_size, Ordering::Relaxed);
+        self.map.insert(key_cpy, val_cpy);
+        Ok(())
     }
 
     pub fn sync_wal(&self) -> Result<()> {

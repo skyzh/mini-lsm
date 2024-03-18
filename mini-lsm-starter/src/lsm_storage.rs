@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
-use parking_lot::{Mutex, MutexGuard, RwLock};
+use parking_lot::lock_api::RwLockWriteGuard;
+use parking_lot::{Mutex, MutexGuard, RawRwLock, RwLock};
 
 use crate::block::Block;
 use crate::compact::{
@@ -278,8 +279,23 @@ impl LsmStorageInner {
     }
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
-    pub fn get(&self, _key: &[u8]) -> Result<Option<Bytes>> {
-        unimplemented!()
+    pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
+        let snapshot = {
+            let guard = self.state.read();
+            Arc::clone(&guard)
+        }; // drop global lock here
+
+        let mut result = snapshot.memtable.get(key);
+        let mut next_imm_memtable = 0;
+        while result.is_none() && next_imm_memtable < snapshot.imm_memtables.len() {
+            result = snapshot
+                .imm_memtables
+                .get(next_imm_memtable)
+                .unwrap()
+                .get(key);
+            next_imm_memtable += 1;
+        }
+        Ok(result.filter(|bytes| !bytes.is_empty()))
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
@@ -288,13 +304,40 @@ impl LsmStorageInner {
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.freeze_if_necessary()?;
+        let write = self.state.write();
+        let write_clone = Arc::clone(&write);
+
+        write_clone
+            .memtable
+            .put(key, value)
+            .expect("TODO: panic message");
+        Ok(())
+    }
+
+    fn freeze_if_necessary(&self) -> Result<()> {
+        let existing_size = {
+            let read = self.state.read();
+            let read_clone = Arc::clone(&read);
+            read_clone.memtable.approximate_size()
+        };
+        if existing_size > self.options.target_sst_size {
+            //+ value.len() > self.options.target_sst_size {
+            if self.state_lock.is_locked() {
+                panic!("asdf");
+            }
+            self.force_freeze_memtable(&self.state_lock.lock())
+        } else {
+            Ok(())
+        }
     }
 
     /// Remove a key from the storage by writing an empty value.
-    pub fn delete(&self, _key: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn delete(&self, key: &[u8]) -> Result<()> {
+        self.freeze_if_necessary()?;
+        let guard = self.state.read();
+        Arc::clone(&guard).memtable.put(key, b"")
     }
 
     pub(crate) fn path_of_sst_static(path: impl AsRef<Path>, id: usize) -> PathBuf {
@@ -318,8 +361,23 @@ impl LsmStorageInner {
     }
 
     /// Force freeze the current memtable to an immutable memtable
+    // pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
     pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
-        unimplemented!()
+        let mut locked: RwLockWriteGuard<RawRwLock, Arc<LsmStorageState>> = self.state.write();
+        let mut snapshot = locked.as_ref().clone();
+        let cloned_memtable = locked.memtable.clone();
+        snapshot.imm_memtables.insert(0, cloned_memtable);
+        let next_id = snapshot.memtable.id() + 1;
+
+        //TODO(@jcasale): excuse me what the fuck
+        std::mem::swap(
+            &mut snapshot.memtable,
+            &mut Arc::new(MemTable::create(next_id)),
+        );
+        *locked = Arc::new(snapshot);
+        drop(locked);
+
+        Ok(())
     }
 
     /// Force flush the earliest-created immutable memtable to disk
