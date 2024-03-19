@@ -160,6 +160,7 @@ impl LeveledCompactionController {
         snapshot: &LsmStorageState,
         task: &LeveledCompactionTask,
         output: &[usize],
+        in_recovery: bool,
     ) -> (LsmStorageState, Vec<usize>) {
         let mut snapshot = snapshot.clone();
         let mut files_to_remove = Vec::new();
@@ -216,9 +217,17 @@ impl LeveledCompactionController {
             .collect::<Vec<_>>();
         assert!(lower_level_sst_ids_set.is_empty());
         new_lower_level_ssts.extend(output);
-        // Note that here the `new_lower_level_ssts` is in an inconsistent state as it is not yet sorted on keys.
-        // It will be sorted outside of this function as this function is also used in manifest recovery context,
-        // where no actual SSTs are loaded.
+        // Don't sort the SST IDs during recovery because actual SSTs are not loaded at that point
+        if !in_recovery {
+            new_lower_level_ssts.sort_by(|x, y| {
+                snapshot
+                    .sstables
+                    .get(x)
+                    .unwrap()
+                    .first_key()
+                    .cmp(snapshot.sstables.get(y).unwrap().first_key())
+            });
+        }
         snapshot.levels[task.lower_level - 1].1 = new_lower_level_ssts;
         (snapshot, files_to_remove)
     }

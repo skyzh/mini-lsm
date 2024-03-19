@@ -50,6 +50,7 @@ impl LeveledCompactionController {
         _snapshot: &LsmStorageState,
         _task: &LeveledCompactionTask,
         _output: &[usize],
+        _in_recovery: bool,
     ) -> (LsmStorageState, Vec<usize>) {
         unimplemented!()
     }
