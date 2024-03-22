@@ -13,7 +13,7 @@ pub struct BlockIterator {
     block: Arc<Block>,
     /// The current key, empty represents the iterator is invalid
     key: KeyVec,
-    /// the current value range in the block.data, coresponds to the current key
+    /// the current value range in the block.data, corresponds to the current key
     value_range: (usize, usize),
     /// Current index of the key-value pair, should be in range of [0, num_of_elements)
     idx: usize,

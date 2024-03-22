@@ -15,7 +15,7 @@ pub struct BlockIterator {
     block: Arc<Block>,
     /// the current key at the iterator position
     key: KeyVec,
-    /// the current value range in the block.data, coresponds to the current key
+    /// the current value range in the block.data, corresponds to the current key
     value_range: (usize, usize),
     /// the current index at the iterator position
     idx: usize,
