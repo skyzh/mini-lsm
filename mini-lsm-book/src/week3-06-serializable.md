@@ -80,7 +80,7 @@ If the database starts with an initial state of `a=1,b=2`, we should get either 
 txn1: len(scan(..)) = 2
 txn2: len(scan(..)) = 2
 txn1: put key1 = 2, commit, read set = {a, b}, write set = {key1}
-txn2: put key2 = 2, commit, read set = {a, b}, write set = {key1}
+txn2: put key2 = 2, commit, read set = {a, b}, write set = {key2}
 ```
 
 This passes our serializable validation and does not correspond to any serial order of execution! Therefore, a fully-working serializable validation will need to track key ranges, and using key hashes can accelerate the serializable check if only `get` is called. Please refer to the bonus tasks on how you can implement serializable checks correctly.
