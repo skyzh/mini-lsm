@@ -16,7 +16,7 @@ cargo x scheck
 
 ## Task 1: Manifest Encoding
 
-The system uses a manifest file to record all operations happened in the engine. Currently, there are only two types of them: compaction and SST flush. When the engine restarts, it will read the manifest file, reconstruct the state, and load the SST files on the disk.
+The system uses a manifest file to record all operations happened in the engine. Currently, there are only three types of them: Memtable create, SST flush and compaction. When the engine restarts, it will read the manifest file, reconstruct the state, and load the SST files on the disk.
 
 There are many approaches to storing the LSM state. One of the easiest way is to simply store the full state into a JSON file. Every time we do a compaction or flush a new SST, we can serialize the entire LSM state into a file. The problem with this approach is that when the database gets super large (i.e., 10k SSTs), writing the manifest to the disk would be super slow. Therefore, we designed the manifest to be a append-only file.
 
@@ -49,7 +49,7 @@ src/lsm_storage.rs
 src/compact.rs
 ```
 
-For now, we only use two types of the manifest records: SST flush and compaction. SST flush record stores the SST id that gets flushed to the disk. Compaction record stores the compaction task and the produced SST ids. Every time you write some new files the the disk, first sync the files and the storage directory, and then write to the manifest and sync the manifest. The manifest file should be written to `<path>/MANIFEST`.
+For now, we only use three types of the manifest records: Memtable create, SST flush and compaction. Memtable create record stores the id of the memtable created newly. SST flush record stores the SST id that gets flushed to the disk. Compaction record stores the compaction task and the produced SST ids. Every time you write some new files the the disk, first sync the files and the storage directory, and then write to the manifest and sync the manifest. The manifest file should be written to `<path>/MANIFEST`.
 
 To sync the directory, you may implement the `sync_dir` function, where you can use `File::open(dir).sync_all()?` to sync it. On Linux, directory is a file that contains the list of files in the directory. By doing fsync on the directory, you will ensure that the newly-written (or removed) files can be visible to the user if the power goes off.
 
