@@ -63,7 +63,7 @@ In addition, at most *one* level can have a positive target size below `base_lev
 0 0 30MB 300MB 3GB 30GB
 ```
 
-Notice in this case L1 and L2 have target size of 0, and L3 is the only level with a postive target size below `base_level_size_mb`.
+Notice in this case L1 and L2 have target size of 0, and L3 is the only level with a positive target size below `base_level_size_mb`.
 
 ### Task 1.2: Decide Base Level
 

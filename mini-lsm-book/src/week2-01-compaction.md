@@ -66,7 +66,7 @@ Because we always compact all SSTs, if we find multiple version of a key, we can
 
 There are some things that you might need to think about.
 
-* How does your implementation handle L0 flush in par with compaction? (Not taking the state lock when doing the compaction, and also need to consider new L0 files produced when compaction is going on.)
+* How does your implementation handle L0 flush in parallel with compaction? (Not taking the state lock when doing the compaction, and also need to consider new L0 files produced when compaction is going on.)
 * If your implementation removes the original SST files immediately after the compaction completes, will it cause problems in your system? (Generally no on macOS/Linux because the OS will not actually remove the file until no file handle is being held.)
 
 ## Task 2: Concat Iterator
