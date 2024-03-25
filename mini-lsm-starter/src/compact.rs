@@ -68,10 +68,11 @@ impl CompactionController {
         snapshot: &LsmStorageState,
         task: &CompactionTask,
         output: &[usize],
+        in_recovery: bool,
     ) -> (LsmStorageState, Vec<usize>) {
         match (self, task) {
             (CompactionController::Leveled(ctrl), CompactionTask::Leveled(task)) => {
-                ctrl.apply_compaction_result(snapshot, task, output)
+                ctrl.apply_compaction_result(snapshot, task, output, in_recovery)
             }
             (CompactionController::Simple(ctrl), CompactionTask::Simple(task)) => {
                 ctrl.apply_compaction_result(snapshot, task, output)
