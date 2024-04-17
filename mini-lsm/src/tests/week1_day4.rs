@@ -55,7 +55,9 @@ fn generate_sst() -> (TempDir, SsTable) {
 
 #[test]
 fn test_sst_build_all() {
-    generate_sst();
+    let (_, sst) = generate_sst();
+    assert_eq!(sst.first_key().as_key_slice(), key_of(0).as_key_slice());
+    assert_eq!(sst.last_key().as_key_slice(), key_of(num_of_keys()-1).as_key_slice())
 }
 
 #[test]
