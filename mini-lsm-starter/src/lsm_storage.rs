@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use bytes::Bytes;
 use parking_lot::{Mutex, MutexGuard, RwLock};
 
@@ -294,12 +294,28 @@ impl LsmStorageInner {
 
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.state.read().memtable.put(key, value)
+        let state = self.state.read();
+        let new_approximate_size = state.memtable.approximate_size() + key.len()+value.len();
+        state.memtable.set_approximate_size(new_approximate_size);
+        state.memtable.put(key, value);
+
+        if state.memtable.approximate_size() >= self.options.target_sst_size{
+            self.force_freeze_memtable(&self.state_lock.lock());
+        }
+        Ok(())
     }
 
     /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, key: &[u8]) -> Result<()> {
-        self.state.read().memtable.put(key, &[])
+        let state = self.state.read();
+        let new_approximate_size = state.memtable.approximate_size() + key.len();
+        state.memtable.set_approximate_size(new_approximate_size);
+        state.memtable.put(key, &[]);
+
+        if state.memtable.approximate_size() >= self.options.target_sst_size{
+            self.force_freeze_memtable(&self.state_lock.lock());
+        }
+        Ok(())
     }
 
     pub(crate) fn path_of_sst_static(path: impl AsRef<Path>, id: usize) -> PathBuf {
@@ -323,8 +339,13 @@ impl LsmStorageInner {
     }
 
     /// Force freeze the current memtable to an immutable memtable
-    pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
-        unimplemented!()
+    pub fn force_freeze_memtable(&self, state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
+        let mut state = self.state.write();
+        let mut temp = state.as_ref().clone();
+        temp.imm_memtables.insert(0, state.memtable.clone());
+        temp.memtable = Arc::new(MemTable::create(self.next_sst_id()));
+        *state = Arc::new(temp);
+        Ok(())
     }
 
     /// Force flush the earliest-created immutable memtable to disk

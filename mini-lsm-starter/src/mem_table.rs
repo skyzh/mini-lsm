@@ -112,6 +112,11 @@ impl MemTable {
             .load(std::sync::atomic::Ordering::Relaxed)
     }
 
+    pub fn set_approximate_size(&self, size: usize) {
+        self.approximate_size
+            .store(size, std::sync::atomic::Ordering::Relaxed);
+    }
+
     /// Only use this function when closing the database
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
