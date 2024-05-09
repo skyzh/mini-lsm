@@ -279,12 +279,27 @@ impl LsmStorageInner {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        let get_result = self.state.read().memtable.get(key);
-        if get_result.as_ref().map_or(true, |b| b.is_empty()) {
-            Ok(None)
-        } else {
-            Ok(get_result)
+        let state = self.state.read();
+        // 1. find in memtable
+        let mut get_result = state.memtable.get(key);
+        if let Some(bytes) = get_result.as_ref() {
+            // value is &[] so return None
+            if bytes.is_empty() {
+                return Ok(None);
+            }
+            return Ok(get_result);
         }
+        // 2. find in imm_memtables
+        for imm_t in state.imm_memtables.iter() {
+            get_result = imm_t.get(key);
+            if let Some(bytes) = get_result.as_ref() {
+                if bytes.is_empty() {
+                    return Ok(None);
+                }
+                return Ok(get_result);
+            }
+        }
+        Ok(get_result)
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
@@ -295,12 +310,13 @@ impl LsmStorageInner {
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         let state = self.state.read();
-        let new_approximate_size = state.memtable.approximate_size() + key.len()+value.len();
+        let new_approximate_size = state.memtable.approximate_size() + key.len() + value.len();
         state.memtable.set_approximate_size(new_approximate_size);
-        state.memtable.put(key, value);
+        state.memtable.put(key, value)?;
 
-        if state.memtable.approximate_size() >= self.options.target_sst_size{
-            self.force_freeze_memtable(&self.state_lock.lock());
+        if state.memtable.approximate_size() >= self.options.target_sst_size {
+            drop(state);
+            return self.force_freeze_memtable(&self.state_lock.lock());
         }
         Ok(())
     }
@@ -310,10 +326,11 @@ impl LsmStorageInner {
         let state = self.state.read();
         let new_approximate_size = state.memtable.approximate_size() + key.len();
         state.memtable.set_approximate_size(new_approximate_size);
-        state.memtable.put(key, &[]);
+        state.memtable.put(key, &[])?;
 
-        if state.memtable.approximate_size() >= self.options.target_sst_size{
-            self.force_freeze_memtable(&self.state_lock.lock());
+        if state.memtable.approximate_size() >= self.options.target_sst_size {
+            drop(state);
+            return self.force_freeze_memtable(&self.state_lock.lock());
         }
         Ok(())
     }
@@ -339,7 +356,7 @@ impl LsmStorageInner {
     }
 
     /// Force freeze the current memtable to an immutable memtable
-    pub fn force_freeze_memtable(&self, state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
+    pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
         let mut state = self.state.write();
         let mut temp = state.as_ref().clone();
         temp.imm_memtables.insert(0, state.memtable.clone());
