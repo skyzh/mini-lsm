@@ -26,7 +26,7 @@ src/lsm_storage.rs
 src/mem_table.rs
 ```
 
-You will need to modify `LSMStorageInner::force_flush_next_imm_memtable` and `MemTable::flush`. In `LSMStorageInner::open`, you will need to create the LSM database directory if it does not exist. To flush a memtable to the disk, we will need to do two things:
+You will need to modify `LSMStorageInner::force_flush_next_imm_memtable` and `MemTable::flush`. In `LSMStorageInner::open`, you will need to create the LSM database directory if it does not exist. To flush a memtable to the disk, we will need to do three things:
 
 * Select a memtable to flush.
 * Create an SST file corresponding to a memtable.
