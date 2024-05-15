@@ -1,5 +1,6 @@
 #![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 
+use std::borrow::{Borrow, BorrowMut};
 use std::ops::Bound;
 use std::path::Path;
 use std::sync::atomic::AtomicUsize;
@@ -11,7 +12,7 @@ use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
-use crate::key::KeySlice;
+use crate::key::{Key, KeySlice};
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
@@ -96,7 +97,28 @@ impl MemTable {
 
     /// Get an iterator over a range of keys.
     pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
-        unimplemented!()
+        let lower = map_bound(_lower);
+        let upper = map_bound(_upper);
+        let mut mem_iter = MemTableIteratorBuilder {
+            map: self.map.clone(),
+            iter_builder: |map : &Arc<SkipMap<Bytes, Bytes>>| map.range((lower, upper)),
+            item: (Bytes::new(), Bytes::new()),
+        }.build();
+
+        mem_iter.with_mut(|feild|{
+            match feild.iter.next(){
+                Some(entry) => {
+                    feild.item.0 = entry.key().clone();
+                    feild.item.1 = entry.value().clone();
+                },
+                None => {
+                    feild.item.0 = Bytes::new();
+                    feild.item.1 = Bytes::new();
+                }
+            }
+        });
+        
+        mem_iter
     }
 
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
@@ -147,18 +169,31 @@ impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        &self.borrow_item().1
     }
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        KeySlice::from_slice(&self.borrow_item().0)
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        let ans = !self.borrow_item().0.is_empty();
+        ans
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        self.with_mut(|feild|{
+            match feild.iter.next(){
+                Some(entry) => {
+                    feild.item.0 = entry.key().clone();
+                    feild.item.1 = entry.value().clone();
+                },
+                None => {
+                    feild.item.0 = Bytes::new();
+                    feild.item.1 = Bytes::new();
+                }
+            }
+        });
+        Ok(())
     }
 }

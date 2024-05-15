@@ -1,8 +1,11 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
+use std::any;
+use std::borrow::Borrow;
 use std::cmp::{self};
 use std::collections::BinaryHeap;
+use std::f32::consts::E;
 
 use anyhow::Result;
 
@@ -47,7 +50,16 @@ pub struct MergeIterator<I: StorageIterator> {
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
-        unimplemented!()
+        let mut heap = BinaryHeap::new();
+        for (i, iter) in iters.into_iter().enumerate() {
+            if iter.is_valid() {
+                heap.push(HeapWrapper(i, iter));
+            }
+        }
+        Self {
+            current: heap.pop(),
+            iters: heap,
+        }
     }
 }
 
@@ -57,18 +69,47 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
     type KeyType<'a> = KeySlice<'a>;
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        self.current.as_ref().unwrap().1.key()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.current.as_ref().unwrap().1.value()
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        self.current.is_some()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let curr_iter = self.current.as_mut().unwrap().1.as_mut();
+        let old_key = curr_iter.key().to_key_vec();
+
+        match curr_iter.next(){
+            // 1. curr_iter is not run out
+            Ok(()) if curr_iter.is_valid() => {
+                self.iters.push(self.current.take().unwrap());
+                self.current = self.iters.pop();
+            },
+            // 2.curr_iter is run out and all iters are run out
+            Ok(()) if self.iters.is_empty() => {
+                self.current = None;
+                return Ok(());
+            },
+            // 3. curr_iter is run out and there are still some iters
+            Ok(()) => {
+                self.current = self.iters.pop();
+            },
+            Err(e) => return Err(e),
+        }
+
+        // check if the new key is the same as the old key
+        if self.current.is_some(){
+            let new_key = self.current.as_ref().unwrap().1.key().to_key_vec();
+            if new_key ==  old_key{
+                self.next()?;
+            }
+        }
+
+        Ok(())
     }
 }
