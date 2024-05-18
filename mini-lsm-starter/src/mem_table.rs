@@ -101,23 +101,22 @@ impl MemTable {
         let upper = map_bound(_upper);
         let mut mem_iter = MemTableIteratorBuilder {
             map: self.map.clone(),
-            iter_builder: |map : &Arc<SkipMap<Bytes, Bytes>>| map.range((lower, upper)),
+            iter_builder: |map: &Arc<SkipMap<Bytes, Bytes>>| map.range((lower, upper)),
             item: (Bytes::new(), Bytes::new()),
-        }.build();
+        }
+        .build();
 
-        mem_iter.with_mut(|feild|{
-            match feild.iter.next(){
-                Some(entry) => {
-                    feild.item.0 = entry.key().clone();
-                    feild.item.1 = entry.value().clone();
-                },
-                None => {
-                    feild.item.0 = Bytes::new();
-                    feild.item.1 = Bytes::new();
-                }
+        mem_iter.with_mut(|feild| match feild.iter.next() {
+            Some(entry) => {
+                feild.item.0 = entry.key().clone();
+                feild.item.1 = entry.value().clone();
+            }
+            None => {
+                feild.item.0 = Bytes::new();
+                feild.item.1 = Bytes::new();
             }
         });
-        
+
         mem_iter
     }
 
@@ -182,16 +181,14 @@ impl StorageIterator for MemTableIterator {
     }
 
     fn next(&mut self) -> Result<()> {
-        self.with_mut(|feild|{
-            match feild.iter.next(){
-                Some(entry) => {
-                    feild.item.0 = entry.key().clone();
-                    feild.item.1 = entry.value().clone();
-                },
-                None => {
-                    feild.item.0 = Bytes::new();
-                    feild.item.1 = Bytes::new();
-                }
+        self.with_mut(|feild| match feild.iter.next() {
+            Some(entry) => {
+                feild.item.0 = entry.key().clone();
+                feild.item.1 = entry.value().clone();
+            }
+            None => {
+                feild.item.0 = Bytes::new();
+                feild.item.1 = Bytes::new();
             }
         });
         Ok(())

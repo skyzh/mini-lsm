@@ -84,28 +84,28 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
         let curr_iter = self.current.as_mut().unwrap().1.as_mut();
         let old_key = curr_iter.key().to_key_vec();
 
-        match curr_iter.next(){
+        match curr_iter.next() {
             // 1. curr_iter is not run out
             Ok(()) if curr_iter.is_valid() => {
                 self.iters.push(self.current.take().unwrap());
                 self.current = self.iters.pop();
-            },
+            }
             // 2.curr_iter is run out and all iters are run out
-            Ok(()) if self.iters.is_empty() => {
+            Ok(()) if !curr_iter.is_valid() && self.iters.is_empty() => {
                 self.current = None;
                 return Ok(());
-            },
+            }
             // 3. curr_iter is run out and there are still some iters
             Ok(()) => {
                 self.current = self.iters.pop();
-            },
+            }
             Err(e) => return Err(e),
         }
 
         // check if the new key is the same as the old key
-        if self.current.is_some(){
+        if self.current.is_some() {
             let new_key = self.current.as_ref().unwrap().1.key().to_key_vec();
-            if new_key ==  old_key{
+            if new_key == old_key {
                 self.next()?;
             }
         }
