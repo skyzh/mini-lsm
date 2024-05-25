@@ -85,8 +85,12 @@ impl MemTable {
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.map
-            .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
+        let (k, v) = (Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
+        let size = k.len() + v.len();
+
+        self.map.insert(k, v);
+        self.approximate_size
+            .fetch_add(size, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 
