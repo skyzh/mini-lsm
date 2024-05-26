@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cmp::Ordering, sync::Arc};
 
 use crate::key::{Key, KeySlice, KeyVec};
 
@@ -17,6 +17,7 @@ pub struct BlockIterator {
     idx: usize,
     /// The first key in the block
     first_key: KeyVec,
+    is_valid: bool,
 }
 
 impl BlockIterator {
@@ -27,6 +28,7 @@ impl BlockIterator {
             value_range: (0, 0),
             idx: 0,
             first_key: KeyVec::new(),
+            is_valid: true,
         }
     }
     fn get_key_range(&self, idx: usize) -> Range<usize> {
@@ -86,7 +88,8 @@ impl BlockIterator {
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
-        !self.key.is_empty()
+        !self.key.is_empty() && self.is_valid
+        // !self.key.is_empty()
     }
 
     /// Seeks to the first key in the block.
@@ -120,22 +123,30 @@ impl BlockIterator {
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
     pub fn seek_to_key(&mut self, key: KeySlice) {
+        self.is_valid = true;
+        
         if self.key == key.to_key_vec() {
             return;
         }
+        // target key is not exzit, must need is_valid = false
         let last_key = KeyVec::from_vec(
             self.block.data[self.get_key_range(self.block.offsets.len() - 1)].to_vec(),
         );
-        // target key is not exzit
-        if key.to_key_vec() > last_key {
+
+        if key.cmp(&last_key.as_key_slice()) == Ordering::Greater {
             self.seek_to_first();
+            self.is_valid = false;
             return;
         }
-        if self.key > key.to_key_vec() {
-            self.seek_to_first();
-        }
-        while self.key < key.to_key_vec() {
-            self.next();
+
+        match key.cmp(&self.key.as_key_slice()){
+            Ordering::Equal=>return,
+            Ordering::Less=> self.seek_to_first(),
+            Ordering::Greater=>{
+                while self.is_valid() && key.cmp(&self.key.as_key_slice()) == Ordering::Greater {
+                    self.next();
+                }
+            }
         }
     }
 }
