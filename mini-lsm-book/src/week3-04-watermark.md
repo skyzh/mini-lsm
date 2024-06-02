@@ -76,6 +76,7 @@ Assume these are all keys in the engine. If we do a scan at ts=3, we will get `a
 * Why do we need to store an `Arc` of `Transaction` inside a transaction iterator?
 * What is the condition to fully remove a key from the SST file?
 * For now, we only remove a key when compacting to the bottom-most level. Is there any other prior time that we can remove the key? (Hint: you know the start/end key of each SST in all levels.)
+* Consider the case that the user creates a long-running transaction and we could not garbage collect anything. The user keeps updating a single key. Eventually, there could be a key with thousands of versions in a single SST file. How would it affect performance, and how would you deal with it?
 
 ## Bonus Tasks
 
