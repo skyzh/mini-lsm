@@ -27,7 +27,7 @@ txn1: put key1=2, commit
 txn2: put key2=1, commit
 ```
 
-We will get `key1=2, key2=1`. This cannot be produced with a serial execution of these two transactions. This phenomenon 
+We will get `key1=2, key2=1`. This cannot be produced with a serial execution of these two transactions. This phenomenon is called write skew.
 
 With serializable validation, we can ensure the modifications to the database corresponds to a serial execution order, and therefore, users may run some critical workloads over the system that requires serializable execution. For example, if a user runs bank transfer workloads on Mini-LSM, they would expect the sum of money at any point of time is the same. We cannot guarantee this invariant without serializable checks. 
 
@@ -55,7 +55,7 @@ src/mvcc.rs
 
 When `get` is called, you should add the key to the read set of the transaction. In our implementation, we store the hashes of the keys, so as to reduce memory usage and make probing the read set faster, though this might cause false positives when two keys have the same hash. You can use `farmhash::hash32` to generate the hash for a key. Note that even if `get` returns a key is not found, this key should still be tracked in the read set.
 
-In `LsmMvccInner::new_txn`, you should create an empty read/write set for the transaction is `serializable=true`.
+In `LsmMvccInner::new_txn`, you should create an empty read/write set for the transaction if `serializable=true`.
 
 ## Task 2: Track Read Set in Scan
 
