@@ -27,7 +27,7 @@ txn1: put key1=2, commit
 txn2: put key2=1, commit
 ```
 
-We will get `key1=2, key2=1`. This cannot be produced with a serial execution of these two transactions. This phenomenon 
+We will get `key1=2, key2=1`. This cannot be produced with a serial execution of these two transactions. This phenomenon is called write skew.
 
 With serializable validation, we can ensure the modifications to the database corresponds to a serial execution order, and therefore, users may run some critical workloads over the system that requires serializable execution. For example, if a user runs bank transfer workloads on Mini-LSM, they would expect the sum of money at any point of time is the same. We cannot guarantee this invariant without serializable checks. 
 
