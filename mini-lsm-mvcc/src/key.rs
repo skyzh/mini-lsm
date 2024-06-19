@@ -14,10 +14,10 @@ pub const TS_ENABLED: bool = true;
 /// Temporary, should remove after implementing full week 3 day 1 + 2.
 pub const TS_DEFAULT: u64 = 0;
 
-pub const TS_MAX: u64 = std::u64::MAX;
-pub const TS_MIN: u64 = std::u64::MIN;
-pub const TS_RANGE_BEGIN: u64 = std::u64::MAX;
-pub const TS_RANGE_END: u64 = std::u64::MIN;
+pub const TS_MAX: u64 = u64::MAX;
+pub const TS_MIN: u64 = u64::MIN;
+pub const TS_RANGE_BEGIN: u64 = u64::MAX;
+pub const TS_RANGE_END: u64 = u64::MIN;
 
 impl<T: AsRef<[u8]>> Key<T> {
     pub fn into_inner(self) -> T {
