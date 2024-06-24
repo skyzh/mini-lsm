@@ -193,4 +193,35 @@ impl StorageIterator for MemTableIterator {
         self.with_mut(|x| *x.item = entry);
         Ok(())
     }
+
+    /// Prints the current key-value pair to the console.
+    fn print(&self) {
+        let sep = "-".repeat(10);
+        println!("{} {} {}", sep, format!("{:^25}", "Memtable Iterator"), sep);
+        if self.is_valid() {
+            let key = self.with_item(|item| &item.0);
+            let value = self.with_item(|item| &item.1);
+
+            // Attempt to convert both key and value to UTF-8 strings for readable printing.
+            let key_str = match std::str::from_utf8(key) {
+                Ok(s) => s.to_string(),
+                Err(_) => format!("{:X?}", key), // Fallback to hex representation if not valid UTF-8
+            };
+
+            let value_str = match std::str::from_utf8(value) {
+                Ok(s) => s.to_string(),
+                Err(_) => format!("{:X?}", value), // Fallback to hex representation if not valid UTF-8
+            };
+            println!("{:<10}: {:?}", "Key", key_str);
+            println!("{:<10}: {:?}", "Value", value_str);
+        } else {
+            println!("Invalid Iterator State");
+        }
+        println!(
+            "{} {} {}",
+            sep,
+            format!("{:^25}", "End Memtable Iterator"),
+            sep
+        );
+    }
 }
