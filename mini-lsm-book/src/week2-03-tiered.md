@@ -36,7 +36,7 @@ src/compact/tiered.rs
 
 In universal compaction, we do not use L0 SSTs in the LSM state. Instead, we directly flush new SSTs to a single sorted run (called tier). In the LSM state, `levels` will now include all tiers, where **the lowest index is the latest SST flushed**. Each element in the `levels` vector stores a tuple: level ID (used as tier ID) and the SSTs in that level. Every time you flush L0 SSTs, you should flush the SST into a tier placed at the front of the vector. The compaction simulator generates tier id based on the first SST id, and you should do the same in your implementation.
 
-Universal compaction will only trigger tasks when the number of tiers (sorted runs) is larger than `num_tiers`. Otherwise, it does not trigger any compaction.
+Universal compaction will only trigger tasks when the number of tiers (sorted runs) reaches `num_tiers` (means >=). Otherwise, it does not trigger any compaction.
 
 ### Task 1.1: Triggered by Space Amplification Ratio
 
@@ -59,7 +59,7 @@ L1 (1): [1]
 compaction triggered by space amplification ratio: 200
 L3 [3] L2 [2] L1 [1] -> [4, 5, 6]
 --- After Compaction ---
-L4 (3): [3, 2, 1]
+L4 (3): [4, 5, 6]
 ```
 
 With this trigger, we will only trigger full compaction when it reaches the space amplification ratio. And at the end of the simulation, you will see:
@@ -73,7 +73,7 @@ L70 (1): [70]
 L69 (1): [69]
 L68 (1): [68]
 L67 (1): [67]
-L40 (27): [39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+L39 (27): [39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 ```
 
 The `num_tiers` in the compaction simulator is set to 3. However, there are far more than 3 tiers in the LSM state, which incurs large read amplification.
@@ -82,29 +82,28 @@ The current trigger only reduces space amplification. We will need to add new tr
 
 ### Task 1.2: Triggered by Size Ratio
 
-The next trigger is the size ratio trigger. For all tiers, if there is a tier `n` that `size of all previous tiers / this tier >= (100 + size_ratio) * 100%`, we will compact all `n` tiers. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+The next trigger is the size ratio trigger. For all tiers, if there is a tier `n` that `size of all previous tiers / this tier >= (100 + size_ratio) * 100%`, we will compact all `n` tiers. We only do this compaction with there being at least `min_merge_width` tiers to be merged.
 
 With this trigger, you will observe the following in the compaction simulator:
 
 ```
 L207 (1): [207]
-L204 (3): [203, 202, 201]
-L186 (15): [185, 178, 179, 180, 181, 182, 183, 184, 158, 159, 160, 161, 162, 163, 164]
-L114 (31): [113, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
+L203 (3): [203, 202, 201]
+L185 (15): [185, 178, 179, 180, 181, 182, 183, 184, 158, 159, 160, 161, 162, 163, 164]
+L113 (31): [113, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
 ```
 
 There will be fewer 1-SST tiers and the compaction algorithm will maintain the tiers to have smaller to larger sizes by size ratio. However, when there are more SSTs in the LSM state, there will still be cases that we have more than `num_tiers` tiers. To limit the number of tiers, we will need another trigger.
 
 ### Task 1.3: Reduce Sorted Runs
 
-If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the top-most tiers to compact into one tier, so that the final state will have exactly `num_tiers` tiers (if no SSTs are flushed during the compaction).
+If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the top-most tiers to compact into one tier, so that the final state will have exactly `num_tiers - 1` tiers (if no SSTs are flushed during the compaction).
 
 With this compaction enabled, you will see:
 
 ```
-L427 (1): [427]
-L409 (18): [408, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407]
-L208 (31): [207, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
+L408 (18): [408, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407]
+L207 (31): [207, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 ```
 
 None of the compaction result will have more than `num_tiers` tiers.
