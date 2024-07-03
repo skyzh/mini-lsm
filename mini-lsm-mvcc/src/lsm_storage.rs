@@ -368,8 +368,8 @@ impl LsmStorageInner {
                         memtables.insert(x);
                     }
                     ManifestRecord::Compaction(task, output) => {
-                        let (new_state, _) =
-                            compaction_controller.apply_compaction_result(&state, &task, &output);
+                        let (new_state, _) = compaction_controller
+                            .apply_compaction_result(&state, &task, &output, true);
                         // TODO: apply remove again
                         state = new_state;
                         next_sst_id =
@@ -399,6 +399,18 @@ impl LsmStorageInner {
             println!("{} SSTs opened", sst_cnt);
 
             next_sst_id += 1;
+
+            // Sort SSTs on each level
+            for (_id, ssts) in &mut state.levels {
+                ssts.sort_by(|x, y| {
+                    state
+                        .sstables
+                        .get(x)
+                        .unwrap()
+                        .first_key()
+                        .cmp(state.sstables.get(y).unwrap().first_key())
+                })
+            }
 
             // recover memtables
             if options.enable_wal {
