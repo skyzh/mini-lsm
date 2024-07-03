@@ -87,7 +87,7 @@ We will do a per-record checksum in the write-ahead log. To do this, you have tw
 * Generate a buffer of the key-value record, and use `crc32fast::hash` to compute the checksum at once.
 * Write one field at a time (e.g., key length, key slice), and use a `crc32fast::Hasher` to compute the checksum incrementally on each field.
 
-This is up to your choice and you will need to *choose your own adventure*. The new WAL encoding should be like:
+This is up to your choice and you will need to *choose your own adventure*. Both method should produce exactly the same result, as long as you handle little endian / big endian correctly. The new WAL encoding should be like:
 
 ```
 | key_len | key | value_len | value | checksum |

@@ -79,6 +79,11 @@ impl Wal {
         Ok(())
     }
 
+    /// Implement this in week 3, day 5.
+    pub fn put_batch(&self, _data: &[(&[u8], &[u8])]) -> Result<()> {
+        unimplemented!()
+    }
+
     pub fn sync(&self) -> Result<()> {
         let mut file = self.file.lock();
         file.flush()?;
