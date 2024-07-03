@@ -395,16 +395,18 @@ impl LsmStorageInner {
 
             next_sst_id += 1;
 
-            // Sort SSTs on each level
-            for (_id, ssts) in &mut state.levels {
-                ssts.sort_by(|x, y| {
-                    state
-                        .sstables
-                        .get(x)
-                        .unwrap()
-                        .first_key()
-                        .cmp(state.sstables.get(y).unwrap().first_key())
-                })
+            // Sort SSTs on each level (only for leveled compaction)
+            if let CompactionController::Leveled(_) = &compaction_controller {
+                for (_id, ssts) in &mut state.levels {
+                    ssts.sort_by(|x, y| {
+                        state
+                            .sstables
+                            .get(x)
+                            .unwrap()
+                            .first_key()
+                            .cmp(state.sstables.get(y).unwrap().first_key())
+                    })
+                }
             }
 
             // recover memtables
