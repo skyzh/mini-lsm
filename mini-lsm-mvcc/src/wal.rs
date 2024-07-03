@@ -65,6 +65,7 @@ impl Wal {
                 kv_pairs.push((key, ts, value));
                 batch_buf.advance(value_len);
             }
+            rbuf.advance(batch_size);
             let expected_checksum = rbuf.get_u32();
             let component_checksum = hasher.finalize();
             assert_eq!(component_checksum, single_checksum);
@@ -74,7 +75,6 @@ impl Wal {
             for (key, ts, value) in kv_pairs {
                 skiplist.insert(KeyBytes::from_bytes_with_ts(key, ts), value);
             }
-            rbuf.advance(batch_size);
         }
         Ok(Self {
             file: Arc::new(Mutex::new(BufWriter::new(file))),
