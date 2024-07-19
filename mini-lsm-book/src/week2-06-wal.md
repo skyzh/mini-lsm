@@ -32,7 +32,7 @@ The WAL encoding is simply a list of key-value pairs.
 
 You will also need to implement the `recover` function to read the WAL and recover the state of a memtable.
 
-Note that we are using a `BufWriter` for writing the WAL. Using a `BufWriter` can reduce the number of syscalls into the OS, so as to reduce the latency of the write path. The data is not guaranteed to be written to the disk when the user modifies a key. Instead, the engine only guarantee that the data is persisted when `sync` is called. To correctly persist the data to the disk, you will need to first flush the data from the buffer writer to the file object by calling `flush()`, and then do a fsync on the file by using `get_mut().sync_all()`.
+Note that we are using a `BufWriter` for writing the WAL. Using a `BufWriter` can reduce the number of syscalls into the OS, so as to reduce the latency of the write path. The data is not guaranteed to be written to the disk when the user modifies a key. Instead, the engine only guarantee that the data is persisted when `sync` is called. To correctly persist the data to the disk, you will need to first flush the data from the buffer writer to the file object by calling `flush()`, and then do a fsync on the file by using `get_mut().sync_all()`. Note that you *only* need to fsync when the engine's `sync` gets called. You *do not* need to fsync every time on writing data.
 
 ## Task 2: Integrate WALs
 
@@ -66,6 +66,8 @@ Remember to recover the correct `next_sst_id` from the state, which should be `m
 
 ## Test Your Understanding
 
+* When should you call `fsync` in your engine? What happens if you call `fsync` too often (i.e., on every put key request)?
+* How costly is the `fsync` operation in general on an SSD (solid state drive)?
 * When can you tell the user that their modifications (put/delete) have been persisted?
 * How can you handle corrupted data in WAL?
 

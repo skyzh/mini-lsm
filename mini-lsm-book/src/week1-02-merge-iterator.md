@@ -84,6 +84,19 @@ a->1, b->del, c->4, d->5, e->4
 
 The constructor of the merge iterator takes a vector of iterators. We assume the one with a lower index (i.e., the first one) has the latest data.
 
+When using the Rust binary heap, you may find the `peek_mut` function useful.
+
+```rust,no_run
+let Some(mut inner) = heap.peek_mut() {
+    *inner += 1; // <- do some modifications to the inner item
+}
+// When the PeekMut reference gets dropped, the binary heap gets reordered automatically.
+
+let Some(mut inner) = heap.peek_mut() {
+    PeekMut::pop(inner) // <- pop it out from the heap
+}
+```
+
 One common pitfall is on error handling. For example,
 
 ```rust,no_run
