@@ -133,7 +133,7 @@ As tiered compaction does not use the L0 level of the LSM state, you should dire
 * What are the pros/cons of universal compaction compared with simple leveled/tiered compaction?
 * How much storage space is it required (compared with user data size) to run universal compaction?
 * Can we merge two tiers that are not adjacent in the LSM state?
-* What happens if compaction speed cannot keep up with the SST flushes?
+* What happens if compaction speed cannot keep up with the SST flushes for tiered compaction?
 * What might needs to be considered if the system schedules multiple compaction tasks in parallel?
 * SSDs also write its own logs (basically it is a log-structured storage). If the SSD has a write amplification of 2x, what is the end-to-end write amplification of the whole system? Related: [ZNS: Avoiding the Block Interface Tax for Flash-based SSDs](https://www.usenix.org/conference/atc21/presentation/bjorling).
 * Consider the case that the user chooses to keep a large number of sorted runs (i.e., 300) for tiered compaction. To make the read path faster, is it a good idea to keep some data structure that helps reduce the time complexity (i.e., to `O(log n)`) of finding SSTs to read in each layer for some key ranges? Note that normally, you will need to do a binary search in each sorted run to find the key ranges that you will need to read. (Check out Neon's [layer map](https://neon.tech/blog/persistent-structures-in-neons-wal-indexing) implementation!)
