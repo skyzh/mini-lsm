@@ -1,8 +1,10 @@
 #![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 
+use std::f32::consts::E;
+use std::io::Error;
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -37,13 +39,30 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 
 impl MemTable {
     /// Create a new mem-table.
-    pub fn create(_id: usize) -> Self {
-        unimplemented!()
+    pub fn create(id: usize) -> Self {
+        MemTable {
+            map: Arc::new(SkipMap::new()),
+            wal: None,
+            id,
+            approximate_size: Arc::new(AtomicUsize::new(0)),
+        }
     }
 
     /// Create a new mem-table with WAL
-    pub fn create_with_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
-        unimplemented!()
+    pub fn create_with_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+        let wal = Wal::create(path).map_err(|e| {
+            Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to create WAL: {:?}", e),
+            )
+        })?;
+
+        Ok(MemTable {
+            map: Arc::new(SkipMap::new()),
+            wal: Some(wal),
+            id: 0,
+            approximate_size: Arc::new(id.into()),
+        })
     }
 
     /// Create a memtable from WAL
@@ -68,8 +87,12 @@ impl MemTable {
     }
 
     /// Get a value by key.
-    pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
-        unimplemented!()
+    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
+        let entry = self.map.get(key);
+        match entry {
+            Some(entry) => Some(entry.value().clone()),
+            None => None,
+        }
     }
 
     /// Put a key-value pair into the mem-table.
@@ -77,8 +100,13 @@ impl MemTable {
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
     /// In week 3, day 5, modify the function to use the batch API.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        let size = key.len() + value.len();
+        self.map
+            .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
+        self.approximate_size
+            .fetch_add(size, Ordering::Relaxed);
+        Ok(())
     }
 
     /// Implement this in week 3, day 5.

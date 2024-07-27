@@ -1,12 +1,14 @@
 #![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
+
 use bytes::Bytes;
 use parking_lot::{Mutex, MutexGuard, RwLock};
 
@@ -39,6 +41,11 @@ pub struct LsmStorageState {
     pub sstables: HashMap<usize, Arc<SsTable>>,
 }
 
+impl Drop for LsmStorageState {
+    fn drop(&mut self) {
+        println!("Dropping LsmStorageState");
+    }
+}
 pub enum WriteBatchRecord<T: AsRef<[u8]>> {
     Put(T, T),
     Del(T),
@@ -278,8 +285,30 @@ impl LsmStorageInner {
     }
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
-    pub fn get(&self, _key: &[u8]) -> Result<Option<Bytes>> {
-        unimplemented!()
+    pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
+        let state = self.state.read();
+        match state.memtable.get(key) {
+            Some(val) => {
+                if val.is_empty() {
+                    return Ok(None);
+                }
+                Ok(Some(val))
+            }
+            None => {
+                for table in state.imm_memtables.iter() {
+                    match table.get(key) {
+                        Some(val) => {
+                            if val.is_empty() {
+                                return Ok(None);
+                            }
+                            return Ok(Some(val));
+                        }
+                        None => continue,
+                    }
+                }
+                Ok(None)
+            }
+        }
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
@@ -288,13 +317,67 @@ impl LsmStorageInner {
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        assert!(!value.is_empty(), "value cannot be empty");
+        assert!(!key.is_empty(), "key cannot be empty");
+
+        let memtable_size;
+        {
+            let state = self.state.read();
+            let result = match state.memtable.put(key, value) {
+                std::result::Result::Ok(()) => Ok(()),
+                Err(e) => Err(anyhow::anyhow!("Failed to insert to memtable: {:?}", e)),
+            };
+            memtable_size = state.memtable.approximate_size();
+            if !result.is_ok() {
+                return result;
+            }
+        }
+
+        self.try_freeze_memtable(memtable_size)?;
+
+        Ok(())
+    }
+
+    fn try_freeze_memtable(&self, approx_size: usize) -> Result<()> {
+        // Double-checked lock to a/ avoid lock cost for every operation and b/ ensure serialness to freezing the memtable
+        // so that we don't unecessarily create multiple memtables and freeze one (or some) of them immediately.
+
+        if approx_size >= self.options.target_sst_size {
+            let state_lock = self.state_lock.lock();
+            let state = self.state.read();
+
+            if state.memtable.approximate_size() >= self.options.target_sst_size {
+                // release read lock so that we can acquire the write lock in force_freeze_memtable
+                drop(state);
+
+                match self.force_freeze_memtable(&state_lock) {
+                    std::result::Result::Ok(_) => (),
+                    Err(e) => println!("Error freezing will try later {:?}", e),
+                }
+            }
+        };
+        Ok(())
     }
 
     /// Remove a key from the storage by writing an empty value.
-    pub fn delete(&self, _key: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn delete(&self, key: &[u8]) -> Result<()> {
+        let memtable_size;
+
+        {
+            let state = self.state.read();
+            let result = match state.memtable.put(key, &[]) {
+                std::result::Result::Ok(()) => Ok(()),
+                Err(e) => Err(anyhow::anyhow!("Failed to insert to memtable: {:?}", e)),
+            };
+            if result.is_err() {
+                return result;
+            }
+            memtable_size = state.memtable.approximate_size();
+        }
+
+        self.try_freeze_memtable(memtable_size)?;
+        Ok(())
     }
 
     pub(crate) fn path_of_sst_static(path: impl AsRef<Path>, id: usize) -> PathBuf {
@@ -319,7 +402,23 @@ impl LsmStorageInner {
 
     /// Force freeze the current memtable to an immutable memtable
     pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
-        unimplemented!()
+        let memtable_id = self.next_sst_id();
+        let memtable = Arc::new(MemTable::create(memtable_id));
+
+        let old_memtable;
+        {
+            let mut state = self.state.write();
+            let mut snapshot = state.as_ref().clone();
+            old_memtable = std::mem::replace(&mut snapshot.memtable, memtable);
+
+            // Update list of immutable memtables
+            snapshot.imm_memtables.insert(0, old_memtable.clone());
+
+            // Update the latest state with the mutated snapshot
+            *state = Arc::new(snapshot);
+        }
+
+        Ok(())
     }
 
     /// Force flush the earliest-created immutable memtable to disk
