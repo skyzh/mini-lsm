@@ -1,6 +1,5 @@
 #![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 
-use std::f32::consts::E;
 use std::io::Error;
 use std::ops::Bound;
 use std::path::Path;
@@ -104,8 +103,7 @@ impl MemTable {
         let size = key.len() + value.len();
         self.map
             .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
-        self.approximate_size
-            .fetch_add(size, Ordering::Relaxed);
+        self.approximate_size.fetch_add(size, Ordering::Relaxed);
         Ok(())
     }
 
@@ -122,8 +120,26 @@ impl MemTable {
     }
 
     /// Get an iterator over a range of keys.
-    pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
-        unimplemented!()
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
+        let (lower, upper) = (map_bound(lower), map_bound(upper));
+
+        let mut iterator: MemTableIterator = MemTableIteratorBuilder {
+            map: self.map.clone(),
+            iter_builder: |map| map.range((lower, upper)),
+            item: (Bytes::new(), Bytes::new()),
+        }
+        .build();
+
+        let new_entry = iterator.with_iter_mut(|iter| {
+            iter.next()
+                .map(|entry| (entry.key().clone(), entry.value().clone()))
+        });
+
+        if let Some(entry) = new_entry {
+            iterator.with_item_mut(|item| *item = entry);
+        }
+
+        iterator
     }
 
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
@@ -169,18 +185,33 @@ impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        &self.borrow_item().1
     }
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        KeySlice::from_slice(&self.borrow_item().0)
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.borrow_item().0.is_empty()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        // First, advance the iterator and store the result
+        let new_entry = self.with_iter_mut(|iter| {
+            iter.next()
+                .map(|entry| (entry.key().clone(), entry.value().clone()))
+        });
+
+        // Then, update the item
+        self.with_item_mut(|item| {
+            if let Some((key, value)) = new_entry {
+                *item = (Bytes::from(key), Bytes::from(value));
+            } else {
+                *item = (Bytes::from_static(&[]), Bytes::from_static(&[]));
+            }
+        });
+
+        Ok(())
     }
 }

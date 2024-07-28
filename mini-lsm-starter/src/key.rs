@@ -4,9 +4,15 @@ use bytes::Bytes;
 
 pub const TS_ENABLED: bool = false;
 
+// A newtype wrapper around T, where T can be borrowed as a slice of bytes.
+// Here the trait bound is that the key should be borrowable as
+// a slice of bytes
 pub struct Key<T: AsRef<[u8]>>(T);
 
+// A type alias for Key, specifically when it contains reference to a byte slice.
+// The 'a lifetime parameter ensures that KeySlice doesn't outlive the data it references
 pub type KeySlice<'a> = Key<&'a [u8]>;
+
 pub type KeyVec = Key<Vec<u8>>;
 pub type KeyBytes = Key<Bytes>;
 
@@ -100,7 +106,7 @@ impl Key<Bytes> {
     }
 }
 
-impl<'a> Key<&'a [u8]> {
+impl<'a> KeySlice<'a> {
     pub fn to_key_vec(self) -> KeyVec {
         Key(self.0.to_vec())
     }
