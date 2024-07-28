@@ -80,7 +80,7 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
 
     fn key(&self) -> Self::KeyType<'_> {
         assert!(self.is_valid());
-        self.key()
+        self.iter.key()
     }
 
     fn value(&self) -> &[u8] {
