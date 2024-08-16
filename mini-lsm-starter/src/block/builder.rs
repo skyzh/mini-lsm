@@ -42,6 +42,7 @@ impl BlockBuilder {
     #[must_use]
     pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         let estimated_size_for_data = key.len() + value.len();
+        // key len, value len, and offset
         let estimated_size_for_metadata = 3 * U16_SIZE;
 
         if self.size() + estimated_size_for_data + estimated_size_for_metadata > self.block_size {

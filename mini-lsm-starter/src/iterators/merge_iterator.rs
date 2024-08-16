@@ -63,7 +63,7 @@ impl<I: StorageIterator> MergeIterator<I> {
 
         // handle case when all iterators are invalid
         if iters.iter().all(|x| !x.is_valid()) {
-            // All invalid, select the last one as the current. We do this to main
+            // All invalid, select the last one as the current. We do this to maintain
             // consistency with the data structures. When we read or call next()
             // on this "current" iterator, it will be anyway marked as invalid.
             let mut iters = iters;
@@ -122,8 +122,8 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
                 // we advance `inner_iter` because it was consturctued _after_ current.
                 let result = inner_iter.1.next();
 
-                // Case 1: an error occurred when calling `next`. This should never happen but if next returned an
-                // error that means we need to kick it out anyway.
+                // Case 1: an error occurred when calling `next`. We kick out this iterator. TBD what needs to be done
+                // if there's a disk read error or something here. Not sure as currently everything is in memory.
                 if let e @ Err(_) = result {
                     PeekMut::pop(inner_iter);
                     return e;

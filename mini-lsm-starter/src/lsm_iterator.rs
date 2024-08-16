@@ -49,7 +49,7 @@ impl StorageIterator for LsmIterator {
 
     fn next(&mut self) -> Result<()> {
         self.inner.next()?;
-        self.move_to_non_delete()?;
+        // self.move_to_non_delete()?;
         Ok(())
     }
 }

@@ -315,3 +315,8 @@ fn test_task4_integration() {
         assert!(!iter.is_valid());
     }
 }
+
+#[test]
+fn custom_integration() {
+    
+}
