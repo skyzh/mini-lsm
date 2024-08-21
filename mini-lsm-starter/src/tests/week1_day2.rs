@@ -317,6 +317,4 @@ fn test_task4_integration() {
 }
 
 #[test]
-fn custom_integration() {
-    
-}
+fn custom_integration() {}

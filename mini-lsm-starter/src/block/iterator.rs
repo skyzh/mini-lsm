@@ -103,7 +103,7 @@ impl BlockIterator {
         // our key. Let's extract it as we know it's length!
         let key = &item[..key_length];
 
-        // the above didn't advance the item. we need to do so as we've read the key and 
+        // the above didn't advance the item. we need to do so as we've read the key and
         // interested in the value length as the next step.
         item.advance(key_length);
 
@@ -115,8 +115,8 @@ impl BlockIterator {
 
         // Value ends at where it began plus the length of the value itself
         let value_range_end = value_range_begin + value_length;
-        
-        // we have to again advance our item as we've read the value    
+
+        // we have to again advance our item as we've read the value range
         item.advance(value_length);
 
         // Updating our Structure/State:
@@ -127,14 +127,12 @@ impl BlockIterator {
 
         // set the value range
         self.value_range = (value_range_begin, value_range_end);
-
     }
 
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
     pub fn seek_to_key(&mut self, key: KeySlice) {
-
         // Since the key-value pairs in the block are sorted, we can do a binary
         // search over the entire search space. Our search space is defined by
         // the total entries in an LSM block, which can be easily obtained by the
@@ -145,15 +143,15 @@ impl BlockIterator {
         // <= also works and we'd just return from within in some cases.
         while start_offset < end_offset {
             let mid = (start_offset) + (end_offset - start_offset) / 2;
-            
+
             // remember we have to seek to extract the key at mid and compare it
             self.seek_to(mid);
             assert!(self.is_valid());
             match self.key.cmp(&key.to_key_vec()) {
                 std::cmp::Ordering::Less => start_offset = mid + 1,
                 std::cmp::Ordering::Equal => return,
-                // since we need the key >= the passed key, we aren't 
-                // doing mid - 1 here. 
+                // since we need the key >= the passed key, we aren't
+                // doing mid - 1 here.
                 std::cmp::Ordering::Greater => end_offset = mid,
             }
         }
