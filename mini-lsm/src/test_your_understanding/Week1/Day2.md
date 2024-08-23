@@ -32,3 +32,4 @@
 
 - If we want to get rid of self-referential structure and have a lifetime on the memtable iterator (i.e., MemtableIterator<'a>, where 'a =        memtable or LsmStorageInner lifetime), is it still possible to implement the scan functionality?
   What happens if (1) we create an iterator on the skiplist memtable (2) someone inserts new keys into the memtable (3) will the iterator see the new key?
+  - <Unanswered>
