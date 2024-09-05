@@ -280,10 +280,14 @@ impl LsmStorageInner {
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
         if let Some(value) = self.state.read().memtable.get(key) {
-            Ok(if value.is_empty() { None } else { Some(value) })
-        } else {
-            Ok(None)
+            return Ok(if value.is_empty() { None } else { Some(value) });
         }
+        for imm_memtable in self.state.read().imm_memtables.clone() {
+            if let Some(value) = imm_memtable.get(key) {
+                return Ok(if value.is_empty() { None } else { Some(value) });
+            }
+        }
+        Ok(None)
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
@@ -293,12 +297,15 @@ impl LsmStorageInner {
 
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        let state = self.state.read();
-        state.memtable.put(key, value)?;
-        let size = state.memtable.approximate_size();
+        let size;
+        {
+            let read_guard = self.state.read();
+            read_guard.memtable.put(key, value)?;
+            size = read_guard.memtable.approximate_size();
+        }
         if size >= self.options.target_sst_size {
             let lock = self.state_lock.lock();
-            let size = state.memtable.approximate_size();
+            let size = self.state.read().memtable.approximate_size();
             if size >= self.options.target_sst_size {
                 self.force_freeze_memtable(&lock)?;
             }
@@ -334,9 +341,7 @@ impl LsmStorageInner {
     /// Force freeze the current memtable to an immutable memtable
     pub fn force_freeze_memtable(&self, _state_lock_observer: &MutexGuard<'_, ()>) -> Result<()> {
         let new_memtable = Arc::new(MemTable::create(self.next_sst_id()));
-        let mut read_guard = self.state.read();
-        let mut new_state: LsmStorageState = read_guard.as_ref().clone();
-        drop(read_guard);
+        let mut new_state = self.state.read().as_ref().clone();
 
         let old_memtable = std::mem::replace(&mut new_state.memtable, new_memtable);
         new_state.imm_memtables.insert(0, old_memtable.clone());
