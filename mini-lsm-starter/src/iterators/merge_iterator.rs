@@ -2,6 +2,7 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 use std::cmp::{self};
+use std::collections::binary_heap::PeekMut;
 use std::collections::BinaryHeap;
 
 use anyhow::Result;
@@ -45,7 +46,20 @@ pub struct MergeIterator<I: StorageIterator> {
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
-        unimplemented!()
+        let mut merge_iter = MergeIterator::<I>{
+            iters: BinaryHeap::new(),
+            current: None,
+        };
+
+        for (i, iter) in iters.into_iter().enumerate() {
+            if iter.is_valid() {
+                merge_iter.iters.push(HeapWrapper(i, iter));
+            }
+        }
+
+        merge_iter.current = merge_iter.iters.pop();
+
+        merge_iter
     }
 }
 
@@ -55,18 +69,66 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
     type KeyType<'a> = KeySlice<'a>;
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        if let Some(ref item) = self.current {
+            item.1.key()
+        } else {
+            KeySlice::default()
+        }
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        if let Some(ref item) = self.current {
+            item.1.value()
+        } else {
+            &[]
+        }
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        if let Some(ref item) = self.current {
+            item.1.is_valid()
+        } else {
+            false
+        }
     }
 
+    /// 当调用 next 时，可以假定 current 是有效的，并且 key 是最小的
+    /// 调用 next 后，current 需要继续有效，并且 key 是最小的 
+    /// 先迭代 key 与 current 相同的 peek_item，直到 key 不同，然后迭代 current
+    /// current 如果失效，则 pop 出 heap 中下一个元素，这样可以保证 iters 中所有元素都有效
+    /// 否则，比较 current 和 peak_item，取更大的作为 current
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let item = self.current.as_mut().unwrap();
+        while let Some(mut peek_item) = self.iters.peek_mut() {
+            if !peek_item.1.is_valid() || item.1.key() < peek_item.1.key() {
+                break;
+            }
+            if item.1.key() == peek_item.1.key() {
+                if let e @ Err(_) = peek_item.1.next() {
+                    PeekMut::pop(peek_item);
+                    return e;
+                }
+                if !peek_item.1.is_valid() {
+                    PeekMut::pop(peek_item);
+                }
+            }
+        }
+
+        item.1.next()?;
+
+        if !item.1.is_valid() {
+            if let Some(new_item) = self.iters.pop() {
+                *item = new_item;
+            } 
+            return Ok(());
+        }
+
+        if let Some(mut top) = self.iters.peek_mut() {
+            if item < &mut top {
+                std::mem::swap(item, &mut top);
+            }
+        }
+
+        Ok(())
     }
 }
