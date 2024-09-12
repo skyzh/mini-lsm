@@ -12,6 +12,7 @@ use crate::wal::Wal;
 use anyhow::Result;
 use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
+use nom::AsBytes;
 use ouroboros::self_referencing;
 
 /// A basic mem-table based on crossbeam-skiplist.
@@ -105,7 +106,23 @@ impl MemTable {
 
     /// Get an iterator over a range of keys.
     pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
-        unimplemented!()
+        let peek = self
+            .map
+            .range((map_bound(lower), map_bound(upper)))
+            .next()
+            .map_or((Bytes::new(), Bytes::new()), |entry| {
+                (entry.key().clone(), entry.value().clone())
+            });
+
+        MemTableIterator::new(
+            self.map.clone(),
+            |map| {
+                let mut iter = map.range((map_bound(lower), map_bound(upper)));
+                iter.next();
+                iter
+            },
+            peek,
+        )
     }
 
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
@@ -151,18 +168,27 @@ impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.borrow_item().1.as_bytes()
     }
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        KeySlice::from_slice(self.borrow_item().0.as_bytes())
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.borrow_item().0.is_empty()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        self.with_mut(|self_mut| {
+            if let Some(entry) = self_mut.iter.next() {
+                *self_mut.item = (entry.key().clone(), entry.value().clone());
+                Ok(())
+            } else {
+                // 如果没有下一个元素，将item设置为空字节，表示无效状态
+                *self_mut.item = (Bytes::new(), Bytes::new());
+                Ok(())
+            }
+        })
     }
 }
