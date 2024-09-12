@@ -367,9 +367,19 @@ impl LsmStorageInner {
     /// Create an iterator over a range of keys.
     pub fn scan(
         &self,
-        _lower: Bound<&[u8]>,
-        _upper: Bound<&[u8]>,
+        lower: Bound<&[u8]>,
+        upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
-        unimplemented!()
+        let read_guard = self.state.read();
+        let iter = read_guard.memtable.scan(lower, upper);
+        let mut iters: Vec<_> = read_guard
+            .imm_memtables
+            .iter()
+            .map(|memtable| memtable.scan(lower, upper)).collect();
+        iters.insert(0, iter);
+
+        Ok(FusedIterator::new(LsmIterator::new(MergeIterator::create(
+    iters.into_iter().map(|iter| Box::new(iter)).collect()
+        ))?))
     }
 }
