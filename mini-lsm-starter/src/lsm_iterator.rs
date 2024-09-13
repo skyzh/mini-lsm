@@ -17,7 +17,7 @@ pub struct LsmIterator {
 
 impl LsmIterator {
     pub(crate) fn new(iter: LsmIteratorInner) -> Result<Self> {
-        let mut iter = Self { inner: iter }
+        let mut iter = Self { inner: iter };
 
         iter.skip_empty_value()?;
         Ok(iter)
