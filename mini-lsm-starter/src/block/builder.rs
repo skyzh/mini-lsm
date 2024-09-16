@@ -58,7 +58,7 @@ impl BlockBuilder {
     pub fn build(self) -> Block {
         Block {
             data: self.data.clone(),
-            offset: self.offset.clone()
+            offsets: self.offsets.clone()
         }
     }
 }

@@ -108,14 +108,26 @@ impl BlockIterator {
         if self.block.data.is_empty() {
             return;
         }
-        for (i, offset) in self.block.offsets.iter().enumerate() {
+
+        // use binary search to improve performance
+        self.idx = self
+        .block
+        .offsets
+        .binary_search_by(|offset| {
             let offset = *offset as usize;
             let (key_len, key_slice, ..) = self.read_entry_by_offset(offset);
-            if key_slice >= key.raw_ref() {
-                self.idx = i;
-                break;
-            }
-        }
+            key_slice.cmp(key.raw_ref())
+        })
+        .unwrap_or_else(|idx| idx);
+
+        // for (i, offset) in self.block.offsets.iter().enumerate() {
+        //     let offset = *offset as usize;
+        //     let (key_len, key_slice, ..) = self.read_entry_by_offset(offset);
+        //     if key_slice >= key.raw_ref() {
+        //         self.idx = i;
+        //         break;
+        //     }
+        // }
 
         let (key_len, key_slice, value_len, value_range) =
             self.read_entry_by_offset(self.block.offsets[self.idx] as usize);

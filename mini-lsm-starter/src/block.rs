@@ -28,7 +28,7 @@ impl Block {
     }
 
     /// Read a u16 from `&[u8]` after the given cursor position
-    fn read_u16(data: &[u8], cursor: usize) -> u16 {
+    pub fn read_u16(data: &[u8], cursor: usize) -> u16 {
         let offset_bytes = &data[cursor..cursor + 2];
         let offset = u16::from_le_bytes([offset_bytes[0], offset_bytes[1]]);
         offset

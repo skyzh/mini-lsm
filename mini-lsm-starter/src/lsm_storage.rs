@@ -377,11 +377,14 @@ impl LsmStorageInner {
         let mut iters: Vec<_> = read_guard
             .imm_memtables
             .iter()
-            .map(|memtable| memtable.scan(lower, upper)).collect();
+            .map(|memtable| memtable.scan(lower, upper))
+            .collect();
         iters.insert(0, iter);
 
-        Ok(FusedIterator::new(LsmIterator::new(MergeIterator::create(
-    iters.into_iter().map(|iter| Box::new(iter)).collect()
-        ))?))
+        Ok(FusedIterator::new(LsmIterator::new(
+            MergeIterator::create(
+                iters.into_iter().map(|iter| Box::new(iter)).collect()
+            )
+        )?))
     }
 }
