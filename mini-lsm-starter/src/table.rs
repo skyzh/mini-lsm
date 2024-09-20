@@ -197,15 +197,23 @@ impl SsTable {
     /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
     /// You may also assume the key-value pairs stored in each consecutive block are sorted.
     pub fn find_block_idx(&self, key: KeySlice) -> usize {
-        self.block_meta.binary_search_by(|block_meta| {
-            if block_meta.first_key.as_key_slice().cmp(&key) == Ordering::Less {
-                Ordering::Less
-            } else if block_meta.last_key.as_key_slice().cmp(&key) == Ordering::Greater {
-                Ordering::Greater
-            } else {
-                Ordering::Equal
-            }
-        }).unwrap_or_else(|idx| idx)
+        let idx = self
+            .block_meta
+            .binary_search_by(|block_meta| {
+                if block_meta.first_key.as_key_slice().cmp(&key) == Ordering::Greater {
+                    Ordering::Greater
+                } else if block_meta.last_key.as_key_slice().cmp(&key) == Ordering::Less {
+                    Ordering::Less
+                } else {
+                    Ordering::Equal
+                }
+            })
+        .unwrap_or_else(|idx| idx);
+        if idx == self.block_meta.len() {
+            idx - 1
+        } else {
+            idx
+        }
     }
 
     /// Get number of data blocks.

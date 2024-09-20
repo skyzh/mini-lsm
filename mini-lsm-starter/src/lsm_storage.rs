@@ -383,7 +383,7 @@ impl LsmStorageInner {
 
         Ok(FusedIterator::new(LsmIterator::new(
             MergeIterator::create(
-                iters.into_iter().map(|iter| Box::new(iter)).collect()
+                iters.into_iter().map(Box::new).collect()
             )
         )?))
     }
