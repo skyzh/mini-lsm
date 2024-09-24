@@ -215,8 +215,13 @@ impl SsTable {
                 }
             })
         .unwrap_or_else(|idx| idx);
+        // key 超出整个 SST时 idx 会越界
         if idx == self.block_meta.len() {
             idx - 1
+        }
+        // key 超出某一个 Block 但没有超出后一个时，idx 会落到前一个
+        else if self.block_meta[idx].last_key.as_key_slice() < key {
+            idx + 1
         } else {
             idx
         }
