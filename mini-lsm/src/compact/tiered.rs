@@ -61,8 +61,8 @@ impl TieredCompactionController {
         for id in 0..(snapshot.levels.len() - 1) {
             size += snapshot.levels[id].1.len();
             let next_level_size = snapshot.levels[id + 1].1.len();
-            let current_size_ratio = size as f64 / next_level_size as f64;
-            if current_size_ratio >= size_ratio_trigger && id + 2 >= self.options.min_merge_width {
+            let current_size_ratio = next_level_size as f64 / size as f64;
+            if current_size_ratio > size_ratio_trigger && id + 1 >= self.options.min_merge_width {
                 println!(
                     "compaction triggered by size ratio: {}",
                     current_size_ratio * 100.0
@@ -71,10 +71,10 @@ impl TieredCompactionController {
                     tiers: snapshot
                         .levels
                         .iter()
-                        .take(id + 2)
+                        .take(id + 1)
                         .cloned()
                         .collect::<Vec<_>>(),
-                    bottom_tier_included: id + 2 >= snapshot.levels.len(),
+                    bottom_tier_included: id + 1 >= snapshot.levels.len(),
                 });
             }
         }
