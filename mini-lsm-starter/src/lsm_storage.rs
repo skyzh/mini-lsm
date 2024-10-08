@@ -292,6 +292,27 @@ impl LsmStorageInner {
                 return Ok(if value.is_empty() { None } else { Some(value) });
             }
         }
+
+        let read_guard = self.state.read();
+        let sst_iters: Vec<_> = read_guard
+            .l0_sstables
+            .iter()
+            .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
+            .collect();
+
+        drop(read_guard);
+
+        let sst_iters: Result<Vec<_>> = sst_iters
+            .into_iter()
+            .map(|sst| SsTableIterator::create_and_seek_to_key(sst, KeySlice::from_slice(key)))
+            .collect();
+
+        let sst_iters = MergeIterator::create(sst_iters?.into_iter().map(Box::new).collect());
+
+        if key == sst_iters.key().raw_ref() && !sst_iters.value().is_empty() {
+            return Ok(Some(Bytes::from(sst_iters.value().to_vec())));
+        }
+
         Ok(None)
     }
 

@@ -93,7 +93,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
     }
 
     /// 当调用 next 时，可以假定 current 是有效的，并且 key 是最小的
-    /// 调用 next 后，current 需要继续有效，并且 key 是最小的 
+    /// 调用 next 后，current 需要继续有效，并且 key 是最小的
     /// 先迭代 key 与 current 相同的 peek_item，直到 key 不同，然后迭代 current
     /// current 如果失效，则 pop 出 heap 中下一个元素，这样可以保证 iters 中所有元素都有效
     /// 否则，比较 current 和 peak_item，取更大的作为 current
@@ -119,7 +119,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
         if !item.1.is_valid() {
             if let Some(new_item) = self.iters.pop() {
                 *item = new_item;
-            } 
+            }
             return Ok(());
         }
 
