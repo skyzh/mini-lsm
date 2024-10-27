@@ -5,15 +5,15 @@ use std::path::Path;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{atomic, Arc};
 
-use anyhow::Result;
-use bytes::Bytes;
-use crossbeam_skiplist::SkipMap;
-use ouroboros::self_referencing;
-
 use crate::iterators::StorageIterator;
 use crate::key::KeySlice;
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
+use anyhow::Result;
+use bytes::Bytes;
+use crossbeam_skiplist::SkipMap;
+use nom::AsBytes;
+use ouroboros::self_referencing;
 
 /// A basic mem-table based on crossbeam-skiplist.
 ///
@@ -106,7 +106,15 @@ impl MemTable {
 
     /// Get an iterator over a range of keys.
     pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
-        unimplemented!()
+        let (lower_bound, upper_bound) = (map_bound(_lower), map_bound(_upper));
+        let mut iter = MemTableIteratorBuilder {
+            map: Arc::clone(&self.map),
+            iter_builder: |map| map.range((lower_bound, upper_bound)),
+            item: (Bytes::copy_from_slice(&[]), Bytes::copy_from_slice(&[])),
+        }
+        .build();
+        iter.next().unwrap();
+        iter
     }
 
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
@@ -152,18 +160,29 @@ impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        (&self.borrow_item().1).as_bytes()
     }
 
     fn key(&self) -> KeySlice {
-        unimplemented!()
+        KeySlice::from_slice(&self.borrow_item().0)
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.borrow_item().0.is_empty()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let entry = self.with_iter_mut(|iter| {
+            iter.next()
+                .map(|e| {
+                    (
+                        Bytes::copy_from_slice(e.key()),
+                        Bytes::copy_from_slice(e.value()),
+                    )
+                })
+                .unwrap_or_else(|| (Bytes::from_static(&[]), Bytes::from_static(&[])))
+        });
+        self.with_mut(|curr| *curr.item = entry);
+        Ok(())
     }
 }

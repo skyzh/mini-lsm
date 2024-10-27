@@ -6,20 +6,22 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-use anyhow::Result;
-use bytes::Bytes;
-use parking_lot::{Mutex, MutexGuard, RwLock};
-
 use crate::block::Block;
 use crate::compact::{
     CompactionController, CompactionOptions, LeveledCompactionController, LeveledCompactionOptions,
     SimpleLeveledCompactionController, SimpleLeveledCompactionOptions, TieredCompactionController,
 };
+use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::Manifest;
-use crate::mem_table::MemTable;
+use crate::mem_table::{MemTable, MemTableIterator};
 use crate::mvcc::LsmMvccInner;
 use crate::table::SsTable;
+use anyhow::Result;
+use bytes::Bytes;
+use parking_lot::{Mutex, MutexGuard, RwLock};
+use serde_json::to_vec;
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
@@ -394,6 +396,25 @@ impl LsmStorageInner {
         _lower: Bound<&[u8]>,
         _upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
-        unimplemented!()
+        let snapshot = {
+            let state = self.state.read();
+            Arc::clone(&state)
+        };
+        let mut mem_table_iters = vec![];
+        mem_table_iters.push(Box::new(snapshot.memtable.scan(_lower, _upper)));
+        for table in snapshot.imm_memtables.iter() {
+            let iter = table.scan(_lower, _upper);
+            mem_table_iters.push(Box::new(iter));
+        }
+
+        let mut merge_iterator = MergeIterator::create(mem_table_iters);
+        let mut is_key_deleted = merge_iterator.value().is_empty();
+        while is_key_deleted & merge_iterator.is_valid() {
+            merge_iterator.next()?;
+            is_key_deleted = merge_iterator.value().is_empty();
+        }
+
+        let lsm_iterator = LsmIterator::new(merge_iterator)?;
+        Ok(FusedIterator::new(lsm_iterator))
     }
 }
