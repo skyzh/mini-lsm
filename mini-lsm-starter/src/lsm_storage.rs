@@ -24,7 +24,7 @@ use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::manifest::Manifest;
 use crate::mem_table::MemTable;
 use crate::mvcc::LsmMvccInner;
-use crate::table::{SsTable, SsTableIterator};
+use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
@@ -159,7 +159,17 @@ impl Drop for MiniLsm {
 
 impl MiniLsm {
     pub fn close(&self) -> Result<()> {
-        unimplemented!()
+        let mut thread_guard = self.flush_thread.lock();
+
+        self.flush_notifier.send(())?;
+
+        if let Some(flush_thread) = thread_guard.take() {
+            flush_thread
+                .join()
+                .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        }
+
+        Ok(())
     }
 
     /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
@@ -242,6 +252,9 @@ impl LsmStorageInner {
     /// not exist.
     pub(crate) fn open(path: impl AsRef<Path>, options: LsmStorageOptions) -> Result<Self> {
         let path = path.as_ref();
+
+        std::fs::create_dir_all(path)?;
+
         let state = LsmStorageState::create(&options);
 
         let compaction_controller = match &options.compaction_options {
@@ -382,7 +395,41 @@ impl LsmStorageInner {
 
     /// Force flush the earliest-created immutable memtable to disk
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
-        unimplemented!()
+        // let state_guard = self.state_lock.lock();
+
+        // Read last imm_memtable
+        let last_memtable = self
+            .state
+            .read()
+            .imm_memtables
+            .last()
+            .expect("no more immutable memtables")
+            .clone();
+        // Build new sst
+        let mut builder = SsTableBuilder::new(self.options.block_size);
+        last_memtable.flush(&mut builder)?;
+        let id = last_memtable.id();
+        let sst = Arc::new(builder.build(
+            id,
+            Some(self.block_cache.clone()),
+            self.path_of_sst(id).clone(),
+        )?);
+
+        // Flush sst to l0_sstables
+        {
+            let mut write_guard = self.state.write();
+            let mut write_ref = write_guard.as_ref().clone();
+
+            write_ref
+                .imm_memtables
+                .pop()
+                .expect("no more immutable memtables to pop");
+            write_ref.l0_sstables.insert(0, id);
+            write_ref.sstables.insert(id, sst);
+
+            *write_guard = Arc::new(write_ref);
+        }
+        Ok(())
     }
 
     pub fn new_txn(&self) -> Result<()> {
@@ -409,6 +456,28 @@ impl LsmStorageInner {
             .l0_sstables
             .iter()
             .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
+            .filter(|sst| {
+                println!("{:?},{:?}", lower, upper);
+                let lt = match lower {
+                    Bound::Included(key) => {
+                        sst.last_key().raw_ref() < key
+                    }
+                    Bound::Excluded(key) => {
+                        sst.last_key().raw_ref() <= key
+                    }
+                    _ => false,
+                };
+                let gt = match upper {
+                    Bound::Included(key) => {
+                        sst.first_key().raw_ref() > key
+                    }
+                    Bound::Excluded(key) => {
+                        sst.first_key().raw_ref() >= key
+                    }
+                    _ => false,
+                };
+                !lt && !gt
+            })
             .collect();
 
         drop(read_guard);
@@ -436,6 +505,11 @@ impl LsmStorageInner {
                 MergeIterator::create(iters.into_iter().map(Box::new).collect()),
                 MergeIterator::create(sst_iters?.into_iter().map(Box::new).collect()),
             )?,
+            match upper {
+                Bound::Included(key) => Bound::Included(Bytes::copy_from_slice(key)),
+                Bound::Excluded(key) => Bound::Excluded(Bytes::copy_from_slice(key)),
+                Bound::Unbounded => Bound::Unbounded,
+            },
         )?))
     }
 }

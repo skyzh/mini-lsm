@@ -132,9 +132,11 @@ impl SsTable {
 
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
-        let file_size  = file.size();
+        let file_size = file.size();
         let mut meta_offset_bytes = [0u8; 4];
-        file.read(file_size - 4, 4)?.as_slice().copy_to_slice(meta_offset_bytes.as_mut());
+        file.read(file_size - 4, 4)?
+            .as_slice()
+            .copy_to_slice(meta_offset_bytes.as_mut());
         let meta_offset = u32::from_le_bytes(meta_offset_bytes) as u64;
 
         let meta_buf_vec = file.read(meta_offset, file_size - 4 - meta_offset)?;
@@ -150,7 +152,7 @@ impl SsTable {
             block_meta,
             block_meta_offset: meta_offset as usize,
             bloom: None,
-            max_ts: 0
+            max_ts: 0,
         })
     }
 
@@ -176,14 +178,18 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        let block_offset = self.block_meta
+        let block_offset = self
+            .block_meta
             .get(block_idx)
             .ok_or_else(|| anyhow::anyhow!("invalid index: {}", block_idx))?
             .offset as u64;
-        let next_block_offset = self.block_meta
-            .get(block_idx + 1)
-            .map_or(self.block_meta_offset, |meta| meta.offset) as u64;
-        let block_buf_vec = self.file.read(block_offset, next_block_offset - block_offset)?;
+        let next_block_offset =
+            self.block_meta
+                .get(block_idx + 1)
+                .map_or(self.block_meta_offset, |meta| meta.offset) as u64;
+        let block_buf_vec = self
+            .file
+            .read(block_offset, next_block_offset - block_offset)?;
         let block_buf = &block_buf_vec.as_slice();
         Ok(Arc::new(Block::decode(block_buf)))
     }

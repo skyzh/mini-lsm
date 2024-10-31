@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::cmp::{self};
 use std::collections::binary_heap::PeekMut;
 use std::collections::BinaryHeap;
@@ -42,6 +39,7 @@ impl<I: StorageIterator> Ord for HeapWrapper<I> {
 pub struct MergeIterator<I: StorageIterator> {
     iters: BinaryHeap<HeapWrapper<I>>,
     current: Option<HeapWrapper<I>>,
+    iter_counter: usize,
 }
 
 impl<I: StorageIterator> MergeIterator<I> {
@@ -49,10 +47,12 @@ impl<I: StorageIterator> MergeIterator<I> {
         let mut merge_iter = MergeIterator::<I> {
             iters: BinaryHeap::new(),
             current: None,
+            iter_counter: 0,
         };
 
         for (i, iter) in iters.into_iter().enumerate() {
             if iter.is_valid() {
+                merge_iter.iter_counter += iter.num_active_iterators();
                 merge_iter.iters.push(HeapWrapper(i, iter));
             }
         }
@@ -130,5 +130,9 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
         }
 
         Ok(())
+    }
+
+    fn num_active_iterators(&self) -> usize {
+        self.iter_counter
     }
 }

@@ -25,10 +25,10 @@ pub struct LsmIterator {
 }
 
 impl LsmIterator {
-    pub(crate) fn new(iter: LsmIteratorInner) -> Result<Self> {
+    pub(crate) fn new(iter: LsmIteratorInner, upper_bound: Bound<Bytes>) -> Result<Self> {
         let mut iter = Self {
             inner: iter,
-            upper_bound: Bound::Unbounded,
+            upper_bound,
             out_of_bound: false,
         };
 
@@ -70,6 +70,7 @@ impl StorageIterator for LsmIterator {
             return Ok(());
         }
         self.inner.next()?;
+        self.skip_empty_value()?;
         match &self.upper_bound {
             Bound::Unbounded => {}
             Bound::Included(key) => {
@@ -83,7 +84,11 @@ impl StorageIterator for LsmIterator {
                 }
             }
         }
-        self.skip_empty_value()
+        Ok(())
+    }
+
+    fn num_active_iterators(&self) -> usize {
+        self.inner.num_active_iterators()
     }
 }
 
@@ -134,5 +139,9 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
             return e;
         }
         Ok(())
+    }
+
+    fn num_active_iterators(&self) -> usize {
+        self.iter.num_active_iterators()
     }
 }
