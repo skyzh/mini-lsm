@@ -311,6 +311,11 @@ impl LsmStorageInner {
             .l0_sstables
             .iter()
             .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
+            .filter(|sst| {
+                let lt = sst.last_key().raw_ref() < key;
+                let gt = sst.first_key().raw_ref() > key;
+                !lt && !gt
+            })
             .collect();
 
         drop(read_guard);
