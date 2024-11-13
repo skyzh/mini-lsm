@@ -162,14 +162,23 @@ Example 2:
 ```
 Tier 3: 1
 Tier 2: 1 ; 1 / 1 = 1
-Tier 1: 3 ; 3 / (1 + 1) = 1.5, compact tier 1-3
+Tier 1: 3 ; 3 / (1 + 1) = 1.5, compact tier 1+2+3
+```
+
+```
+Tier 4: 5
 ```
 
 Example 3:
 
 ```
 Tier 3: 1
-Tier 2: 2 ; 2 / 1 = 2, compact tier 1-2
+Tier 2: 2 ; 2 / 1 = 2, compact tier 2+3
+Tier 1: 4
+```
+
+```
+Tier 4: 3
 Tier 1: 4
 ```
 
