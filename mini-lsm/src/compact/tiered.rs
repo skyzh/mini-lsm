@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, usize};
 
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,7 @@ pub struct TieredCompactionOptions {
     pub max_size_amplification_percent: usize,
     pub size_ratio: usize,
     pub min_merge_width: usize,
+    pub max_merge_width: Option<usize>,
 }
 
 pub struct TieredCompactionController {
@@ -64,8 +65,9 @@ impl TieredCompactionController {
             let current_size_ratio = next_level_size as f64 / size as f64;
             if current_size_ratio > size_ratio_trigger && id + 1 >= self.options.min_merge_width {
                 println!(
-                    "compaction triggered by size ratio: {}",
-                    current_size_ratio * 100.0
+                    "compaction triggered by size ratio: {} > {}",
+                    current_size_ratio * 100.0,
+                    size_ratio_trigger * 100.0
                 );
                 return Some(TieredCompactionTask {
                     tiers: snapshot
@@ -79,7 +81,10 @@ impl TieredCompactionController {
             }
         }
         // trying to reduce sorted runs without respecting size ratio
-        let num_tiers_to_take = snapshot.levels.len() - self.options.num_tiers + 2;
+        let num_tiers_to_take = snapshot
+            .levels
+            .len()
+            .min(self.options.max_merge_width.unwrap_or(usize::MAX));
         println!("compaction triggered by reducing sorted runs");
         return Some(TieredCompactionTask {
             tiers: snapshot
