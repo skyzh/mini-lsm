@@ -42,15 +42,26 @@ Universal compaction will only trigger tasks when the number of tiers (sorted ru
 
 The first trigger of universal compaction is by space amplification ratio. As we discussed in the overview chapter, space amplification can be estimated by `engine_size / last_level_size`. In our implementation, we compute the space amplification ratio by `all levels except last level size / last level size`, so that the ratio can be scaled to `[0, +inf)` instead of `[1, +inf]`. This is also consistent with the RocksDB implementation.
 
-When `all levels except last level size / last level size` >= `max_size_amplification_percent * 100%`, we will need to trigger a full compaction.
+The reason why we compute the space amplification ratio like this is because we model the engine in a way that it stores a fixed amount of user data (i.e., assume it's 100GB), and the user keeps updating the values by writing to the engine. Therefore, eventually, all keys get pushed down to the bottom-most tier, the bottom-most tier size should be equivalent to the amount of data (100GB), the upper tiers contain updates to the data that are not yet compacted to the bottom-most tier.
+
+When `all levels except last level size / last level size` >= `max_size_amplification_percent * 100%`, we will need to trigger a full compaction. For example, if we have a LSM state like:
+
+```
+Tier 3: 1
+Tier 2: 1 ; all levels except last level size = 2
+Tier 1: 1 ; last level size = 1, 2/1=2
+```
+
+Assume `max_size_amplification_percent` = 200%, we should trigger a full compaction now.
 
 After you implement this trigger, you can run the compaction simulator. You will see:
 
 ```shell
-cargo run --bin compaction-simulator tiered
+cargo run --bin compaction-simulator tiered --iterations 10
 ```
 
 ```
+=== Iteration 2 ===
 --- After Flush ---
 L3 (1): [3]
 L2 (1): [2]
@@ -64,8 +75,45 @@ L4 (3): [3, 2, 1]
 
 With this trigger, we will only trigger full compaction when it reaches the space amplification ratio. And at the end of the simulation, you will see:
 
+```bash
+cargo run --bin compaction-simulator tiered
 ```
+
+```
+=== Iteration 7 ===
 --- After Flush ---
+L8 (1): [8]
+L7 (1): [7]
+L6 (1): [6]
+L5 (1): [5]
+L4 (1): [4]
+L3 (1): [3]
+L2 (1): [2]
+L1 (1): [1]
+--- Compaction Task ---
+--- Compaction Task ---
+compaction triggered by space amplification ratio: 700
+L8 [8] L7 [7] L6 [6] L5 [5] L4 [4] L3 [3] L2 [2] L1 [1] -> [9, 10, 11, 12, 13, 14, 15, 16]
+--- After Compaction ---
+L9 (8): [8, 7, 6, 5, 4, 3, 2, 1]
+--- Compaction Task ---
+1 compaction triggered in this iteration
+--- Statistics ---
+Write Amplification: 16/8=2.000x
+Maximum Space Usage: 16/8=2.000x
+Read Amplification: 1x
+
+=== Iteration 49 ===
+--- After Flush ---
+L82 (1): [82]
+L81 (1): [81]
+L80 (1): [80]
+L79 (1): [79]
+L78 (1): [78]
+L77 (1): [77]
+L76 (1): [76]
+L75 (1): [75]
+L74 (1): [74]
 L73 (1): [73]
 L72 (1): [72]
 L71 (1): [71]
@@ -73,41 +121,134 @@ L70 (1): [70]
 L69 (1): [69]
 L68 (1): [68]
 L67 (1): [67]
-L40 (27): [39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+L66 (1): [66]
+L65 (1): [65]
+L64 (1): [64]
+L63 (1): [63]
+L62 (1): [62]
+L61 (1): [61]
+L60 (1): [60]
+L59 (1): [59]
+L58 (1): [58]
+L57 (1): [57]
+L33 (24): [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 9, 10, 11, 12, 13, 14, 15, 16]
+--- Compaction Task ---
+--- Compaction Task ---
+no compaction triggered
+--- Statistics ---
+Write Amplification: 82/50=1.640x
+Maximum Space Usage: 50/50=1.000x
+Read Amplification: 27x
 ```
 
-The `num_tiers` in the compaction simulator is set to 3. However, there are far more than 3 tiers in the LSM state, which incurs large read amplification.
+The `num_tiers` in the compaction simulator is set to 8. However, there are far more than 8 tiers in the LSM state, which incurs large read amplification.
 
 The current trigger only reduces space amplification. We will need to add new triggers to the compaction algorithm to reduce read amplification.
 
 ### Task 1.2: Triggered by Size Ratio
 
-The next trigger is the size ratio trigger. For all tiers, if there is a tier `n` that `size of all previous tiers / this tier >= (100 + size_ratio) * 100%`, we will compact all `n` tiers. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 100%`, we will compact all previous tiers and the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+
+For example, given the following LSM state, and assume size_ratio = 1, we should compact when the ratio value > 101%:
+
+```
+Tier 3: 1
+Tier 2: 1 ; 1 / 1 = 1
+Tier 1: 1 ; 1 / (1 + 1) = 0.5, no compaction triggered
+```
+
+Example 2:
+
+```
+Tier 3: 1
+Tier 2: 1 ; 1 / 1 = 1
+Tier 1: 3 ; 3 / (1 + 1) = 1.5, compact tier 1-3
+```
+
+Example 3:
+
+```
+Tier 3: 1
+Tier 2: 2 ; 2 / 1 = 2, compact tier 1-2
+Tier 1: 4
+```
 
 With this trigger, you will observe the following in the compaction simulator:
 
+```bash
+cargo run --bin compaction-simulator tiered
 ```
-L207 (1): [207]
-L204 (3): [203, 202, 201]
-L186 (15): [185, 178, 179, 180, 181, 182, 183, 184, 158, 159, 160, 161, 162, 163, 164]
-L114 (31): [113, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
+
+```
+=== Iteration 49 ===
+--- After Flush ---
+L119 (1): [119]
+L118 (1): [118]
+L114 (4): [113, 112, 111, 110]
+L105 (5): [104, 103, 102, 101, 100]
+L94 (6): [93, 92, 91, 90, 89, 88]
+L81 (7): [80, 79, 78, 77, 76, 75, 74]
+L48 (26): [47, 46, 45, 44, 43, 37, 38, 39, 40, 41, 42, 24, 25, 26, 27, 28, 29, 30, 9, 10, 11, 12, 13, 14, 15, 16]
+--- Compaction Task ---
+--- Compaction Task ---
+no compaction triggered
+--- Statistics ---
+Write Amplification: 119/50=2.380x
+Maximum Space Usage: 52/50=1.040x
+Read Amplification: 7x
+```
+
+```bash
+cargo run --bin compaction-simulator tiered --iterations 200 --size-only
+```
+
+```
+=== Iteration 199 ===
+--- After Flush ---
+Levels: 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 3 4 5 6 10 15 21 28 78
+no compaction triggered
+--- Statistics ---
+Write Amplification: 537/200=2.685x
+Maximum Space Usage: 200/200=1.000x
+Read Amplification: 38x
 ```
 
 There will be fewer 1-SST tiers and the compaction algorithm will maintain the tiers to have smaller to larger sizes by size ratio. However, when there are more SSTs in the LSM state, there will still be cases that we have more than `num_tiers` tiers. To limit the number of tiers, we will need another trigger.
 
 ### Task 1.3: Reduce Sorted Runs
 
-If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the top-most tiers to compact into one tier, so that the final state will have exactly `num_tiers` tiers (if no SSTs are flushed during the compaction).
+If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that incldues all SST files.
 
-With this compaction enabled, you will see:
+With this compaction trigger enabled, you will see:
 
-```
-L427 (1): [427]
-L409 (18): [408, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407]
-L208 (31): [207, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
+```bash
+cargo run --bin compaction-simulator-ref tiered --iterations 200 --size-only
 ```
 
-None of the compaction result will have more than `num_tiers` tiers.
+```
+=== Iteration 199 ===
+--- After Flush ---
+Levels: 0 1 1 4 5 21 28 140
+no compaction triggered
+--- Statistics ---
+Write Amplification: 742/200=3.710x
+Maximum Space Usage: 280/200=1.400x
+Read Amplification: 7x
+```
+
+You can also try tiered compaction with more number of tiers:
+
+
+```
+=== Iteration 199 ===
+--- After Flush ---
+Levels: 0 1 1 4 5 21 28 140
+no compaction triggered
+--- Statistics ---
+Write Amplification: 742/200=3.710x
+Maximum Space Usage: 280/200=1.400x
+Read Amplification: 7x
+```
 
 **Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
 

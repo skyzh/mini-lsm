@@ -51,7 +51,7 @@ enum Args {
         /// it will print one row per compaction iteration.
         #[clap(long)]
         size_only: bool,
-        #[clap(long, default_value = "3")]
+        #[clap(long, default_value = "8")]
         num_tiers: usize,
         #[clap(long, default_value = "200")]
         max_size_amplification_percent: usize,
