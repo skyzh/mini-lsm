@@ -14,6 +14,7 @@ pub struct TieredCompactionOptions {
     pub max_size_amplification_percent: usize,
     pub size_ratio: usize,
     pub min_merge_width: usize,
+    pub max_merge_width: Option<usize>,
 }
 
 pub struct TieredCompactionController {

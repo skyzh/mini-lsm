@@ -29,6 +29,7 @@ fn test_integration_tiered() {
         max_size_amplification_percent: 200,
         size_ratio: 1,
         min_merge_width: 3,
+        max_merge_width: None,
     }))
 }
 
