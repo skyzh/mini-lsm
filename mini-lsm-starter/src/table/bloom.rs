@@ -94,7 +94,7 @@ impl Bloom {
             true
         } else {
             let nbits = self.filter.bit_len();
-            let delta = (h >> 17) | (h << 15);
+            let delta = h.rotate_left(15);
 
             // TODO: probe the bloom filter
 

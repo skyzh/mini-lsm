@@ -334,6 +334,7 @@ fn main() -> Result<()> {
                     max_size_amplification_percent: 200,
                     size_ratio: 1,
                     min_merge_width: 2,
+                    max_merge_width: None,
                 }),
                 CompactionStrategy::Leveled => {
                     CompactionOptions::Leveled(LeveledCompactionOptions {
