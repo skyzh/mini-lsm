@@ -314,7 +314,16 @@ impl LsmStorageInner {
             .filter(|sst| {
                 let lt = sst.last_key().raw_ref() < key;
                 let gt = sst.first_key().raw_ref() > key;
-                !lt && !gt
+                if lt || gt {
+                    return false;
+                }
+                if let Some(bloom) = &sst.bloom {
+                    let may_contain = bloom.may_contain(farmhash::fingerprint32(key));
+                    if may_contain {
+                        return true;
+                    }
+                }
+                true
             })
             .collect();
 
@@ -462,23 +471,14 @@ impl LsmStorageInner {
             .iter()
             .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
             .filter(|sst| {
-                println!("{:?},{:?}", lower, upper);
                 let lt = match lower {
-                    Bound::Included(key) => {
-                        sst.last_key().raw_ref() < key
-                    }
-                    Bound::Excluded(key) => {
-                        sst.last_key().raw_ref() <= key
-                    }
+                    Bound::Included(key) => sst.last_key().raw_ref() < key,
+                    Bound::Excluded(key) => sst.last_key().raw_ref() <= key,
                     _ => false,
                 };
                 let gt = match upper {
-                    Bound::Included(key) => {
-                        sst.first_key().raw_ref() > key
-                    }
-                    Bound::Excluded(key) => {
-                        sst.first_key().raw_ref() >= key
-                    }
+                    Bound::Included(key) => sst.first_key().raw_ref() > key,
+                    Bound::Excluded(key) => sst.first_key().raw_ref() >= key,
                     _ => false,
                 };
                 !lt && !gt

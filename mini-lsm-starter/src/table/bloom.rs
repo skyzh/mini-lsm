@@ -57,8 +57,10 @@ impl Bloom {
 
     /// Encode a bloom filter
     pub fn encode(&self, buf: &mut Vec<u8>) {
+        let bloom_offset = buf.len() as u32;
         buf.extend(&self.filter);
         buf.put_u8(self.k);
+        buf.put_u32_le(bloom_offset);
     }
 
     /// Get bloom filter bits per key from entries count and FPR
@@ -79,7 +81,15 @@ impl Bloom {
         let mut filter = BytesMut::with_capacity(nbytes);
         filter.resize(nbytes, 0);
 
-        // TODO: build the bloom filter
+        for &key in keys {
+            let mut hash = key;
+            let delta = (hash >> 17) | (hash << 15);
+            for _ in 0..k {
+                let bitpos = (hash % nbits as u32) as usize;
+                filter.set_bit(bitpos, true);
+                hash = hash.wrapping_add(delta);
+            }
+        }
 
         Self {
             filter: filter.freeze(),
@@ -96,7 +106,14 @@ impl Bloom {
             let nbits = self.filter.bit_len();
             let delta = (h >> 17) | (h << 15);
 
-            // TODO: probe the bloom filter
+            let mut hash = h;
+            for _ in 0..self.k {
+                let bitpos = (hash % nbits as u32) as usize;
+                if !self.filter.get_bit(bitpos) {
+                    return false;
+                }
+                hash = hash.wrapping_add(delta);
+            }
 
             true
         }

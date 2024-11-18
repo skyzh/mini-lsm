@@ -1,3 +1,4 @@
+use bytes::Buf;
 use std::sync::Arc;
 
 use crate::key::{KeySlice, KeyVec};
@@ -60,13 +61,35 @@ impl BlockIterator {
     }
 
     /// Read the key and value length from the block data at the given offset.
-    fn read_entry_by_offset(&self, offset: usize) -> (usize, &[u8], usize, (usize, usize)) {
+    fn read_entry_by_offset(&self, offset: usize) -> (usize, Vec<u8>, usize, (usize, usize)) {
         let key_len = Block::read_u16(&self.block.data, offset) as usize;
         let key_range_end = offset + key_len + 2;
         let value_len = Block::read_u16(&self.block.data, key_range_end) as usize;
+        let mut diff_key_buf = &self.block.data[offset + 2..offset + 2 + key_len];
+
+        let mut key_buf: Vec<u8> = vec![];
+        if offset > 0 {
+            let prefix_len = diff_key_buf.get_u16_le() as usize;
+            let suffix_len = diff_key_buf.get_u16_le() as usize;
+
+            if prefix_len > 0 {
+                let mut first_key_ref = self.first_key.raw_ref();
+                if self.first_key.is_empty() {
+                    let first_key_len = Block::read_u16(&self.block.data, 0) as usize;
+                    first_key_ref = &self.block.data[2..2 + first_key_len];
+                }
+                key_buf.extend_from_slice(&first_key_ref[..prefix_len]);
+            }
+            if suffix_len > 0 {
+                key_buf.extend(&diff_key_buf[..suffix_len]);
+            }
+        } else {
+            key_buf.extend(diff_key_buf);
+        }
+
         (
             key_len,
-            &self.block.data[offset + 2..offset + 2 + key_len],
+            key_buf,
             value_len,
             (key_range_end + 2, key_range_end + 2 + value_len),
         )
@@ -80,7 +103,7 @@ impl BlockIterator {
         }
         // Entry format: key_len(2) | key(key_len) | value_len(2) | value(value_len)
         let (key_len, key_slice, value_len, value_range) = self.read_entry_by_offset(0);
-        self.key = KeyVec::from_vec(key_slice.to_vec());
+        self.key = KeyVec::from_vec(key_slice);
         self.first_key = self.key.clone();
         self.value_range = value_range;
     }
@@ -94,7 +117,7 @@ impl BlockIterator {
         self.idx += 1;
         let (key_len, key_slice, value_len, value_range) =
             self.read_entry_by_offset(self.block.offsets[self.idx] as usize);
-        self.key = KeyVec::from_vec(key_slice.to_vec());
+        self.key = KeyVec::from_vec(key_slice);
         self.value_range = value_range;
     }
 
@@ -109,7 +132,7 @@ impl BlockIterator {
         for (i, offset) in self.block.offsets.iter().enumerate() {
             let offset = *offset as usize;
             let (key_len, key_slice, ..) = self.read_entry_by_offset(offset);
-            if key_slice >= key.raw_ref() {
+            if key_slice.as_slice() >= key.raw_ref() {
                 self.idx = i;
                 break;
             }
@@ -117,7 +140,7 @@ impl BlockIterator {
 
         let (key_len, key_slice, value_len, value_range) =
             self.read_entry_by_offset(self.block.offsets[self.idx] as usize);
-        self.key = KeyVec::from_vec(key_slice.to_vec());
+        self.key = KeyVec::from_vec(key_slice);
         self.value_range = value_range;
     }
 }

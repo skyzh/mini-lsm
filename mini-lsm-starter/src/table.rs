@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 pub use builder::SsTableBuilder;
-use bytes::{Buf, BufMut, Bytes};
+use bytes::Buf;
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -133,13 +133,20 @@ impl SsTable {
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let file_size = file.size();
-        let mut meta_offset_bytes = [0u8; 4];
+
+        let mut bloom_offset_bytes = [0u8; 4];
         file.read(file_size - 4, 4)?
+            .as_slice()
+            .copy_to_slice(bloom_offset_bytes.as_mut());
+        let bloom_offset = u32::from_le_bytes(bloom_offset_bytes) as u64;
+        let bloom_buf_vec = file.read(bloom_offset, file_size - 4 - bloom_offset)?;
+
+        let mut meta_offset_bytes = [0u8; 4];
+        file.read(bloom_offset - 4, 4)?
             .as_slice()
             .copy_to_slice(meta_offset_bytes.as_mut());
         let meta_offset = u32::from_le_bytes(meta_offset_bytes) as u64;
-
-        let meta_buf_vec = file.read(meta_offset, file_size - 4 - meta_offset)?;
+        let meta_buf_vec = file.read(meta_offset, bloom_offset - 4 - meta_offset)?;
 
         let block_meta = BlockMeta::decode_block_meta(&meta_buf_vec[..]);
 
@@ -151,7 +158,7 @@ impl SsTable {
             last_key: block_meta.last().unwrap().last_key.clone(),
             block_meta,
             block_meta_offset: meta_offset as usize,
-            bloom: None,
+            bloom: Some(Bloom::decode(bloom_buf_vec.as_ref())?),
             max_ts: 0,
         })
     }
@@ -220,7 +227,7 @@ impl SsTable {
                     Ordering::Equal
                 }
             })
-        .unwrap_or_else(|idx| idx);
+            .unwrap_or_else(|idx| idx);
         // key 超出整个 SST时 idx 会越界
         if idx == self.block_meta.len() {
             idx - 1
