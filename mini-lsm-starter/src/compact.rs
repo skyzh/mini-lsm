@@ -15,8 +15,11 @@ pub use simple_leveled::{
 };
 pub use tiered::{TieredCompactionController, TieredCompactionOptions, TieredCompactionTask};
 
+use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::StorageIterator;
+use crate::key::KeyVec;
 use crate::lsm_storage::{LsmStorageInner, LsmStorageState};
-use crate::table::SsTable;
+use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CompactionTask {
@@ -108,12 +111,131 @@ pub enum CompactionOptions {
 }
 
 impl LsmStorageInner {
-    fn compact(&self, _task: &CompactionTask) -> Result<Vec<Arc<SsTable>>> {
-        unimplemented!()
+    fn compact(&self, task: &CompactionTask) -> Result<Vec<Arc<SsTable>>> {
+        match task {
+            CompactionTask::ForceFullCompaction {
+                l0_sstables,
+                l1_sstables,
+            } => {
+                // merge L0 & L1, get SST from self.state
+                let mut sstables: Vec<usize> = vec![];
+                sstables.extend_from_slice(l0_sstables.as_ref());
+                sstables.extend_from_slice(l1_sstables.as_ref());
+                let sstables: Result<Vec<_>> = sstables
+                    .iter()
+                    .filter_map(|id| self.state.read().sstables.get(id).cloned())
+                    .map(SsTableIterator::create_and_seek_to_first)
+                    .collect();
+
+                // create MergeIterator
+                let mut merge_iter =
+                    MergeIterator::create(sstables?.into_iter().map(Box::new).collect());
+                let mut sst_next_level: Vec<Arc<SsTable>> = vec![];
+                let mut builder = SsTableBuilder::new(self.options.block_size);
+                // flag, 表示当前 SsTableBuilder 中是否存在 KV 对
+                let mut builder_empty = true;
+
+                let mut previous_key: KeyVec = KeyVec::new();
+
+                loop {
+                    // 迭代过程中，同一个 Key 会连续出现，不会分开，所以当 Key 发生变化时才 Add 到 SST 当中
+                    if previous_key.as_key_slice() != merge_iter.key() {
+                        previous_key.set_from_slice(merge_iter.key());
+                        if !merge_iter.value().is_empty() {
+                            builder.add(merge_iter.key(), merge_iter.value());
+                            if builder_empty {
+                                builder_empty = false;
+                            }
+                        }
+                    } else {
+                        continue;
+                    }
+
+                    if builder.estimated_size() >= self.options.target_sst_size {
+                        // 使用 mem::replace 更新数据
+                        let old_builder = std::mem::replace(
+                            &mut builder,
+                            SsTableBuilder::new(self.options.block_size),
+                        );
+                        builder_empty = true;
+
+                        let sst_id = self.next_sst_id();
+                        sst_next_level.push(Arc::new(old_builder.build(
+                            sst_id,
+                            Some(self.block_cache.clone()),
+                            self.path_of_sst(sst_id).clone(),
+                        )?));
+                    }
+
+                    if !merge_iter.is_valid() {
+                        break;
+                    }
+                    merge_iter.next()?;
+                }
+
+                // 最后一个 builder 需要 flush
+                if !builder_empty {
+                    let sst_id = self.next_sst_id();
+                    sst_next_level.push(Arc::new(builder.build(
+                        sst_id,
+                        Some(self.block_cache.clone()),
+                        self.path_of_sst(sst_id).clone(),
+                    )?));
+                }
+
+                Ok(sst_next_level)
+            }
+            _ => Ok(vec![]),
+        }
+    }
+
+    fn select_sst_by_level(&self, level: usize) -> Vec<usize> {
+        if level == 0 {
+            return self.state.read().l0_sstables.clone();
+        }
+        self.state
+            .read()
+            .levels
+            .iter()
+            .filter(|level_pair| level_pair.0 == level - 1)
+            .flat_map(|level| level.1.clone())
+            .collect()
     }
 
     pub fn force_full_compaction(&self) -> Result<()> {
-        unimplemented!()
+        let l0_sstables = self.select_sst_by_level(0);
+        let l1_sstables = self.select_sst_by_level(1);
+
+        let sst_next_level = self.compact(&CompactionTask::ForceFullCompaction {
+            l0_sstables: l0_sstables.clone(),
+            l1_sstables: l1_sstables.clone(),
+        })?;
+
+        // 使用压缩后的 SST 更新 L1 SST
+        let state_guard = self.state_lock.lock();
+        let mut write_guard = self.state.write();
+        let mut write_ref = write_guard.as_ref().clone();
+
+        // 更新 levels，由于 L0 有单独的字段存储，所以 levels 中 0 代表 L1
+        write_ref.levels[0] = (0, sst_next_level.iter().map(|sst| sst.sst_id()).collect::<Vec<_>>());
+        for sst in sst_next_level.iter() {
+            write_ref.sstables.insert(sst.sst_id(), sst.clone());
+        }
+
+        // 清除不需要的历史数据
+        for id in l0_sstables.iter() {
+            write_ref.l0_sstables.pop();
+            std::fs::remove_file(self.path_of_sst(*id))?;
+        }
+
+        for id in l1_sstables.iter() {
+            write_ref.sstables.remove(id);
+            std::fs::remove_file(self.path_of_sst(*id))?;
+        }
+
+        *write_guard = Arc::new(write_ref);
+
+        Ok(())
     }
 
     fn trigger_compaction(&self) -> Result<()> {
