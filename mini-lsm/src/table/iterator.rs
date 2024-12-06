@@ -102,4 +102,22 @@ impl StorageIterator for SsTableIterator {
         }
         Ok(())
     }
+
+    fn print(&self) {
+        let separator = "-".repeat(10);
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "SST_ITERATOR"),
+            separator
+        );
+        println!("Current Block Index: {}", self.blk_idx);
+        self.blk_iter.print();
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "SST_ITERATOR_END"),
+            separator
+        );
+    }
 }
