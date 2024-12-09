@@ -104,7 +104,10 @@ impl TxnIterator {
 }
 
 impl StorageIterator for TxnIterator {
-    type KeyType<'a> = &'a [u8] where Self: 'a;
+    type KeyType<'a>
+        = &'a [u8]
+    where
+        Self: 'a;
 
     fn value(&self) -> &[u8] {
         self.iter.value()
