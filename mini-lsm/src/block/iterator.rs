@@ -134,4 +134,44 @@ impl BlockIterator {
         }
         self.seek_to(low);
     }
+
+    pub fn print(&self) {
+        let separator = "-".repeat(10); // Ensure a consistent separator length
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "Block Iterator"),
+            separator
+        );
+
+        if self.is_valid() {
+            // Ensuring that the spaces between descriptions and values are consistent
+            println!(
+                "{:<20}: {:?}",
+                "First Key",
+                String::from_utf8_lossy(&self.first_key.raw_ref())
+            );
+            println!(
+                "{:<20}: {:?}",
+                "Current Key",
+                String::from_utf8_lossy(&self.key.raw_ref())
+            );
+            println!(
+                "{:<20}: {:?}",
+                "Current Value",
+                String::from_utf8_lossy(&self.value())
+            );
+            println!("{:<20}: {}", "Key Index", self.idx);
+            // Print block details if needed
+            self.block.print();
+        } else {
+            println!("{:<20}", "This block iterator is not valid");
+        }
+        println!(
+            "{} {} {}",
+            separator,
+            format!("{:^25}", "Block Iterator End"),
+            separator
+        );
+    }
 }
