@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use bytes::Bytes;
+use crossbeam_skiplist::map::Entry;
 use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
@@ -169,6 +170,14 @@ pub struct MemTableIterator {
     item: (Bytes, Bytes),
 }
 
+impl MemTableIterator {
+    fn entry_to_item(entry: Option<Entry<'_, Bytes, Bytes>>) -> (Bytes, Bytes) {
+        entry
+            .map(|x| (x.key().clone(), x.value().clone()))
+            .unwrap_or_else(|| (Bytes::from_static(&[]), Bytes::from_static(&[])))
+    }
+}
+
 impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
@@ -181,10 +190,12 @@ impl StorageIterator for MemTableIterator {
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.borrow_item().0.is_empty()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let entry = self.with_iter_mut(|iter| MemTableIterator::entry_to_item(iter.next()));
+        self.with_mut(|x| *x.item = entry);
+        Ok(())
     }
 }
