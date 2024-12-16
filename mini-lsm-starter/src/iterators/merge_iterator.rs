@@ -93,7 +93,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
     }
 
     fn next(&mut self) -> Result<()> {
-        let mut current = self.current.as_mut().unwrap();
+        let current = self.current.as_mut().unwrap();
         while let Some(mut inner) = self.iters.peek_mut() {
             if !inner.1.is_valid() {
                 PeekMut::pop(inner);
@@ -117,7 +117,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
             if let Some(iter) = self.iters.pop() {
                 *current = iter;
             }
-            return Ok(())
+            return Ok(());
         }
 
         if let Some(mut inner) = self.iters.peek_mut() {
