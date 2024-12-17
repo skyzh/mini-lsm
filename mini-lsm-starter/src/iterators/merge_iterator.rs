@@ -94,10 +94,12 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
 
     fn next(&mut self) -> Result<()> {
         let current = self.current.as_mut().unwrap();
+        println!("current1 id: {:?}, key: {:?}", current.0, current.1.key());
         while let Some(mut inner) = self.iters.peek_mut() {
             if !inner.1.is_valid() {
                 PeekMut::pop(inner);
             } else if current.1.key() == inner.1.key() {
+                println!("inner id: {:?}, key: {:?}", inner.0, inner.1.key());
                 // Case 1: an error occurred when calling `next`.
                 if let e @ Err(_) = inner.1.next() {
                     PeekMut::pop(inner);
@@ -105,6 +107,8 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
                 }
                 if !inner.1.is_valid() {
                     PeekMut::pop(inner);
+                } else {
+                    println!("inner id: {:?}, new key: {:?}", inner.0, inner.1.key());
                 }
             } else {
                 break;
@@ -115,13 +119,24 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
 
         if !current.1.is_valid() {
             if let Some(iter) = self.iters.pop() {
+                println!(
+                    "current not valid, id: {:?} swap with {:?}",
+                    current.0, iter.0
+                );
                 *current = iter;
             }
             return Ok(());
         }
 
+        println!(
+            "current next id: {:?}, key: {:?}",
+            current.0,
+            current.1.key()
+        );
+
         if let Some(mut inner) = self.iters.peek_mut() {
             if *current < *inner {
+                println!("current swap id: {:?} with {:?}", current.0, inner.0);
                 std::mem::swap(current, &mut *inner);
             }
         }

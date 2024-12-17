@@ -2,7 +2,6 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 use anyhow::{Error, Result};
-use std::collections::binary_heap::PeekMut;
 
 use crate::{
     iterators::{merge_iterator::MergeIterator, StorageIterator},
@@ -18,7 +17,16 @@ pub struct LsmIterator {
 
 impl LsmIterator {
     pub(crate) fn new(iter: LsmIteratorInner) -> Result<Self> {
-        Ok(Self { inner: iter })
+        let mut iterator = Self { inner: iter };
+        iterator.move_to_non_delete()?;
+        Ok(iterator)
+    }
+
+    fn move_to_non_delete(&mut self) -> Result<()> {
+        while self.is_valid() && self.inner.value().is_empty() {
+            self.next()?;
+        }
+        Ok(())
     }
 }
 
@@ -38,7 +46,8 @@ impl StorageIterator for LsmIterator {
     }
 
     fn next(&mut self) -> Result<()> {
-        self.inner.next()
+        self.inner.next()?;
+        self.move_to_non_delete()
     }
 }
 
@@ -81,14 +90,16 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
     }
 
     fn next(&mut self) -> Result<()> {
-        if self.is_valid() {
+        if self.has_errored {
+            return Err(Error::msg("FusedIterator errored"));
+        }
+
+        if self.iter.is_valid() {
             if let e @ Err(_) = self.iter.next() {
                 self.has_errored = true;
                 return e;
             }
-        } else if self.has_errored {
-            return Err(Error::msg("FusedIterator errored"));
-        };
+        }
         Ok(())
     }
 }
