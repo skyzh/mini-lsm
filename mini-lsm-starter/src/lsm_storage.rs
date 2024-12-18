@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::ops::Bound;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -230,7 +230,7 @@ impl MiniLsm {
 impl LsmStorageInner {
     pub(crate) fn next_sst_id(&self) -> usize {
         self.next_sst_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            .fetch_add(1, Ordering::SeqCst)
     }
 
     /// Start the storage engine by either loading an existing directory or creating a new one if the directory does
