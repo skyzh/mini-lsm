@@ -15,7 +15,9 @@ pub use simple_leveled::{
 };
 pub use tiered::{TieredCompactionController, TieredCompactionOptions, TieredCompactionTask};
 
+use crate::iterators::concat_iterator::SstConcatIterator;
 use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
 use crate::key::KeyVec;
 use crate::lsm_storage::{LsmStorageInner, LsmStorageState};
@@ -117,19 +119,22 @@ impl LsmStorageInner {
                 l0_sstables,
                 l1_sstables,
             } => {
-                // merge L0 & L1, get SST from self.state
-                let mut sstables: Vec<usize> = vec![];
-                sstables.extend_from_slice(l0_sstables.as_ref());
-                sstables.extend_from_slice(l1_sstables.as_ref());
-                let sstables: Result<Vec<_>> = sstables
+                // get sstables from self.state
+                let l0_sstables: Result<Vec<_>> = l0_sstables
                     .iter()
                     .filter_map(|id| self.state.read().sstables.get(id).cloned())
                     .map(SsTableIterator::create_and_seek_to_first)
                     .collect();
+                let l1_sstables: Vec<_> = l1_sstables
+                    .iter()
+                    .filter_map(|id| self.state.read().sstables.get(id).cloned())
+                    .collect();
 
                 // create MergeIterator
-                let mut merge_iter =
-                    MergeIterator::create(sstables?.into_iter().map(Box::new).collect());
+                let mut merge_iter = TwoMergeIterator::create(
+                    MergeIterator::create(l0_sstables?.into_iter().map(Box::new).collect()),
+                    SstConcatIterator::create_and_seek_to_first(l1_sstables)?,
+                )?;
                 let mut sst_next_level: Vec<Arc<SsTable>> = vec![];
                 let mut builder = SsTableBuilder::new(self.options.block_size);
                 // flag, 表示当前 SsTableBuilder 中是否存在 KV 对
@@ -137,7 +142,7 @@ impl LsmStorageInner {
 
                 let mut previous_key: KeyVec = KeyVec::new();
 
-                loop {
+                while merge_iter.is_valid() {
                     // 迭代过程中，同一个 Key 会连续出现，不会分开，所以当 Key 发生变化时才 Add 到 SST 当中
                     if previous_key.as_key_slice() != merge_iter.key() {
                         previous_key.set_from_slice(merge_iter.key());
@@ -167,9 +172,6 @@ impl LsmStorageInner {
                         )?));
                     }
 
-                    if !merge_iter.is_valid() {
-                        break;
-                    }
                     merge_iter.next()?;
                 }
 
@@ -212,12 +214,18 @@ impl LsmStorageInner {
         })?;
 
         // 使用压缩后的 SST 更新 L1 SST
-        let state_guard = self.state_lock.lock();
+        let _state_guard = self.state_lock.lock();
         let mut write_guard = self.state.write();
         let mut write_ref = write_guard.as_ref().clone();
 
         // 更新 levels，由于 L0 有单独的字段存储，所以 levels 中 0 代表 L1
-        write_ref.levels[0] = (0, sst_next_level.iter().map(|sst| sst.sst_id()).collect::<Vec<_>>());
+        write_ref.levels[0] = (
+            0,
+            sst_next_level
+                .iter()
+                .map(|sst| sst.sst_id())
+                .collect::<Vec<_>>(),
+        );
         for sst in sst_next_level.iter() {
             write_ref.sstables.insert(sst.sst_id(), sst.clone());
         }

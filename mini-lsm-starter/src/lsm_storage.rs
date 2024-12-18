@@ -16,6 +16,7 @@ use crate::compact::{
     SimpleLeveledCompactionController, SimpleLeveledCompactionOptions, TieredCompactionController,
 };
 
+use crate::iterators::concat_iterator::SstConcatIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
@@ -307,7 +308,7 @@ impl LsmStorageInner {
         }
 
         let read_guard = self.state.read();
-        let sst_iters: Vec<_> = read_guard
+        let l0_sst_iters: Vec<_> = read_guard
             .l0_sstables
             .iter()
             .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
@@ -327,14 +328,25 @@ impl LsmStorageInner {
             })
             .collect();
 
+        let l1_sst: Vec<Arc<SsTable>> = read_guard
+            .levels
+            .iter()
+            .filter(|level_pair| level_pair.0 == 0)
+            .flat_map(|level_pair| level_pair.1.clone())
+            .map(|sst_id| read_guard.sstables.get(&sst_id).unwrap().clone())
+            .collect();
+
         drop(read_guard);
 
-        let sst_iters: Result<Vec<_>> = sst_iters
+        let l0_sst_iters: Result<Vec<_>> = l0_sst_iters
             .into_iter()
             .map(|sst| SsTableIterator::create_and_seek_to_key(sst, KeySlice::from_slice(key)))
             .collect();
 
-        let sst_iters = MergeIterator::create(sst_iters?.into_iter().map(Box::new).collect());
+        let sst_iters = TwoMergeIterator::create(
+            MergeIterator::create(l0_sst_iters?.into_iter().map(Box::new).collect()),
+            SstConcatIterator::create_and_seek_to_key(l1_sst, KeySlice::from_slice(key))?,
+        )?;
 
         if key == sst_iters.key().raw_ref() && !sst_iters.value().is_empty() {
             return Ok(Some(Bytes::from(sst_iters.value().to_vec())));
@@ -409,7 +421,7 @@ impl LsmStorageInner {
 
     /// Force flush the earliest-created immutable memtable to disk
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
-        let state_guard = self.state_lock.lock();
+        let _state_guard = self.state_lock.lock();
 
         // Read last imm_memtable
         let last_memtable = self
@@ -466,7 +478,7 @@ impl LsmStorageInner {
             .collect();
         iters.insert(0, iter);
 
-        let sst_iters: Vec<_> = read_guard
+        let l0_sst_iters: Vec<_> = read_guard
             .l0_sstables
             .iter()
             .map(|sstable_key| read_guard.sstables.get(sstable_key).unwrap().clone())
@@ -485,9 +497,17 @@ impl LsmStorageInner {
             })
             .collect();
 
+        let l1_sst: Vec<Arc<SsTable>> = read_guard
+            .levels
+            .iter()
+            .filter(|level_pair| level_pair.0 == 0)
+            .flat_map(|level_pair| level_pair.1.clone())
+            .map(|sst_id| read_guard.sstables.get(&sst_id).unwrap().clone())
+            .collect();
+
         drop(read_guard);
 
-        let sst_iters: Result<Vec<_>> = sst_iters
+        let l0_sst_iters: Result<Vec<_>> = l0_sst_iters
             .into_iter()
             .map(|sst| match lower {
                 Bound::Included(key) => {
@@ -508,7 +528,10 @@ impl LsmStorageInner {
         Ok(FusedIterator::new(LsmIterator::new(
             TwoMergeIterator::create(
                 MergeIterator::create(iters.into_iter().map(Box::new).collect()),
-                MergeIterator::create(sst_iters?.into_iter().map(Box::new).collect()),
+                TwoMergeIterator::create(
+                    MergeIterator::create(l0_sst_iters?.into_iter().map(Box::new).collect()),
+                    SstConcatIterator::create_and_seek_to_first(l1_sst)?,
+                )?,
             )?,
             match upper {
                 Bound::Included(key) => Bound::Included(Bytes::copy_from_slice(key)),

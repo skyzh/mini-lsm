@@ -28,12 +28,10 @@ impl<
             } else {
                 Current::B
             }
+        } else if a.key() > b.key() {
+            Current::B
         } else {
-            if a.key() > b.key() {
-                Current::B
-            } else {
-                Current::A
-            }
+            Current::A
         };
         Ok(Self { a, b, current })
     }
