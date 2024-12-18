@@ -2,7 +2,7 @@
 
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -109,7 +109,7 @@ impl MemTable {
 
     pub fn approximate_size(&self) -> usize {
         self.approximate_size
-            .load(std::sync::atomic::Ordering::Relaxed)
+            .load(Ordering::Relaxed)
     }
 
     /// Only use this function when closing the database
