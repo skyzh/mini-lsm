@@ -177,7 +177,7 @@ The implementation should be similar to simple leveled compaction. Remember to c
 * What is the peak storage usage for leveled compaction? Compared with universal compaction?
 * Is it true that with a lower `level_size_multiplier`, you can always get a lower write amplification?
 * What needs to be done if a user not using compaction at all decides to migrate to leveled compaction?
-* Some people propose to do intra-L0 compaction (compact L0 tables and still put them in L0) before pushing them to lower layers. What might be the benefits of doing so? (Might be related: [PebblesDB SOSP'17](https://www.cs.utexas.edu/~rak/papers/sosp17-pebblesdb.pdf))
+* Some people propose to do intra-L0 compaction (compact L0 tables and still put them in L0) before pushing them to lower layers. What might be the benefits of doing so? (Might be related: [PebblesDB SOSP'17](https://www.cs.utexas.edu/~vijay/papers/sosp17-pebblesdb.pdf))
 * Consider the case that the upper level has two tables of `[100, 200], [201, 300]` and the lower level has `[50, 150], [151, 250], [251, 350]`. In this case, do you still want to compact one file in the upper level at a time? Why?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
