@@ -135,7 +135,11 @@ impl MemTable {
         }
         .build();
         iter.next().unwrap();
-        println!("iter next with range: {:?}-{:?}", iter.key().for_testing_key_ref(), iter.value());
+        println!(
+            "iter next with range: {:?}-{:?}",
+            iter.key().for_testing_key_ref(),
+            iter.value()
+        );
         iter
     }
 
