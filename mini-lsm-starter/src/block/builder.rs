@@ -1,8 +1,7 @@
 use crate::key::{KeySlice, KeyVec};
+use bytes::BufMut;
 
-use super::Block;
-
-pub(crate) const SIZEOF_U16: usize = std::mem::size_of::<u16>();
+use super::{Block, SIZEOF_U16};
 
 /// Builds a block.
 pub struct BlockBuilder {
@@ -40,9 +39,9 @@ impl BlockBuilder {
         }
 
         self.offsets.push(self.data.len() as u16);
-        self.data.push(key_len as u8);
+        self.data.put_u16(key_len as u16);
         self.data.extend(key.raw_ref());
-        self.data.push(value_len as u8);
+        self.data.put_u16(value_len as u16);
         self.data.extend(value);
         true
     }
