@@ -36,8 +36,8 @@ impl BlockIterator {
     /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
         let (first_key, value_range) = if !block.offsets.is_empty() {
-            let (key, key_end_offset) = Self::read_key(&block, 0);
-            (key, Self::value_range(&block, key_end_offset))
+            let (key, key_end_offset) = block.read_key(*block.offsets.first().unwrap() as usize);
+            (key, block.value_range(key_end_offset))
         } else {
             (KeyVec::new(), (0, 0))
         };
@@ -77,8 +77,10 @@ impl BlockIterator {
     /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
         let (first_key, value_range) = if !self.block.offsets.is_empty() {
-            let (key, key_end_offset) = Self::read_key(&self.block, 0);
-            (key, Self::value_range(&self.block, key_end_offset))
+            let (key, key_end_offset) = self
+                .block
+                .read_key(*self.block.offsets.first().unwrap() as usize);
+            (key, self.block.value_range(key_end_offset))
         } else {
             (KeyVec::new(), (0, 0))
         };
@@ -93,9 +95,8 @@ impl BlockIterator {
     pub fn next(&mut self) {
         if self.is_valid() && self.idx < self.block.offsets.len() - 1 {
             self.idx += 1;
-            let (key, key_end_offset) =
-                Self::read_key(&self.block, self.block.offsets[self.idx] as usize);
-            let range = Self::value_range(&self.block, key_end_offset);
+            let (key, key_end_offset) = self.block.read_key(self.block.offsets[self.idx] as usize);
+            let range = self.block.value_range(key_end_offset);
             self.value_range = range;
             self.key = key;
         }
@@ -115,7 +116,7 @@ impl BlockIterator {
             while left <= right {
                 let mid = left + (right - left) / 2;
                 (found_key, found_key_end_offset) =
-                    Self::read_key(&self.block, self.block.offsets[mid] as usize);
+                    self.block.read_key(self.block.offsets[mid] as usize);
                 match found_key.cmp(&key) {
                     Ordering::Greater => {
                         if mid == 0 {
@@ -136,28 +137,11 @@ impl BlockIterator {
             left = min(left, self.block.offsets.len() - 1);
             if load_key {
                 (found_key, found_key_end_offset) =
-                    Self::read_key(&self.block, self.block.offsets[left] as usize);
+                    self.block.read_key(self.block.offsets[left] as usize);
             }
             self.idx = left;
             self.key = found_key;
-            self.value_range = Self::value_range(&self.block, found_key_end_offset);
+            self.value_range = self.block.value_range(found_key_end_offset);
         }
-    }
-
-    fn read_key(block: &Arc<Block>, offset: usize) -> (KeyVec, usize) {
-        let key_start_offset = offset + SIZEOF_U16;
-        let key_len = (&block.data[offset..key_start_offset]).get_u16() as usize;
-        let key_end_offset = key_start_offset + key_len;
-        (
-            KeyVec::from_vec(block.data[key_start_offset..key_end_offset].to_vec()),
-            key_end_offset,
-        )
-    }
-
-    fn value_range(block: &Arc<Block>, offset: usize) -> (usize, usize) {
-        let value_len = (&block.data[offset..offset + SIZEOF_U16]).get_u16() as usize;
-        let value_start = offset + SIZEOF_U16;
-        let value_end = value_start + value_len;
-        (value_start, value_end)
     }
 }

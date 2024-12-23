@@ -4,10 +4,11 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
-
-use super::{BlockMeta, SsTable};
+use super::{BlockMeta, FileObject, SsTable};
+use crate::key::{KeyBytes, KeyVec};
 use crate::{block::BlockBuilder, key::KeySlice, lsm_storage::BlockCache};
+use anyhow::Result;
+use bytes::BufMut;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
@@ -22,7 +23,14 @@ pub struct SsTableBuilder {
 impl SsTableBuilder {
     /// Create a builder based on target block size.
     pub fn new(block_size: usize) -> Self {
-        unimplemented!()
+        Self {
+            builder: BlockBuilder::new(block_size),
+            first_key: Vec::new(),
+            last_key: Vec::new(),
+            data: Vec::new(),
+            meta: Vec::new(),
+            block_size,
+        }
     }
 
     /// Adds a key-value pair to SSTable.
@@ -30,7 +38,29 @@ impl SsTableBuilder {
     /// Note: You should split a new block when the current block is full.(`std::mem::replace` may
     /// be helpful here)
     pub fn add(&mut self, key: KeySlice, value: &[u8]) {
-        unimplemented!()
+        if self.first_key.is_empty() {
+            self.first_key = key.to_key_vec().into_inner();
+        }
+        if !self.builder.add(key.clone(), value) {
+            self.push_block_to_buf();
+            self.add(key, value);
+            return;
+        }
+        self.last_key = key.to_key_vec().into_inner();
+    }
+
+    fn push_block_to_buf(&mut self) {
+        let new_builder = BlockBuilder::new(self.block_size);
+        let old_builder = std::mem::replace(&mut self.builder, new_builder);
+        if !old_builder.is_empty() {
+            self.meta.push(BlockMeta {
+                offset: self.data.len(),
+                first_key: old_builder.first_key().into_key_bytes(),
+                last_key: KeyVec::from_vec(self.last_key.clone()).into_key_bytes(),
+            });
+            let block = old_builder.build();
+            self.data.put(block.encode());
+        }
     }
 
     /// Get the estimated size of the SSTable.
@@ -38,7 +68,7 @@ impl SsTableBuilder {
     /// Since the data blocks contain much more data than meta blocks, just return the size of data
     /// blocks here.
     pub fn estimated_size(&self) -> usize {
-        unimplemented!()
+        self.data.len()
     }
 
     /// Builds the SSTable and writes it to the given path. Use the `FileObject` structure to manipulate the disk objects.
@@ -48,7 +78,15 @@ impl SsTableBuilder {
         block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
-        unimplemented!()
+        let mut s = self;
+        s.push_block_to_buf();
+        let mut data = s.data;
+        let mut meta = s.meta;
+        let meta_offset = data.len();
+        BlockMeta::encode_block_meta(&meta[..], &mut data);
+        data.put_u32(meta_offset as u32);
+
+        SsTable::open(id, block_cache, FileObject::create(path.as_ref(), data)?)
     }
 
     #[cfg(test)]

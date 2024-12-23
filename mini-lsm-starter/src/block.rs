@@ -4,9 +4,11 @@
 mod builder;
 mod iterator;
 
+use crate::key::{KeyBytes, KeyVec};
 pub use builder::BlockBuilder;
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 pub use iterator::BlockIterator;
+use std::sync::Arc;
 
 pub(crate) const SIZEOF_U16: usize = std::mem::size_of::<u16>();
 
@@ -46,5 +48,34 @@ impl Block {
             data: key_pairs,
             offsets,
         }
+    }
+
+    pub fn get_first_key(&self) -> KeyBytes {
+        self.read_key(*self.offsets.first().unwrap() as usize)
+            .0
+            .into_key_bytes()
+    }
+
+    pub fn get_last_key(&self) -> KeyBytes {
+        self.read_key(*self.offsets.last().unwrap() as usize)
+            .0
+            .into_key_bytes()
+    }
+
+    fn read_key(&self, offset: usize) -> (KeyVec, usize) {
+        let key_start_offset = offset + SIZEOF_U16;
+        let key_len = (&self.data[offset..key_start_offset]).get_u16() as usize;
+        let key_end_offset = key_start_offset + key_len;
+        (
+            KeyVec::from_vec(self.data[key_start_offset..key_end_offset].to_vec()),
+            key_end_offset,
+        )
+    }
+
+    fn value_range(&self, offset: usize) -> (usize, usize) {
+        let value_len = (&self.data[offset..offset + SIZEOF_U16]).get_u16() as usize;
+        let value_start = offset + SIZEOF_U16;
+        let value_end = value_start + value_len;
+        (value_start, value_end)
     }
 }

@@ -38,6 +38,10 @@ impl BlockBuilder {
             return false;
         }
 
+        if self.offsets.is_empty() {
+            self.first_key = key.to_key_vec().clone();
+        }
+
         self.offsets.push(self.data.len() as u16);
         self.data.put_u16(key_len as u16);
         self.data.extend(key.raw_ref());
@@ -61,5 +65,9 @@ impl BlockBuilder {
 
     fn current_size(&self) -> usize {
         self.data.len() + self.offsets.len() * SIZEOF_U16 + SIZEOF_U16
+    }
+
+    pub fn first_key(&self) -> KeyVec {
+        self.first_key.clone()
     }
 }
