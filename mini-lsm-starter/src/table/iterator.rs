@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -18,7 +15,7 @@ pub struct SsTableIterator {
 impl SsTableIterator {
     /// Create a new iterator and seek to the first key-value pair in the first data block.
     pub fn create_and_seek_to_first(table: Arc<SsTable>) -> Result<Self> {
-        let block = table.read_block(0)?;
+        let block = table.read_block_cached(0)?;
         let mut iterator = BlockIterator::new(block);
         iterator.seek_to_first();
         Ok(Self {
@@ -39,7 +36,7 @@ impl SsTableIterator {
     /// Create a new iterator and seek to the first key-value pair which >= `key`.
     pub fn create_and_seek_to_key(table: Arc<SsTable>, key: KeySlice) -> Result<Self> {
         let block_idx = table.find_block_idx(key);
-        let block = table.read_block(block_idx)?;
+        let block = table.read_block_cached(block_idx)?;
         let mut iterator = BlockIterator::new(block);
         iterator.seek_to_key(key);
         Ok(Self {
@@ -54,7 +51,7 @@ impl SsTableIterator {
     /// this function.
     pub fn seek_to_key(&mut self, key: KeySlice) -> Result<()> {
         let block_idx = self.table.find_block_idx(key);
-        let block = self.table.read_block(block_idx)?;
+        let block = self.table.read_block_cached(block_idx)?;
         let mut iterator = BlockIterator::new(block);
         iterator.seek_to_key(key);
         self.blk_iter = iterator;
@@ -62,7 +59,7 @@ impl SsTableIterator {
     }
 
     fn get_block_iter(&self, block_idx: usize) -> Result<BlockIterator> {
-        let block = self.table.read_block(block_idx)?;
+        let block = self.table.read_block_cached(block_idx)?;
         Ok(BlockIterator::new(block))
     }
 }

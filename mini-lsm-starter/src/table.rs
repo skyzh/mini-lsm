@@ -181,6 +181,10 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
+        self.read_block_from_disk(block_idx)
+    }
+
+    fn read_block_from_disk(&self, block_idx: usize) -> Result<Arc<Block>> {
         if block_idx >= self.block_meta.len() {
             return Err(Error::msg("block index out of bounds"));
         }
@@ -191,21 +195,26 @@ impl SsTable {
         } else {
             self.block_meta[next_meta_idx].offset - meta.offset
         };
-
         let block = Block::decode(&(self.file.read(meta.offset as u64, block_size as u64)?[..]));
         let block = Arc::new(block);
-        if self.block_cache.is_some() {
-            self.block_cache
-                .as_ref()
-                .unwrap()
-                .insert((self.id, block_idx), block.clone());
-        }
         Ok(block)
     }
 
     /// Read a block from disk, with block cache. (Day 4)
     pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        if self.block_cache.is_none() {
+            return self.read_block_from_disk(block_idx)
+        }
+        match self
+            .block_cache
+            .as_ref()
+            .unwrap()
+            .try_get_with((self.id, block_idx), || {
+                self.read_block_from_disk(block_idx)
+            }) {
+            Ok(block) => Ok(block),
+            Err(error) => Err(Error::msg(format!("couldnt get block: {}", error))),
+        }
     }
 
     /// Find the block that may contain `key`.
