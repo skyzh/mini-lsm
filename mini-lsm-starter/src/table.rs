@@ -5,19 +5,20 @@ pub(crate) mod bloom;
 mod builder;
 mod iterator;
 
+use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 use std::ops::AddAssign;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 pub use builder::SsTableBuilder;
 use bytes::{Buf, BufMut, Bytes};
 pub use iterator::SsTableIterator;
 
-use crate::block::{Block, SIZEOF_U16};
-use crate::key::{KeyBytes, KeySlice};
+use crate::block::Block;
+use crate::key::{KeyBytes, KeySlice, KeyVec};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
@@ -180,7 +181,26 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        if block_idx >= self.block_meta.len() {
+            return Err(Error::msg("block index out of bounds"));
+        }
+        let meta = &self.block_meta[block_idx];
+        let next_meta_idx = block_idx + 1;
+        let block_size = if next_meta_idx >= self.block_meta.len() {
+            self.block_meta_offset - meta.offset
+        } else {
+            self.block_meta[next_meta_idx].offset - meta.offset
+        };
+
+        let block = Block::decode(&(self.file.read(meta.offset as u64, block_size as u64)?[..]));
+        let block = Arc::new(block);
+        if self.block_cache.is_some() {
+            self.block_cache
+                .as_ref()
+                .unwrap()
+                .insert((self.id, block_idx), block.clone());
+        }
+        Ok(block)
     }
 
     /// Read a block from disk, with block cache. (Day 4)
@@ -192,7 +212,25 @@ impl SsTable {
     /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
     /// You may also assume the key-value pairs stored in each consecutive block are sorted.
     pub fn find_block_idx(&self, key: KeySlice) -> usize {
-        unimplemented!()
+        println!("find_block_idx for key: {:?}", key);
+        let key_vec = KeyVec::from(key.to_key_vec());
+        let key = key_vec.into_key_bytes();
+        let result = self.block_meta.binary_search_by(|b| {
+            println!("cmp with meta {:?}-{:?}", b.first_key, b.last_key);
+            if key < b.first_key {
+                std::cmp::Ordering::Greater
+            } else if key > b.last_key {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+        let idx = match result {
+            Ok(idx) => idx,
+            Err(idx) => idx,
+        };
+
+        min(idx, self.block_meta.len() - 1)
     }
 
     /// Get number of data blocks.

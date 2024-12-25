@@ -81,7 +81,7 @@ impl SsTableBuilder {
         let mut s = self;
         s.push_block_to_buf();
         let mut data = s.data;
-        let mut meta = s.meta;
+        let meta = s.meta;
         let meta_offset = data.len();
         BlockMeta::encode_block_meta(&meta[..], &mut data);
         data.put_u32(meta_offset as u32);

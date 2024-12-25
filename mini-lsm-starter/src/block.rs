@@ -64,6 +64,7 @@ impl Block {
 
     fn read_key(&self, offset: usize) -> (KeyVec, usize) {
         let key_start_offset = offset + SIZEOF_U16;
+
         let key_len = (&self.data[offset..key_start_offset]).get_u16() as usize;
         let key_end_offset = key_start_offset + key_len;
         (

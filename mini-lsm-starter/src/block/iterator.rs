@@ -23,7 +23,7 @@ pub struct BlockIterator {
 }
 
 impl BlockIterator {
-    fn new(block: Arc<Block>) -> Self {
+    pub fn new(block: Arc<Block>) -> Self {
         Self {
             block,
             key: KeyVec::new(),
@@ -53,7 +53,7 @@ impl BlockIterator {
 
     /// Creates a block iterator and seek to the first key that >= `key`.
     pub fn create_and_seek_to_key(block: Arc<Block>, key: KeySlice) -> Self {
-        let mut iterator = Self::create_and_seek_to_first(block);
+        let mut iterator = Self::new(block);
         iterator.seek_to_key(key);
         iterator
     }
@@ -99,6 +99,9 @@ impl BlockIterator {
             let range = self.block.value_range(key_end_offset);
             self.value_range = range;
             self.key = key;
+        } else {
+            self.key = KeyVec::new();
+            self.value_range = (0, 0);
         }
     }
 
@@ -106,42 +109,40 @@ impl BlockIterator {
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
     pub fn seek_to_key(&mut self, key: KeySlice) {
-        if self.is_valid() {
-            let mut right = self.block.offsets.len() - 1;
-            let mut left = 0;
-            let mut found_key = KeyVec::new();
-            let mut found_key_end_offset = 0;
-            let key = key.to_key_vec();
-            let mut load_key = true;
-            while left <= right {
-                let mid = left + (right - left) / 2;
-                (found_key, found_key_end_offset) =
-                    self.block.read_key(self.block.offsets[mid] as usize);
-                match found_key.cmp(&key) {
-                    Ordering::Greater => {
-                        if mid == 0 {
-                            break;
-                        }
-                        right = mid - 1;
-                    }
-                    Ordering::Less => {
-                        left = mid + 1;
-                    }
-                    _ => {
-                        left = mid;
-                        load_key = false;
+        let mut right = self.block.offsets.len() - 1;
+        let mut left = 0;
+        let mut found_key = KeyVec::new();
+        let mut found_key_end_offset = 0;
+        let key = key.to_key_vec();
+        let mut load_key = true;
+        while left <= right {
+            let mid = left + (right - left) / 2;
+            (found_key, found_key_end_offset) =
+                self.block.read_key(self.block.offsets[mid] as usize);
+            match found_key.cmp(&key) {
+                Ordering::Greater => {
+                    if mid == 0 {
                         break;
                     }
+                    right = mid - 1;
+                }
+                Ordering::Less => {
+                    left = mid + 1;
+                }
+                _ => {
+                    left = mid;
+                    load_key = false;
+                    break;
                 }
             }
-            left = min(left, self.block.offsets.len() - 1);
-            if load_key {
-                (found_key, found_key_end_offset) =
-                    self.block.read_key(self.block.offsets[left] as usize);
-            }
-            self.idx = left;
-            self.key = found_key;
-            self.value_range = self.block.value_range(found_key_end_offset);
         }
+        left = min(left, self.block.offsets.len() - 1);
+        if load_key {
+            (found_key, found_key_end_offset) =
+                self.block.read_key(self.block.offsets[left] as usize);
+        }
+        self.idx = left;
+        self.key = found_key;
+        self.value_range = self.block.value_range(found_key_end_offset);
     }
 }
