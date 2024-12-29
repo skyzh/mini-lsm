@@ -66,7 +66,7 @@ src/iterators/merge_iterator.rs
 
 Now that you have multiple memtables and you will create multiple memtable iterators. You will need to merge the results from the memtables and return the latest version of each key to the user.
 
-`MergeIterator` maintains a binary heap internally. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
+`MergeIterator` maintains a binary heap internally. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
 
 For example, if we have the following data:
 
