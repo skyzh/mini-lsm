@@ -47,21 +47,20 @@ impl SimpleLeveledCompactionController {
             level_sizes.push(files.len());
         }
 
-        // check level0_file_num_compaction_trigger for compaction of L0 and L1
-        {
-            if snapshot.l0_sstables.len() >= self.options.level0_file_num_compaction_trigger {
-                println!(
-                    "compaction triggered at level 0 and 1 because L0 has {} SSTs",
-                    snapshot.l0_sstables.len()
-                );
-                return Some(SimpleLeveledCompactionTask {
-                    upper_level: None,
-                    upper_level_sst_ids: snapshot.l0_sstables.clone(),
-                    lower_level: 1,
-                    lower_level_sst_ids: snapshot.levels[0].1.clone(),
-                    is_lower_level_bottom_level: false,
-                });
-            }
+        // check level0_file_num_compaction_trigger for compaction of L0 to L1
+        if snapshot.l0_sstables.len() >= self.options.level0_file_num_compaction_trigger {
+            println!(
+                "compaction triggered at level 0 because L0 has {} SSTs >= {}",
+                snapshot.l0_sstables.len(),
+                self.options.level0_file_num_compaction_trigger
+            );
+            return Some(SimpleLeveledCompactionTask {
+                upper_level: None,
+                upper_level_sst_ids: snapshot.l0_sstables.clone(),
+                lower_level: 1,
+                lower_level_sst_ids: snapshot.levels[0].1.clone(),
+                is_lower_level_bottom_level: false,
+            });
         }
 
         // check size_ratio_percent for compaction of other levels (>= L1)
