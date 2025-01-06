@@ -1,3 +1,4 @@
+#![allow(dead_code)] // REMOVE THIS LINE once all modules are complete
 use std::{
     collections::BTreeMap, ops::Bound, os::unix::fs::MetadataExt, path::Path, sync::Arc,
     time::Duration,
