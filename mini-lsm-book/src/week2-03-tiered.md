@@ -147,7 +147,7 @@ The current trigger only reduces space amplification. We will need to add new tr
 
 ### Task 1.2: Triggered by Size Ratio
 
-The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 100%`, we will compact all previous tiers and the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 100%`, we will compact all previous tiers excluding the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
 
 For example, given the following LSM state, and assume size_ratio = 1, we should compact when the ratio value > 101%:
 
