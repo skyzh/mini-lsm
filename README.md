@@ -107,6 +107,13 @@ We have 3 weeks + 1 extra week (in progress) for this tutorial.
 | 3.6            | Serializable Snapshot Isolation                             |
 | 3.7            | Compaction Filters                                          |
 
+## Related Projects
+
+mini-lsm inspired several projects used in production.
+
+* [SlateDB](https://slatedb.io/docs/architecture/) is an LSM engine over the object storage system.
+* [Tonbo](https://tonbo.io/about) stores parquet files directly on the object storage and organizes them in an LSM tree structure.
+
 ## License
 
 The Mini-LSM starter code and solution are under [Apache 2.0 license](LICENSE). The author reserves the full copyright of the tutorial materials (markdown files and figures).
