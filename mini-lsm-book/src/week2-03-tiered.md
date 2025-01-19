@@ -226,7 +226,7 @@ There will be fewer 1-SST tiers and the compaction algorithm will maintain the t
 
 ### Task 1.3: Reduce Sorted Runs
 
-If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that incldues all SST files.
+If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that includes all SST files.
 
 With this compaction trigger enabled, you will see:
 
