@@ -14,7 +14,7 @@ The Mini-LSM book is available at [https://skyzh.github.io/mini-lsm](https://sky
 
 You may join skyzh's Discord server and study with the mini-lsm community.
 
-[![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
+[![Join skyzh's Discord Server](mini-lsm-book/src/discord-badge.svg)](https://skyzh.dev/join/discord)
 
 **Add Your Solution**
 

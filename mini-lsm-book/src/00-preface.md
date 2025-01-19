@@ -74,7 +74,7 @@ Yes! Everything publicly available now will be free forever and receive lifetime
 
 You may join skyzh's Discord server and study with the mini-lsm community.
 
-[![Join skyzh's Discord Server](https://dcbadge.vercel.app/api/server/ZgXzxpua3H)](https://skyzh.dev/join/discord)
+[![Join skyzh's Discord Server](discord-badge.svg)](https://skyzh.dev/join/discord)
 
 ## Get Started
 
