@@ -79,7 +79,7 @@ We have 3 weeks + 1 extra week (in progress) for this tutorial.
 * Week 1: Storage Format + Engine Skeleton
 * Week 2: Compaction and Persistence
 * Week 3: Multi-Version Concurrency Control
-* The Extra Week / Rest of Your Life: Optimizations (unlikely to be available in 2024...)
+* The Extra Week / Rest of Your Life: Optimizations (unlikely to be available in 2025...)
 
 ![Tutorial Roadmap](./mini-lsm-book/src/lsm-tutorial/00-full-overview.svg)
 

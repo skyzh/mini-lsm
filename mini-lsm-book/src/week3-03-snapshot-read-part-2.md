@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Snapshot Read - Engine Read Path and Transaction API
 
 In this chapter, you will:

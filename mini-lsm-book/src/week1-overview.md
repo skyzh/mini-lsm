@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Week 1 Overview: Mini-LSM
 
 ![Chapter Overview](./lsm-tutorial/week1-overview.svg)

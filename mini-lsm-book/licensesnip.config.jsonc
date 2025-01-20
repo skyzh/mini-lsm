@@ -1,0 +1,10 @@
+{
+  "use_gitignore": true,
+  "file_types": {
+    "md": {
+      "before_block": "<!--",
+      "before_line": "  ",
+      "after_block": "-->"
+    }
+  }
+}
