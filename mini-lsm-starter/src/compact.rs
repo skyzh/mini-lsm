@@ -1,4 +1,3 @@
-#![allow(dead_code)] // REMOVE THIS LINE after fully implementing this functionality
 // Copyright (c) 2022-2025 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
+#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 mod leveled;
 mod simple_leveled;
