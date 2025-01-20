@@ -1,0 +1,8 @@
+{
+  "use_gitignore": true,
+  "file_types": {
+    "rs": {
+      "before_line": "// "
+    }
+  }
+}

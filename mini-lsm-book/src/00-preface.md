@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Preface
 
 ![Banner](./mini-lsm-logo.png)
@@ -64,7 +68,7 @@ The long story of why we rewrote it: The tutorial was originally planned as a ge
 
 ### License
 
-The source code of this course is licensed under Apache 2.0, while the author owns the complete copyright of the tutorial itself (markdown files + figures).
+The source code of this course is licensed under Apache 2.0, while the book is licensed under CC BY-NC-SA 4.0.
 
 ### Will this tutorial be free forever?
 
