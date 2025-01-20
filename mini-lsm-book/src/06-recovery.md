@@ -6,7 +6,7 @@
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial 
+This is a legacy version of the Mini-LSM course and we will not maintain it anymore. We now have a better version of this course 
 and this chapter is now part of:
 
 - [Mini-LSM Week 2 Day 5: Manifest](./week2-05-manifest.md)

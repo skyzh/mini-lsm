@@ -6,7 +6,7 @@ homepage = { workspace = true }
 keywords = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
-description = "A tutorial for building an LSM tree storage engine in a week."
+description = "A course for building an LSM tree storage engine in a week."
 
 
 [dependencies]

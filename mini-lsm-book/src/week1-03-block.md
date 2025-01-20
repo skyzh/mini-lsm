@@ -30,7 +30,7 @@ src/block/builder.rs
 src/block.rs
 ```
 
-The block encoding format in our tutorial is as follows:
+The block encoding format in our course is as follows:
 
 ```plaintext
 ----------------------------------------------------------------------------------------------------

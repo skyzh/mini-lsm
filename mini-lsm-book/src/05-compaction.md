@@ -7,7 +7,7 @@
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial 
+This is a legacy version of the Mini-LSM course and we will not maintain it anymore. We now have a better version of this course 
 and this chapter is now part of:
 
 - [Mini-LSM Week 2 Day 1: Compaction Implementation](./week2-01-compaction.md)

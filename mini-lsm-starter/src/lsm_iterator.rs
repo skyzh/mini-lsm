@@ -22,7 +22,7 @@ use crate::{
     mem_table::MemTableIterator,
 };
 
-/// Represents the internal type for an LSM iterator. This type will be changed across the tutorial for multiple times.
+/// Represents the internal type for an LSM iterator. This type will be changed across the course for multiple times.
 type LsmIteratorInner = MergeIterator<MemTableIterator>;
 
 pub struct LsmIterator {

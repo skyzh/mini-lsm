@@ -17,7 +17,7 @@ In this chapter, you will:
 
 ## Task 1: Write Batch Interface
 
-In this task, we will prepare for week 3 of this tutorial by adding a write batch API. You will need to modify:
+In this task, we will prepare for week 3 of this course by adding a write batch API. You will need to modify:
 
 ```
 src/lsm_storage.rs
@@ -51,7 +51,7 @@ The format of the SST will be changed to:
 
 We use crc32 as our checksum algorithm. You can use `crc32fast::hash` to generate the checksum for the block after building a block.
 
-Usually, when user specify the target block size in the storage options, the size should include both block content and checksum. For example, if the target block size is 4096, and the checksum takes 4 bytes, the actual block content target size should be 4092. However, to avoid breaking previous test cases and for simplicity, in our tutorial, we will **still** use the target block size as the target content size, and simply append the checksum at the end of the block.
+Usually, when user specify the target block size in the storage options, the size should include both block content and checksum. For example, if the target block size is 4096, and the checksum takes 4 bytes, the actual block content target size should be 4092. However, to avoid breaking previous test cases and for simplicity, in our course, we will **still** use the target block size as the target content size, and simply append the checksum at the end of the block.
 
 When you read the block, you should verify the checksum in `read_block` correctly generate the slices for the block content. You should pass all test cases in previous chapters after implementing this functionality.
 
