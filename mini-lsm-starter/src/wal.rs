@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 // REMOVE THIS LINE after fully implementing this functionality
 // Copyright (c) 2022-2025 Alex Chi Z
 //
