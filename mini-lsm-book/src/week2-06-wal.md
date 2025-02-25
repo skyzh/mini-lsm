@@ -74,6 +74,7 @@ Remember to recover the correct `next_sst_id` from the state, which should be `m
 * How costly is the `fsync` operation in general on an SSD (solid state drive)?
 * When can you tell the user that their modifications (put/delete) have been persisted?
 * How can you handle corrupted data in WAL?
+* Is it possible to design an LSM engine without WAL (i.e., use L0 as WAL)? What will be the implications of this design?
 
 We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
 
