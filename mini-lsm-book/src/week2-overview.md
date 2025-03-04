@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Week 2 Overview: Compaction and Persistence
 
 ![Chapter Overview](./lsm-tutorial/week2-overview.svg)
@@ -71,7 +75,7 @@ In leveled compaction, the user can specify a maximum number of levels, which is
 
 ![leveled compaction](./lsm-tutorial/week2-00-leveled.svg)
 
-In tiered compaction, the engine will dynamically adjust the number of sorted runs by merging them or letting new SSTs flushed as new sorted run (a tier) to minimize write amplification. In this strategy, you will usually see the engine merge two equally-sized sorted runs. The number of tiers can be high if the compaction strategy does not choose to merge tiers, therefore making read amplification high. In this tutorial, we will implement RocksDB's universal compaction, which is a kind of tiered compaction strategy.
+In tiered compaction, the engine will dynamically adjust the number of sorted runs by merging them or letting new SSTs flushed as new sorted run (a tier) to minimize write amplification. In this strategy, you will usually see the engine merge two equally-sized sorted runs. The number of tiers can be high if the compaction strategy does not choose to merge tiers, therefore making read amplification high. In this course, we will implement RocksDB's universal compaction, which is a kind of tiered compaction strategy.
 
 ![tiered compaction](./lsm-tutorial/week2-00-tiered.svg)
 

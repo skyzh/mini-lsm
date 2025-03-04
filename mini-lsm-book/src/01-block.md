@@ -1,8 +1,12 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Block Builder and Block Iterator
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 3: Blocks](./week1-03-block.md).
+This is a legacy version of the Mini-LSM course and we will not maintain it anymore. We now have a better version of this course and this chapter is now part of [Mini-LSM Week 1 Day 3: Blocks](./week1-03-block.md).
 
 </div>
 

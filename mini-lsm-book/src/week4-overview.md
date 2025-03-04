@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # The Rest of Your Life (TBD)
 
 This is an advanced part that deep dives into optimizations and applications of the LSM storage engine and will make your implementation more production-ready. We are still planning on the content, and this part will not be publicly available in near future.

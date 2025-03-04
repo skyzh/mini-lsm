@@ -1,8 +1,12 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # SST Builder and SST Iterator
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 4: Sorted String Table (SST)](./week1-04-sst.md).
+This is a legacy version of the Mini-LSM course and we will not maintain it anymore. We now have a better version of this course and this chapter is now part of [Mini-LSM Week 1 Day 4: Sorted String Table (SST)](./week1-04-sst.md).
 
 </div>
 
@@ -22,7 +26,7 @@ test cases, write a new module `#[cfg(test)] mod user_tests { /* your test cases
 ## Task 1 - SST Builder
 
 SST is composed of data blocks and index blocks stored on the disk. Usually, data blocks are lazily loaded -- they will
-not be loaded into the memory until a user requests it. Index blocks can also be loaded on-demand, but in this tutorial,
+not be loaded into the memory until a user requests it. Index blocks can also be loaded on-demand, but in this course,
 we make simple assumptions that all SST index blocks (meta blocks) can fit in memory. Generally, an SST file is of 256MB
 size.
 

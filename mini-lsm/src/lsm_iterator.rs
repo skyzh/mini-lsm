@@ -1,3 +1,17 @@
+// Copyright (c) 2022-2025 Alex Chi Z
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::ops::Bound;
 
 use anyhow::{bail, Result};
@@ -10,7 +24,7 @@ use crate::iterators::StorageIterator;
 use crate::mem_table::MemTableIterator;
 use crate::table::SsTableIterator;
 
-/// Represents the internal type for an LSM iterator. This type will be changed across the tutorial for multiple times.
+/// Represents the internal type for an LSM iterator. This type will be changed across the course for multiple times.
 type LsmIteratorInner = TwoMergeIterator<
     TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>,
     MergeIterator<SstConcatIterator>,
@@ -99,7 +113,10 @@ impl<I: StorageIterator> FusedIterator<I> {
 }
 
 impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
-    type KeyType<'a> = I::KeyType<'a> where Self: 'a;
+    type KeyType<'a>
+        = I::KeyType<'a>
+    where
+        Self: 'a;
 
     fn is_valid(&self) -> bool {
         !self.has_errored && self.iter.is_valid()

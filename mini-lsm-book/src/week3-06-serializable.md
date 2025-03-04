@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # (A Partial) Serializable Snapshot Isolation
 
 Now, we are going to add a conflict detection algorithm at the transaction commit time, so as to make the engine to have some level of serializable.
@@ -65,7 +69,7 @@ In this task, you will need to modify:
 src/mvcc/txn.rs
 ```
 
-In this tutorial, we only guarantee full serializability for `get` requests. You still need to track the read set for scans, but in some specific cases, you might still get non-serializable result.
+In this course, we only guarantee full serializability for `get` requests. You still need to track the read set for scans, but in some specific cases, you might still get non-serializable result.
 
 To understand why this is hard, let us go through the following example.
 

@@ -1,8 +1,12 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Mem Table and Merge Iterators
 
 <div class="warning">
 
-This is a legacy version of the Mini-LSM tutorial and we will not maintain it anymore. We now have a better version of this tutorial and this chapter is now part of [Mini-LSM Week 1 Day 1: Memtable](./week1-01-memtable.md) and [Mini-LSM Week 1 Day 2: Merge Iterator](./week1-02-merge-iterator.md)
+This is a legacy version of the Mini-LSM course and we will not maintain it anymore. We now have a better version of this course and this chapter is now part of [Mini-LSM Week 1 Day 1: Memtable](./week1-01-memtable.md) and [Mini-LSM Week 1 Day 2: Merge Iterator](./week1-02-merge-iterator.md)
 
 </div>
 
@@ -25,7 +29,7 @@ in part 4, we will compose all these things together to make a real storage engi
 
 ## Task 1 - Mem Table
 
-In this tutorial, we use [crossbeam-skiplist](https://docs.rs/crossbeam-skiplist) as the implementation of memtable.
+In this course, we use [crossbeam-skiplist](https://docs.rs/crossbeam-skiplist) as the implementation of memtable.
 Skiplist is like linked-list, where data is stored in a list node and will not be moved in memory. Instead of using
 a single pointer for the next element, the nodes in skiplists contain multiple pointers and allow user to "skip some
 elements", so that we can achieve `O(log n)` search, insertion, and deletion.
@@ -65,7 +69,7 @@ pub struct MemTableIterator {
 ```
 
 You will also need to convert the Rust-style iterator API to our storage iterator. In Rust, we use `next() -> Data`. But
-in this tutorial, `next` doesn't have a return value, and the data should be fetched by `key()` and `value()`. You will
+in this course, `next` doesn't have a return value, and the data should be fetched by `key()` and `value()`. You will
 need to think a way to implement this.
 
 <details>
@@ -91,7 +95,7 @@ the inner iter to the next position.
 </details>
 
 In this design, you might have noticed that as long as we have the iterator object, the mem-table cannot be freed from
-the memory. In this tutorial, we assume user operations are short, so that this will not cause big problems. See extra
+the memory. In this course, we assume user operations are short, so that this will not cause big problems. See extra
 task for possible improvements.
 
 You can also consider using [AgateDB's skiplist](https://github.com/tikv/agatedb/tree/master/skiplist) implementation,
@@ -136,7 +140,7 @@ types. That is `TwoMergeIterator`.
 You can implement `TwoMergeIterator` in `two_merge_iter.rs`. Similar to `MergeIterator`, if the same key is found in
 both of the iterator, the first iterator takes precedence.
 
-In this tutorial, we explicitly did not use something like `Box<dyn StorageIter>` to avoid dynamic dispatch. This is a
+In this course, we explicitly did not use something like `Box<dyn StorageIter>` to avoid dynamic dispatch. This is a
 common optimization in LSM storage engines.
 
 ## Extra Tasks
@@ -146,7 +150,7 @@ common optimization in LSM storage engines.
   to think of smart ways of solving this.
 * Async iterator. One interesting thing to explore is to see if it is possible to asynchronize everything in the storage
   engine. You might find some lifetime related problems and need to workaround them.
-* Foreground iterator. In this tutorial we assumed that all operations are short, so that we can hold reference to
+* Foreground iterator. In this course we assumed that all operations are short, so that we can hold reference to
   mem-table in the iterator. If an iterator is held by users for a long time, the whole mem-table (which might be 256MB)
   will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` /
   `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow

@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Merge Iterator
 
 ![Chapter Overview](./lsm-tutorial/week1-02-overview.svg)
@@ -43,7 +47,7 @@ pub struct MemtableIterator {
 
 Okay, here is the problem: we want to express that the lifetime of the iterator is the same as the `map` in the structure. How can we do that?
 
-This is the first and most tricky Rust language thing that you will ever meet in this tutorial -- self-referential structure. If it is possible to write something like:
+This is the first and most tricky Rust language thing that you will ever meet in this course -- self-referential structure. If it is possible to write something like:
 
 ```rust,no_run
 pub struct MemtableIterator { // <- with lifetime 'this
@@ -66,7 +70,7 @@ src/iterators/merge_iterator.rs
 
 Now that you have multiple memtables and you will create multiple memtable iterators. You will need to merge the results from the memtables and return the latest version of each key to the user.
 
-`MergeIterator` maintains a binary heap internally. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
+`MergeIterator` maintains a binary heap internally. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
 
 For example, if we have the following data:
 
@@ -119,7 +123,7 @@ In this task, you will need to modify:
 src/lsm_iterator.rs
 ```
 
-We use the `LsmIterator` structure to represent the internal LSM iterators. You will need to modify this structure multiple times throughout the tutorial when more iterators are added into the system. For now, because we only have multiple memtables, it should be defined as:
+We use the `LsmIterator` structure to represent the internal LSM iterators. You will need to modify this structure multiple times throughout the course when more iterators are added into the system. For now, because we only have multiple memtables, it should be defined as:
 
 ```rust,no_run
 type LsmIteratorInner = MergeIterator<MemTableIterator>;
@@ -159,6 +163,6 @@ We do not provide reference answers to the questions, and feel free to discuss a
 
 ## Bonus Tasks
 
-* **Foreground Iterator.** In this tutorial we assumed that all operations are short, so that we can hold reference to mem-table in the iterator. If an iterator is held by users for a long time, the whole mem-table (which might be 256MB) will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` / `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow garbage collection of the resources.
+* **Foreground Iterator.** In this course we assumed that all operations are short, so that we can hold reference to mem-table in the iterator. If an iterator is held by users for a long time, the whole mem-table (which might be 256MB) will stay in the memory even if it has been flushed to disk. To solve this, we can provide a `ForegroundIterator` / `LongIterator` to our user. The iterator will periodically create new underlying storage iterator so as to allow garbage collection of the resources.
 
 {{#include copyright.md}}

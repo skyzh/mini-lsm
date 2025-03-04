@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Tiered Compaction Strategy
 
 ![Chapter Overview](./lsm-tutorial/week2-00-tiered.svg)
@@ -44,7 +48,7 @@ The first trigger of universal compaction is by space amplification ratio. As we
 
 The reason why we compute the space amplification ratio like this is because we model the engine in a way that it stores a fixed amount of user data (i.e., assume it's 100GB), and the user keeps updating the values by writing to the engine. Therefore, eventually, all keys get pushed down to the bottom-most tier, the bottom-most tier size should be equivalent to the amount of data (100GB), the upper tiers contain updates to the data that are not yet compacted to the bottom-most tier.
 
-When `all levels except last level size / last level size` >= `max_size_amplification_percent * 100%`, we will need to trigger a full compaction. For example, if we have a LSM state like:
+When `all levels except last level size / last level size` >= `max_size_amplification_percent * 1%`, we will need to trigger a full compaction. For example, if we have a LSM state like:
 
 ```
 Tier 3: 1
@@ -52,7 +56,7 @@ Tier 2: 1 ; all levels except last level size = 2
 Tier 1: 1 ; last level size = 1, 2/1=2
 ```
 
-Assume `max_size_amplification_percent` = 200%, we should trigger a full compaction now.
+Assume `max_size_amplification_percent` = 200, we should trigger a full compaction now.
 
 After you implement this trigger, you can run the compaction simulator. You will see:
 
@@ -147,7 +151,7 @@ The current trigger only reduces space amplification. We will need to add new tr
 
 ### Task 1.2: Triggered by Size Ratio
 
-The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 100%`, we will compact all previous tiers and the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
+The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 1%`, we will compact all previous tiers excluding the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
 
 For example, given the following LSM state, and assume size_ratio = 1, we should compact when the ratio value > 101%:
 
@@ -226,7 +230,7 @@ There will be fewer 1-SST tiers and the compaction algorithm will maintain the t
 
 ### Task 1.3: Reduce Sorted Runs
 
-If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that incldues all SST files.
+If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that includes all SST files.
 
 With this compaction trigger enabled, you will see:
 

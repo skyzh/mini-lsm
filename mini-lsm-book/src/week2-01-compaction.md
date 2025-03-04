@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Compaction Implementation
 
 ![Chapter Overview](./lsm-tutorial/week2-01-full.svg)
@@ -29,7 +33,7 @@ In this task, you will implement the core logic of doing a compaction -- merge s
 src/compact.rs
 ```
 
-Specifically, the `force_full_compaction` and `compact` function. `force_full_compaction` is the compaction trigger the decides which files to compact and update the LSM state. `compact` does the actual compaction job that merges some SST files and return a set of new SST files.
+Specifically, the `force_full_compaction` and `compact` function. `force_full_compaction` is the compaction trigger that decides which files to compact and update the LSM state. `compact` does the actual compaction job that merges some SST files and return a set of new SST files.
 
 Your compaction implementation should take all SSTs in the storage engine, do a merge over them by using `MergeIterator`, and then use the SST builder to write the result into new files. You will need to split the SST files if the file is too large. After compaction completes, you can update the LSM state to add all the new sorted run to the first level of the LSM tree. And, you will need to remove unused files in the LSM tree. In your implementation, your SSTs should only be stored in two places: the L0 SSTs and the L1 SSTs. That is to say, the `levels` structure in the LSM state should only have one vector. In `LsmStorageState`, we have already initialized the LSM to have L1 in `levels` field.
 

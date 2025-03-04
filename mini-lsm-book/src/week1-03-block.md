@@ -1,3 +1,7 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Block
 
 ![Chapter Overview](./lsm-tutorial/week1-03-overview.svg)
@@ -26,7 +30,7 @@ src/block/builder.rs
 src/block.rs
 ```
 
-The block encoding format in our tutorial is as follows:
+The block encoding format in our course is as follows:
 
 ```plaintext
 ----------------------------------------------------------------------------------------------------

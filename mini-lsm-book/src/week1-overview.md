@@ -1,8 +1,12 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Week 1 Overview: Mini-LSM
 
 ![Chapter Overview](./lsm-tutorial/week1-overview.svg)
 
-In the first week of the tutorial, you will build necessary storage formats for the storage engine, the read path and the write path of the system, and have a working implementation of an LSM-based key-value store. There are 7 chapters (days) for this part.
+In the first week of the course, you will build necessary storage formats for the storage engine, the read path and the write path of the system, and have a working implementation of an LSM-based key-value store. There are 7 chapters (days) for this part.
 
 * [Day 1: Memtable](./week1-01-memtable.md). You will implement the in-memory read and write path of the system.
 * [Day 2: Merge Iterator](./week1-02-merge-iterator.md). You will extend what you have built in day 1 and implement a `scan` interface for your system.

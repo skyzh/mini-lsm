@@ -6,7 +6,7 @@ resolver = "2"
 version = "0.2.0"
 edition = "2021"
 homepage = "https://github.com/skyzh/mini-lsm"
-keywords = ["storage", "database", "tutorial"]
+keywords = ["storage", "database", "tutorial", "course"]
 license = "Apache-2.0"
 repository = "https://github.com/skyzh/mini-lsm"
 

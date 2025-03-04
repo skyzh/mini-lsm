@@ -1,10 +1,14 @@
+<!--
+  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+-->
+
 # Mini-LSM Course Overview
 
-## Tutorial Structure
+## Course Structure
 
-![Tutorial Overview](lsm-tutorial/00-full-overview.svg)
+![Course Overview](lsm-tutorial/00-full-overview.svg)
 
-We have three parts (weeks) for this tutorial. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will deeply dive into compactions and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
+We have three parts (weeks) for this course. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will deeply dive into compactions and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
 
 * [The First Week: Mini-LSM](./week1-overview.md)
 * [The Second Week: Compaction and Persistence](./week2-overview.md)
@@ -33,7 +37,7 @@ To ensure persistence,
 
 Some engines choose to combine `Put` and `Delete` into a single operation called `WriteBatch`, which accepts a batch of key-value pairs.
 
-In this tutorial, we assume the LSM tree is using a leveled compaction algorithm, which is commonly used in real-world systems.
+In this course, we assume the LSM tree is using a leveled compaction algorithm, which is commonly used in real-world systems.
 
 ### Write Path
 
@@ -55,6 +59,6 @@ When we want to read a key,
 1. We will first probe all the mem-tables from the latest to the oldest.
 2. If the key is not found, we will then search the entire LSM tree containing SSTs to find the data.
 
-There are two types of read: lookup and scan. Lookup finds one key in the LSM tree, while scan iterates all keys within a range in the storage engine. We will cover both of them throughout the tutorial.
+There are two types of read: lookup and scan. Lookup finds one key in the LSM tree, while scan iterates all keys within a range in the storage engine. We will cover both of them throughout the course.
 
 {{#include copyright.md}}
