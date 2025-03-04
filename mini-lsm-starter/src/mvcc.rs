@@ -6,9 +6,11 @@ mod watermark;
 
 use std::{
     collections::{BTreeMap, HashSet},
-    sync::Arc,
+    sync::{atomic::AtomicBool, Arc},
 };
 
+use bytes::Bytes;
+use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
 
 use crate::lsm_storage::LsmStorageInner;
@@ -55,6 +57,23 @@ impl LsmMvccInner {
     }
 
     pub fn new_txn(&self, inner: Arc<LsmStorageInner>, serializable: bool) -> Arc<Transaction> {
-        unimplemented!()
+        let read_ts = {
+            let ts_lock = self.write_lock.lock(); // Lock acquired
+            let read_ts = self.latest_commit_ts() + 1;
+            println!("Transaction Ts {:?}", read_ts);
+
+            self.update_commit_ts(read_ts);
+            read_ts
+        };
+
+        let txn_obj = Transaction {
+            read_ts,
+            inner,
+            local_storage: Arc::new(SkipMap::<Bytes, Bytes>::new()),
+            committed: Arc::new(AtomicBool::new(false)),
+            key_hashes: Some(Mutex::new((HashSet::new(), HashSet::new()))),
+        };
+
+        Arc::new(txn_obj) // (2) Lock was already released before this point
     }
 }

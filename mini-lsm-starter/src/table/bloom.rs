@@ -1,7 +1,7 @@
 // Copyright 2021 TiKV Project Authors. Licensed under Apache-2.0.
 
 use anyhow::Result;
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 /// Implements a bloom filter
 pub struct Bloom {
@@ -47,8 +47,12 @@ impl<T: AsMut<[u8]>> BitSliceMut for T {
 impl Bloom {
     /// Decode a bloom filter
     pub fn decode(buf: &[u8]) -> Result<Self> {
-        let filter = &buf[..buf.len() - 1];
-        let k = buf[buf.len() - 1];
+        let filter = &buf[..buf.len() - 5];
+        let k = buf[buf.len() - 5];
+        let checksum = (&buf[buf.len() - 4..]).get_u32();
+        if checksum != crc32fast::hash(&buf[..buf.len() - 4]) {
+            panic!("The bloom filter checksum does not match")
+        }
         Ok(Self {
             filter: filter.to_vec().into(),
             k,
@@ -57,8 +61,10 @@ impl Bloom {
 
     /// Encode a bloom filter
     pub fn encode(&self, buf: &mut Vec<u8>) {
+        let prev_len = buf.len();
         buf.extend(&self.filter);
         buf.put_u8(self.k);
+        buf.put_u32(crc32fast::hash(&buf[prev_len..]));
     }
 
     /// Get bloom filter bits per key from entries count and FPR
@@ -79,7 +85,14 @@ impl Bloom {
         let mut filter = BytesMut::with_capacity(nbytes);
         filter.resize(nbytes, 0);
 
-        // TODO: build the bloom filter
+        for h in keys {
+            let mut v = *h;
+            let delta = v.rotate_left(15);
+            for _ in 0..k {
+                filter.set_bit((v % (nbits as u32)) as usize, true);
+                v = v.wrapping_add(delta);
+            }
+        }
 
         Self {
             filter: filter.freeze(),
@@ -95,8 +108,13 @@ impl Bloom {
         } else {
             let nbits = self.filter.bit_len();
             let delta = h.rotate_left(15);
-
-            // TODO: probe the bloom filter
+            let mut v = h;
+            for _ in 0..self.k {
+                if !self.filter.get_bit((v % (nbits as u32)) as usize) {
+                    return false;
+                }
+                v = v.wrapping_add(delta);
+            }
 
             true
         }

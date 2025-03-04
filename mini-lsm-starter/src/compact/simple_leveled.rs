@@ -35,7 +35,33 @@ impl SimpleLeveledCompactionController {
         &self,
         _snapshot: &LsmStorageState,
     ) -> Option<SimpleLeveledCompactionTask> {
-        unimplemented!()
+        if _snapshot.l0_sstables.len() >= self.options.level0_file_num_compaction_trigger
+            && self.options.size_ratio_percent * _snapshot.l0_sstables.len()
+                > 100 * _snapshot.levels[0].1.len()
+        {
+            return Some(SimpleLeveledCompactionTask {
+                upper_level: None,
+                upper_level_sst_ids: _snapshot.l0_sstables.clone(),
+                lower_level: 1,
+                lower_level_sst_ids: _snapshot.levels[0].1.clone(),
+                is_lower_level_bottom_level: _snapshot.levels.len() == 1,
+            });
+        }
+        for i in 0..(self.options.max_levels - 1) {
+            if !_snapshot.levels[i].1.is_empty()
+                && self.options.size_ratio_percent * _snapshot.levels[i].1.len()
+                    > 100 * _snapshot.levels[i + 1].1.len()
+            {
+                return Some(SimpleLeveledCompactionTask {
+                    upper_level: Some(i),
+                    upper_level_sst_ids: _snapshot.levels[i].1.clone(),
+                    lower_level: i + 1,
+                    lower_level_sst_ids: _snapshot.levels[i + 1].1.clone(),
+                    is_lower_level_bottom_level: (_snapshot.levels.len() == i + 1),
+                });
+            }
+        }
+        None
     }
 
     /// Apply the compaction result.
@@ -51,6 +77,30 @@ impl SimpleLeveledCompactionController {
         _task: &SimpleLeveledCompactionTask,
         _output: &[usize],
     ) -> (LsmStorageState, Vec<usize>) {
-        unimplemented!()
+        let mut snapshot_copy = _snapshot.clone();
+        if _task.upper_level.is_none() {
+            snapshot_copy
+                .l0_sstables
+                .retain(|sst| !_task.upper_level_sst_ids.contains(sst));
+            snapshot_copy.levels[0].1.clear();
+            snapshot_copy.levels[0].1.extend(_output.to_vec());
+        } else {
+            snapshot_copy.levels[_task.upper_level.unwrap()]
+                .1
+                .retain(|sst| !_task.upper_level_sst_ids.contains(sst));
+            snapshot_copy.levels[_task.upper_level.unwrap() + 1]
+                .1
+                .clear();
+            snapshot_copy.levels[_task.upper_level.unwrap() + 1]
+                .1
+                .extend(_output.to_vec());
+        }
+        let removal_list = _task
+            .upper_level_sst_ids
+            .iter()
+            .cloned()
+            .chain(_task.lower_level_sst_ids.iter().cloned())
+            .collect::<Vec<_>>();
+        (snapshot_copy, removal_list)
     }
 }

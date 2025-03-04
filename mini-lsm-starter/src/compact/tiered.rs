@@ -28,17 +28,90 @@ impl TieredCompactionController {
 
     pub fn generate_compaction_task(
         &self,
-        _snapshot: &LsmStorageState,
+        snapshot: &LsmStorageState,
     ) -> Option<TieredCompactionTask> {
-        unimplemented!()
+        let mut sum_rest = 0;
+
+        if snapshot.levels.len() < self.options.num_tiers {
+            return None;
+        }
+
+        let max_tier = snapshot.levels.len() - 1;
+
+        // Space Amplification trigger
+        if max_tier > 0 {
+            for i in 0..max_tier {
+                sum_rest += snapshot.levels[i].1.len();
+            }
+            if snapshot.levels[max_tier].1.len() * self.options.max_size_amplification_percent
+                <= sum_rest * 100
+            {
+                println!("Space Amplification {:?}", max_tier);
+                return Some({
+                    TieredCompactionTask {
+                        tiers: snapshot.levels.clone(),
+                        bottom_tier_included: true,
+                    }
+                });
+            }
+        }
+
+        // Size-ratio trigger
+        sum_rest = 0;
+        for i in 0..(max_tier + 1) {
+            if i > 0
+                && (i + 1) >= self.options.min_merge_width
+                && sum_rest * (self.options.size_ratio + 100) < snapshot.levels[i].1.len() * 100
+            {
+                // println!("OPti {:?}", self.options);
+                // println!("{:?}", i);
+                // println!("Tiers {:?}", snapshot.levels);
+                // println!("Len {:?}", snapshot.levels.len());
+                return Some(TieredCompactionTask {
+                    tiers: snapshot.levels[0..i + 1].to_vec(),
+                    bottom_tier_included: i == max_tier,
+                });
+            }
+            sum_rest += snapshot.levels[i].1.len();
+        }
+
+        println!("Default");
+        Some(TieredCompactionTask {
+            tiers: snapshot.levels.to_vec(),
+            bottom_tier_included: true,
+        })
     }
 
     pub fn apply_compaction_result(
         &self,
-        _snapshot: &LsmStorageState,
-        _task: &TieredCompactionTask,
-        _output: &[usize],
+        snapshot: &LsmStorageState,
+        task: &TieredCompactionTask,
+        output: &[usize],
     ) -> (LsmStorageState, Vec<usize>) {
-        unimplemented!()
+        let mut snapshot_copy = snapshot.clone();
+        // find the first tier whose id matches this and then compress it
+        for i in 0..snapshot.levels.len() {
+            if task.tiers[0] == snapshot.levels[i] {
+                snapshot_copy.levels.clear();
+                snapshot_copy
+                    .levels
+                    .append(&mut snapshot.levels[..i].to_vec());
+                snapshot_copy
+                    .levels
+                    .append(&mut snapshot.levels[i + task.tiers.len()..].to_vec());
+                break;
+            }
+        }
+
+        // Insert the compressed tier into the levels vector
+        snapshot_copy.levels.insert(0, (output[0], output.to_vec()));
+
+        let mut removal_vec = Vec::new();
+        for tier in task.tiers.iter() {
+            for table_id in tier.1.iter() {
+                removal_vec.push(*table_id);
+            }
+        }
+        (snapshot_copy, removal_vec)
     }
 }

@@ -396,6 +396,14 @@ fn main() {
             let mut max_space = 0;
             for i in 0..iterations {
                 println!("=== Iteration {i} ===");
+                println!(
+                    "num_tiers: {}, level0_file_num_compaction_trigger: {}, max_size_amplification_percent: {}, size_ratio: {}, min_merge_width: {}",
+                    level0_file_num_compaction_trigger,
+                    level0_file_num_compaction_trigger,
+                    max_size_amplification_percent,
+                    size_ratio,
+                    min_merge_width,
+                );
                 storage.flush_sst_to_new_tier();
                 println!("--- After Flush ---");
                 if size_only {
