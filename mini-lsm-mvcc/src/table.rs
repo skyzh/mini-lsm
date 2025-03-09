@@ -20,7 +20,7 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 pub use builder::SsTableBuilder;
 use bytes::{Buf, BufMut};
 pub use iterator::SsTableIterator;

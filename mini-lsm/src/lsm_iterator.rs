@@ -14,13 +14,13 @@
 
 use std::ops::Bound;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bytes::Bytes;
 
+use crate::iterators::StorageIterator;
 use crate::iterators::concat_iterator::SstConcatIterator;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
-use crate::iterators::StorageIterator;
 use crate::mem_table::MemTableIterator;
 use crate::table::SsTableIterator;
 

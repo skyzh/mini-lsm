@@ -21,7 +21,7 @@ use week2_day1::harness::construct_merge_iterator_over_storage;
 
 use super::*;
 use crate::{
-    iterators::{concat_iterator::SstConcatIterator, StorageIterator},
+    iterators::{StorageIterator, concat_iterator::SstConcatIterator},
     key::{KeySlice, TS_ENABLED},
     lsm_storage::{LsmStorageInner, LsmStorageOptions},
     table::{SsTable, SsTableBuilder},

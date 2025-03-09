@@ -17,7 +17,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bytes::Bytes;
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
         CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
         TieredCompactionOptions,
     },
-    iterators::{merge_iterator::MergeIterator, StorageIterator},
+    iterators::{StorageIterator, merge_iterator::MergeIterator},
     key::{KeySlice, TS_ENABLED},
     lsm_storage::{BlockCache, LsmStorageInner, LsmStorageState, MiniLsm},
     table::{SsTable, SsTableBuilder, SsTableIterator},
@@ -290,7 +290,9 @@ pub fn compaction_bench(storage: Arc<MiniLsm>) {
 
     storage.dump_structure();
 
-    println!("This test case does not guarantee your compaction algorithm produces a LSM state as expected. It only does minimal checks on the size of the levels. Please use the compaction simulator to check if the compaction is correctly going on.");
+    println!(
+        "This test case does not guarantee your compaction algorithm produces a LSM state as expected. It only does minimal checks on the size of the levels. Please use the compaction simulator to check if the compaction is correctly going on."
+    );
 }
 
 pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {

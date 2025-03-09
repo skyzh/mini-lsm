@@ -25,9 +25,9 @@ pub struct TwoMergeIterator<A: StorageIterator, B: StorageIterator> {
 }
 
 impl<
-        A: 'static + StorageIterator,
-        B: 'static + for<'a> StorageIterator<KeyType<'a> = A::KeyType<'a>>,
-    > TwoMergeIterator<A, B>
+    A: 'static + StorageIterator,
+    B: 'static + for<'a> StorageIterator<KeyType<'a> = A::KeyType<'a>>,
+> TwoMergeIterator<A, B>
 {
     fn choose_a(a: &A, b: &B) -> bool {
         if !a.is_valid() {
@@ -59,9 +59,9 @@ impl<
 }
 
 impl<
-        A: 'static + StorageIterator,
-        B: 'static + for<'a> StorageIterator<KeyType<'a> = A::KeyType<'a>>,
-    > StorageIterator for TwoMergeIterator<A, B>
+    A: 'static + StorageIterator,
+    B: 'static + for<'a> StorageIterator<KeyType<'a> = A::KeyType<'a>>,
+> StorageIterator for TwoMergeIterator<A, B>
 {
     type KeyType<'a> = A::KeyType<'a>;
 
