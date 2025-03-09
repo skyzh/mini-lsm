@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup rust toolchain
-        run: rustup show
+        run: rustup toolchain install
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@mdbook
       - name: patch for gh-pages build
@@ -38,4 +38,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
