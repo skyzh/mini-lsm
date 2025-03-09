@@ -1,3 +1,5 @@
+#![allow(dead_code)] // REMOVE THIS LINE once all modules are complete
+
 // Copyright (c) 2022-2025 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -128,7 +130,6 @@ where
     assert!(!iter.is_valid());
 }
 
-#[allow(dead_code)]
 pub fn check_iter_result_by_key_and_ts<I>(iter: &mut I, expected: Vec<((Bytes, u64), Bytes)>)
 where
     I: for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>,
@@ -207,7 +208,6 @@ pub fn generate_sst(
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
 
-#[allow(dead_code)]
 pub fn generate_sst_with_ts(
     id: usize,
     path: impl AsRef<Path>,
