@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup rust toolchain
-        run: rustup show
+        run: rustup update && rustup toolchain install
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@mdbook
       - name: check and build
