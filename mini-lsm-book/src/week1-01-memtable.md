@@ -33,7 +33,7 @@ crossbeam-skiplist provides similar interfaces to the Rust std's `BTreeMap`: ins
 
 You will also notice that the `MemTable` structure does not have a `delete` interface. In the mini-lsm implementation, deletion is represented as a key corresponding to an empty value.
 
-In this task, you will need to implement `MemTable::get` and `MemTable::put` to enable modifications of the memtable.
+In this task, you will need to implement `MemTable::get` and `MemTable::put` to enable modifications of the memtable. Note that `put` should always overwrite a key if it already exists. You won't have mutiple entries of the same key in a single memtable.
 
 We use the `bytes` crate for storing the data in the memtable. `bytes::Byte` is similar to `Arc<[u8]>`. When you clone the `Bytes`, or get a slice of `Bytes`, the underlying data will not be copied, and therefore cloning it is cheap. Instead, it simply creates a new reference to the storage area and the storage area will be freed when there are no reference to that area.
 
@@ -157,6 +157,7 @@ Now that you have multiple memtables, you may modify your read path `get` functi
 ## Test Your Understanding
 
 * Why doesn't the memtable provide a `delete` API?
+* Does it make sense for the memtable to store all write operations instead of only the latest version of a key? For example, the user puts a->1, a->2, and a->3 into the same memtable.
 * Is it possible to use other data structures as the memtable in LSM? What are the pros/cons of using the skiplist?
 * Why do we need a combination of `state` and `state_lock`? Can we only use `state.read()` and `state.write()`?
 * Why does the order to store and to probe the memtables matter? If a key appears in multiple memtables, which version should you return to the user?

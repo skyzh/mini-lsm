@@ -1,3 +1,5 @@
+#![allow(dead_code)] // REMOVE THIS LINE once all modules are complete
+
 // Copyright (c) 2022-2025 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +19,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bytes::Bytes;
 
 use crate::{
@@ -25,7 +27,7 @@ use crate::{
         CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
         TieredCompactionOptions,
     },
-    iterators::{merge_iterator::MergeIterator, StorageIterator},
+    iterators::{StorageIterator, merge_iterator::MergeIterator},
     key::{KeySlice, TS_ENABLED},
     lsm_storage::{BlockCache, LsmStorageInner, LsmStorageState, MiniLsm},
     table::{SsTable, SsTableBuilder, SsTableIterator},
@@ -128,7 +130,6 @@ where
     assert!(!iter.is_valid());
 }
 
-#[allow(dead_code)]
 pub fn check_iter_result_by_key_and_ts<I>(iter: &mut I, expected: Vec<((Bytes, u64), Bytes)>)
 where
     I: for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>,
@@ -207,7 +208,6 @@ pub fn generate_sst(
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
 
-#[allow(dead_code)]
 pub fn generate_sst_with_ts(
     id: usize,
     path: impl AsRef<Path>,
@@ -290,7 +290,9 @@ pub fn compaction_bench(storage: Arc<MiniLsm>) {
 
     storage.dump_structure();
 
-    println!("This test case does not guarantee your compaction algorithm produces a LSM state as expected. It only does minimal checks on the size of the levels. Please use the compaction simulator to check if the compaction is correctly going on.");
+    println!(
+        "This test case does not guarantee your compaction algorithm produces a LSM state as expected. It only does minimal checks on the size of the levels. Please use the compaction simulator to check if the compaction is correctly going on."
+    );
 }
 
 pub fn check_compaction_ratio(storage: Arc<MiniLsm>) {

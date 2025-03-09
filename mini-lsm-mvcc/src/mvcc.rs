@@ -20,7 +20,7 @@ pub mod watermark;
 
 use std::{
     collections::{BTreeMap, HashSet},
-    sync::{atomic::AtomicBool, Arc},
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use crossbeam_skiplist::SkipMap;

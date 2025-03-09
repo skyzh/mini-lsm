@@ -15,7 +15,7 @@
 use std::ops::Bound;
 use std::sync::Arc;
 
-use self::harness::{check_iter_result_by_key, MockIterator};
+use self::harness::{MockIterator, check_iter_result_by_key};
 use self::harness::{check_lsm_iter_result_by_key, generate_sst};
 use bytes::Bytes;
 use tempfile::tempdir;

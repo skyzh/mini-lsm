@@ -16,7 +16,7 @@ use tempfile::tempdir;
 
 use crate::{
     key::{KeySlice, TS_ENABLED},
-    table::{bloom::Bloom, FileObject, SsTable, SsTableBuilder},
+    table::{FileObject, SsTable, SsTableBuilder, bloom::Bloom},
 };
 
 fn key_of(idx: usize) -> Vec<u8> {
