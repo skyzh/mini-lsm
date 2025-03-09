@@ -79,6 +79,7 @@ A batch should be handled in the same mem table and the same WAL, even if it exc
 * What if the user wants to batch import data (i.e., 1TB?) If they use the transaction API to do that, will you give them some advice? Is there any opportunity to optimize for this case?
 * What is optimistic concurrency control? What would the system be like if we implement pessimistic concurrency control instead in Mini-LSM?
 * What happens if your system crashes and leave a corrupted WAL on the disk? How do you handle this situation?
+* When you commit the txn, is it necessary to put everything into the memtable in batch, or you can simply put it key by key? Why?
 
 ## Bonus Tasks
 
