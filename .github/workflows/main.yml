@@ -21,7 +21,7 @@ jobs:
         run: mv mini-lsm-book/theme/head.hbs._ mini-lsm-book/theme/head.hbs
       - name: check and build
         run: cargo x ci
-      - uses: actions/upload-pages-artifact@v1
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: mini-lsm-book/book
 
