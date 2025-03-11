@@ -18,7 +18,7 @@ cargo x scheck
 In this task, you will need to modify:
 
 ```
-src/txn.rs
+src/mvcc/txn.rs
 ```
 
 You can now implement `put` and `delete` by inserting the corresponding key/value to the `local_storage`, which is a skiplist memtable without key timestamp. Note that for deletes, you will still need to implement it as inserting an empty value, instead of removing a value from the skiplist.
@@ -28,7 +28,7 @@ You can now implement `put` and `delete` by inserting the corresponding key/valu
 In this task, you will need to modify:
 
 ```
-src/txn.rs
+src/mvcc/txn.rs
 ```
 
 For `get`, you should first probe the local storage. If a value is found, return the value or `None` depending on whether it is a deletion marker. For `scan`, you will need to implement a `TxnLocalIterator` for the skiplist as in chapter 1.1 when you implement the iterator for a memtable without key timestamp. You will need to store a `TwoMergeIterator<TxnLocalIterator, FusedIterator<LsmIterator>>` in the `TxnIterator`. And, lastly, given that the `TwoMergeIterator` will retain the deletion markers in the child iterators, you will need to modify your `TxnIterator` implementation to correctly handle deletions.
@@ -38,7 +38,7 @@ For `get`, you should first probe the local storage. If a value is found, return
 In this task, you will need to modify:
 
 ```
-src/txn.rs
+src/mvcc/txn.rs
 ```
 
 We assume that a transaction will only be used on a single thread. Once your transaction enters the commit phase, you should set `self.committed` to true, so that users cannot do any other operations on the transaction. You `put`, `delete`, `scan`, and `get` implementation should error if the transaction is already committed.
