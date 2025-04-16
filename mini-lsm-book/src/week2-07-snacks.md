@@ -60,9 +60,9 @@ When you read the block, you should verify the checksum in `read_block` correctl
 In this task, you will need to add a block checksum for bloom filters and block metadata:
 
 ```
-src/table/builder.rs
 src/table.rs
-src/bloom.rs
+src/table/bloom.rs
+src/table/builder.rs
 ```
 
 ```plaintext
