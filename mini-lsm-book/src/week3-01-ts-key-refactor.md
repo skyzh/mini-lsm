@@ -16,7 +16,7 @@ cargo x copy-test --week 3 --day 1
 cargo x scheck
 ```
 
-**Note: The MVCC subsystem is not fully tested until week 3 day 2. You only need to pass week 3 day 1 tests and all week 1 tests at the end of this day. Week 2 tests won't work because of compaction.**
+**Note: The MVCC subsystem is not fully implemented until week 3 day 2. You only need to pass week 3 day 1 tests and all week 1 tests at the end of this day. Week 2 tests won't work because of compaction.**
 
 ## Task 0: Use MVCC Key Encoding
 
