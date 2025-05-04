@@ -24,7 +24,7 @@ use crossbeam_skiplist::map::Entry;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
-use crate::key::{KeyBytes, KeySlice, TS_DEFAULT};
+use crate::key::{KeyBytes, KeySlice, TS_DEFAULT, TS_RANGE_BEGIN, TS_RANGE_END};
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
@@ -63,13 +63,24 @@ pub(crate) fn map_key_bound(bound: Bound<KeySlice>) -> Bound<KeyBytes> {
     }
 }
 
-/// Create a bound of `Bytes` from a bound of `KeySlice`.
-pub(crate) fn map_key_bound_plus_ts(bound: Bound<&[u8]>, ts: u64) -> Bound<KeySlice> {
-    match bound {
-        Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, ts)),
-        Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, ts)),
-        Bound::Unbounded => Bound::Unbounded,
-    }
+/// Create a bound of `KeySlice` from a bound of `&[u8]`.
+pub(crate) fn map_key_bound_plus_ts<'a>(
+    lower: Bound<&'a [u8]>,
+    upper: Bound<&'a [u8]>,
+    ts: u64,
+) -> (Bound<KeySlice<'a>>, Bound<KeySlice<'a>>) {
+    (
+        match lower {
+            Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, ts)),
+            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, TS_RANGE_END)),
+            Bound::Unbounded => Bound::Unbounded,
+        },
+        match upper {
+            Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, TS_RANGE_END)),
+            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, TS_RANGE_BEGIN)),
+            Bound::Unbounded => Bound::Unbounded,
+        },
+    )
 }
 
 impl MemTable {
@@ -126,10 +137,8 @@ impl MemTable {
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> MemTableIterator {
-        self.scan(
-            map_key_bound_plus_ts(lower, TS_DEFAULT),
-            map_key_bound_plus_ts(upper, TS_DEFAULT),
-        )
+        let (begin, end) = map_key_bound_plus_ts(lower, upper, TS_DEFAULT);
+        self.scan(begin, end)
     }
 
     /// Put a key-value pair into the mem-table.
