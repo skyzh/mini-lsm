@@ -16,7 +16,7 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 pub mod txn;
-mod watermark;
+pub mod watermark;
 
 use std::{
     collections::{BTreeMap, HashSet},
@@ -25,9 +25,8 @@ use std::{
 
 use parking_lot::Mutex;
 
-use crate::lsm_storage::LsmStorageInner;
-
 use self::{txn::Transaction, watermark::Watermark};
+use crate::lsm_storage::LsmStorageInner;
 
 pub(crate) struct CommittedTxnData {
     pub(crate) key_hashes: HashSet<u32>,
