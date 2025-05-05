@@ -52,6 +52,7 @@ In this task, you will need to modify:
 ```
 src/wal.rs
 src/mem_table.rs
+src/lsm_storage.rs
 ```
 
 Note that `commit` involves producing a write batch, and for now, the write batch does not guarantee atomicity. You will need to change the WAL implementation to produce a header and a footer for the write batch.
