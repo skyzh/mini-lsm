@@ -22,10 +22,11 @@ use std::{
     collections::{BTreeMap, HashSet},
     sync::Arc,
 };
+
 use parking_lot::Mutex;
 
-use crate::lsm_storage::LsmStorageInner;
 use self::{txn::Transaction, watermark::Watermark};
+use crate::lsm_storage::LsmStorageInner;
 
 pub(crate) struct CommittedTxnData {
     pub(crate) key_hashes: HashSet<u32>,
