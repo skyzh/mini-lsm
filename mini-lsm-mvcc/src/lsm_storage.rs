@@ -805,15 +805,10 @@ impl LsmStorageInner {
         }; // drop global lock here
 
         let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
-        memtable_iters.push(Box::new(snapshot.memtable.scan(
-            map_key_bound_plus_ts(lower, key::TS_RANGE_BEGIN),
-            map_key_bound_plus_ts(upper, key::TS_RANGE_END),
-        )));
+        let (begin, end) = map_key_bound_plus_ts(lower, upper, read_ts);
+        memtable_iters.push(Box::new(snapshot.memtable.scan(begin, end)));
         for memtable in snapshot.imm_memtables.iter() {
-            memtable_iters.push(Box::new(memtable.scan(
-                map_key_bound_plus_ts(lower, key::TS_RANGE_BEGIN),
-                map_key_bound_plus_ts(upper, key::TS_RANGE_END),
-            )));
+            memtable_iters.push(Box::new(memtable.scan(begin, end)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
 
@@ -836,6 +831,8 @@ impl LsmStorageInner {
                             table,
                             KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
                         )?;
+                        // TODO: we can implement `key.next()` so that we can directly seek to the
+                        // right place in the previous line.
                         while iter.is_valid() && iter.key().key_ref() == key {
                             iter.next()?;
                         }

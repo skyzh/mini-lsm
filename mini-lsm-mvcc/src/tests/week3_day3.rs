@@ -49,6 +49,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("b"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot1
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"b"))
+            .unwrap(),
+        vec![],
+    );
     assert_eq!(snapshot2.get(b"a").unwrap(), Some(Bytes::from_static(b"2")));
     assert_eq!(snapshot2.get(b"b").unwrap(), Some(Bytes::from_static(b"1")));
     assert_eq!(snapshot2.get(b"c").unwrap(), None);
@@ -59,6 +65,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("b"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot2
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"b"))
+            .unwrap(),
+        vec![],
+    );
     assert_eq!(snapshot3.get(b"a").unwrap(), Some(Bytes::from_static(b"2")));
     assert_eq!(snapshot3.get(b"b").unwrap(), None);
     assert_eq!(snapshot3.get(b"c").unwrap(), Some(Bytes::from_static(b"1")));
@@ -68,6 +80,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("a"), Bytes::from("2")),
             (Bytes::from("c"), Bytes::from("1")),
         ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut snapshot3
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![],
     );
     storage
         .inner
@@ -91,6 +109,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("b"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot1
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"b"))
+            .unwrap(),
+        vec![],
+    );
     assert_eq!(snapshot2.get(b"a").unwrap(), Some(Bytes::from_static(b"2")));
     assert_eq!(snapshot2.get(b"b").unwrap(), Some(Bytes::from_static(b"1")));
     assert_eq!(snapshot2.get(b"c").unwrap(), None);
@@ -101,6 +125,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("b"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot2
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"b"))
+            .unwrap(),
+        vec![],
+    );
     assert_eq!(snapshot3.get(b"a").unwrap(), Some(Bytes::from_static(b"2")));
     assert_eq!(snapshot3.get(b"b").unwrap(), None);
     assert_eq!(snapshot3.get(b"c").unwrap(), Some(Bytes::from_static(b"1")));
@@ -110,6 +140,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("a"), Bytes::from("2")),
             (Bytes::from("c"), Bytes::from("1")),
         ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut snapshot3
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![],
     );
     assert_eq!(snapshot4.get(b"a").unwrap(), Some(Bytes::from_static(b"3")));
     assert_eq!(snapshot4.get(b"b").unwrap(), Some(Bytes::from_static(b"3")));
@@ -122,6 +158,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("c"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot4
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![(Bytes::from("b"), Bytes::from("3"))],
+    );
     assert_eq!(snapshot5.get(b"a").unwrap(), Some(Bytes::from_static(b"4")));
     assert_eq!(snapshot5.get(b"b").unwrap(), Some(Bytes::from_static(b"3")));
     assert_eq!(snapshot5.get(b"c").unwrap(), Some(Bytes::from_static(b"1")));
@@ -133,6 +175,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("c"), Bytes::from("1")),
         ],
     );
+    check_lsm_iter_result_by_key(
+        &mut snapshot5
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![(Bytes::from("b"), Bytes::from("3"))],
+    );
     assert_eq!(snapshot6.get(b"a").unwrap(), Some(Bytes::from_static(b"4")));
     assert_eq!(snapshot6.get(b"b").unwrap(), None);
     assert_eq!(snapshot6.get(b"c").unwrap(), Some(Bytes::from_static(b"5")));
@@ -142,6 +190,12 @@ fn test_task2_memtable_mvcc() {
             (Bytes::from("a"), Bytes::from("4")),
             (Bytes::from("c"), Bytes::from("5")),
         ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut snapshot6
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![],
     );
 }
 
