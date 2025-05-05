@@ -16,7 +16,7 @@
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
 pub mod txn;
-mod watermark;
+pub mod watermark;
 
 use std::{
     collections::{BTreeMap, HashSet},

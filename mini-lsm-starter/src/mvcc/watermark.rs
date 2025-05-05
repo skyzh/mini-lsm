@@ -32,6 +32,10 @@ impl Watermark {
 
     pub fn remove_reader(&mut self, ts: u64) {}
 
+    pub fn num_retained_snapshots(&self) -> usize {
+        unimplemented!()
+    }
+
     pub fn watermark(&self) -> Option<u64> {
         Some(0)
     }
