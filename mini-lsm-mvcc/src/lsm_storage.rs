@@ -831,6 +831,8 @@ impl LsmStorageInner {
                             table,
                             KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
                         )?;
+                        // TODO: we can implement `key.next()` so that we can directly seek to the
+                        // right place in the previous line.
                         while iter.is_valid() && iter.key().key_ref() == key {
                             iter.next()?;
                         }

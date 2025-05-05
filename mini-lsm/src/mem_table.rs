@@ -93,6 +93,9 @@ impl MemTable {
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> MemTableIterator {
+        // This function is only used in week 1 tests, so during the week 3 key-ts refactor, you do
+        // not need to consider the bound exclude/include logic. Simply provide `DEFAULT_TS` as the
+        // timestamp for the key-ts pair.
         self.scan(lower, upper)
     }
 

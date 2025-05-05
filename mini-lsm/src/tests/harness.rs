@@ -127,7 +127,10 @@ where
         );
         iter.next().unwrap();
     }
-    assert!(!iter.is_valid());
+    assert!(
+        !iter.is_valid(),
+        "iterator should not be valid at the end of the check"
+    );
 }
 
 pub fn check_iter_result_by_key_and_ts<I>(iter: &mut I, expected: Vec<((Bytes, u64), Bytes)>)

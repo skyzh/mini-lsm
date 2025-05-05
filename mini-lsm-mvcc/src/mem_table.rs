@@ -76,7 +76,12 @@ pub(crate) fn map_key_bound_plus_ts<'a>(
             Bound::Unbounded => Bound::Unbounded,
         },
         match upper {
-            Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, TS_RANGE_END)),
+            Bound::Included(x) => {
+                // Note that we order the ts descending, but for a MVCC scan, we need all the history
+                // so that we can access the latest key in case it is not updated in the current ts.
+                // Therefore, we need to scan all the way to ts 0.
+                Bound::Included(KeySlice::from_slice(x, TS_RANGE_END))
+            }
             Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, TS_RANGE_BEGIN)),
             Bound::Unbounded => Bound::Unbounded,
         },
@@ -137,8 +142,10 @@ impl MemTable {
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> MemTableIterator {
-        let (begin, end) = map_key_bound_plus_ts(lower, upper, TS_DEFAULT);
-        self.scan(begin, end)
+        self.scan(
+            lower.map(|x| KeySlice::from_slice(x, TS_DEFAULT)),
+            upper.map(|x| KeySlice::from_slice(x, TS_DEFAULT)),
+        )
     }
 
     /// Put a key-value pair into the mem-table.
