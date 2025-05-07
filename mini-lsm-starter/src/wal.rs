@@ -19,11 +19,12 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 use std::sync::Arc;
-
 use anyhow::Result;
 use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
+
+use crate::key::KeySlice;
 
 pub struct Wal {
     file: Arc<Mutex<BufWriter<File>>>,
@@ -43,7 +44,7 @@ impl Wal {
     }
 
     /// Implement this in week 3, day 5.
-    pub fn put_batch(&self, _data: &[(&[u8], &[u8])]) -> Result<()> {
+    pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
 
