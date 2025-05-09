@@ -73,9 +73,9 @@ impl LeveledCompactionController {
             .unwrap();
 
         let mut overlap_ssts = Vec::new();
-        let lower = sstables.partition_point(|table| table.last_key().as_key_slice() < begin_key.as_key_slice());
+        let lower = sstables.partition_point(|table| *table.last_key() < begin_key);
         let upper = sstables
-            .partition_point(|table| table.first_key().as_key_slice() <= end_key.as_key_slice())
+            .partition_point(|table| *table.first_key() <= end_key)
             .saturating_sub(1);
         println!(
             "[leveled compaction] level {} find overlapping ssts, lower: {}, upper: {}",
