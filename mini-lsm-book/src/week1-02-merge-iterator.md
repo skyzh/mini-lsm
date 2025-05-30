@@ -12,7 +12,6 @@ In this chapter, you will:
 * Implement merge iterator.
 * Implement LSM read path `scan` for memtables.
 
-
 To copy the test cases into the starter code and run them,
 
 ```
@@ -58,7 +57,7 @@ pub struct MemtableIterator { // <- with lifetime 'this
 
 Then the problem is solved! You can do this with the help of some third-party libraries like `ouroboros`. It provides an easy way to define self-referential structure. It is also possible to do this with unsafe Rust (and indeed, `ouroboros` itself uses unsafe Rust internally...)
 
-We have already defined the self-referential `MemtableIterator` fields for you, and you will need to implement `MemtableIterator` and the `Memtable::scan` API.
+We have leveraged [`ouroboros`](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html) to define the self-referential `MemtableIterator` fields for you. You will need to implement the `MemtableIterator` logic and the `Memtable::scan` API based on this provided structure.
 
 ## Task 2: Merge Iterator
 
@@ -70,7 +69,7 @@ src/iterators/merge_iterator.rs
 
 Now that you have multiple memtables and you will create multiple memtable iterators. You will need to merge the results from the memtables and return the latest version of each key to the user.
 
-`MergeIterator` maintains a binary heap internally. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
+`MergeIterator` maintains a binary heap internally. Consider the challenge of merging `n` sorted sequences (our iterators) into a single sorted output; a binary heap is a natural fit here, as it efficiently helps identify which sequence currently holds the overall smallest element. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
 
 For example, if we have the following data:
 
