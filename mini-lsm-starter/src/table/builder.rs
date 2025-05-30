@@ -57,7 +57,7 @@ impl SsTableBuilder {
 
     /// Builds the SSTable and writes it to the given path. Use the `FileObject` structure to manipulate the disk objects.
     pub fn build(
-        self,
+        mut self,
         id: usize,
         block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
