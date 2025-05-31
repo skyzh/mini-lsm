@@ -121,7 +121,7 @@ impl MemTable {
         Ok(())
     }
 
-    /// Implement this in week 3, day 5.
+    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
