@@ -38,6 +38,7 @@ impl BlockBuilder {
     }
 
     /// Adds a key-value pair to the block. Returns false when the block is full.
+    /// You may find the `bytes::BufMut` trait useful for manipulating binary data.
     #[must_use]
     pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         unimplemented!()
