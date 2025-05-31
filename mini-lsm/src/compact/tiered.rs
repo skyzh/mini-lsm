@@ -90,7 +90,7 @@ impl TieredCompactionController {
                         .take(id + 1)
                         .cloned()
                         .collect::<Vec<_>>(),
-                    bottom_tier_included: id + 1 >= snapshot.levels.len(),
+                    bottom_tier_included: false,
                 });
             }
         }
