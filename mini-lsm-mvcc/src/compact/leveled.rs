@@ -51,6 +51,14 @@ impl LeveledCompactionController {
         sst_ids: &[usize],
         in_level: usize,
     ) -> Vec<usize> {
+        let mut sstables = Vec::with_capacity(snapshot.levels[in_level - 1].1.len());
+        for sst_id in &snapshot.levels[in_level - 1].1 {
+            sstables.push(snapshot.sstables[sst_id].clone());
+        }
+        if sstables.is_empty() {
+            return Vec::new();
+        }
+
         let begin_key = sst_ids
             .iter()
             .map(|id| snapshot.sstables[id].first_key())
@@ -63,15 +71,22 @@ impl LeveledCompactionController {
             .max()
             .cloned()
             .unwrap();
+
         let mut overlap_ssts = Vec::new();
-        for sst_id in &snapshot.levels[in_level - 1].1 {
-            let sst = &snapshot.sstables[sst_id];
-            let first_key = sst.first_key();
-            let last_key = sst.last_key();
-            if !(last_key < &begin_key || first_key > &end_key) {
-                overlap_ssts.push(*sst_id);
-            }
-        }
+        let lower = sstables.partition_point(|table| *table.last_key() < begin_key);
+        let upper = sstables
+            .partition_point(|table| *table.first_key() <= end_key)
+            .saturating_sub(1);
+        println!(
+            "[leveled compaction] level {} find overlapping ssts, lower: {}, upper: {}",
+            in_level, lower, upper
+        );
+        overlap_ssts.extend(
+            sstables[lower..=upper]
+                .iter()
+                .map(|table| table.sst_id())
+                .collect::<Vec<usize>>(),
+        );
         overlap_ssts
     }
 
