@@ -90,6 +90,7 @@ impl TieredCompactionController {
                         .take(id + 1)
                         .cloned()
                         .collect::<Vec<_>>(),
+                    // Size ratio trigger will never include the bottom level
                     bottom_tier_included: false,
                 });
             }
