@@ -40,7 +40,7 @@ src/compact/tiered.rs
 
 In universal compaction, we do not use L0 SSTs in the LSM state. Instead, we directly flush new SSTs to a single sorted run (called tier). In the LSM state, `levels` will now include all tiers, where **the lowest index is the latest SST flushed**. Each element in the `levels` vector stores a tuple: level ID (used as tier ID) and the SSTs in that level. Every time you flush L0 SSTs, you should flush the SST into a tier placed at the front of the vector. The compaction simulator generates tier id based on the first SST id, and you should do the same in your implementation.
 
-Universal compaction will only trigger tasks when the number of tiers (sorted runs) is larger than `num_tiers`. Otherwise, it does not trigger any compaction.
+Universal compaction will only trigger tasks when the number of tiers (sorted runs) reaches `num_tiers`. Otherwise, it does not trigger any compaction.
 
 ### Task 1.1: Triggered by Space Amplification Ratio
 
@@ -153,7 +153,7 @@ The current trigger only reduces space amplification. We will need to add new tr
 
 The next trigger is the size ratio trigger. The trigger maintains the size ratio between the tiers. From the first tier, we compute the size of `this tier / sum of all previous tiers`. For the first encountered tier where this value `> (100 + size_ratio) * 1%`, we will compact all previous tiers excluding the current tier. We only do this compaction with there are more than `min_merge_width` tiers to be merged.
 
-For example, given the following LSM state, and assume size_ratio = 1, and min_merge_width = 2. We should compact when the ratio value > 101%:
+For example, given the following LSM state, and assume `size_ratio` = 1, and `min_merge_width` = 2. We should compact when the ratio value > 101%:
 
 ```
 Tier 3: 1
@@ -231,7 +231,7 @@ There will be fewer 1-SST tiers and the compaction algorithm will maintain the t
 
 ### Task 1.3: Reduce Sorted Runs
 
-If none of the previous triggers produce compaction tasks, we will do a compaction to reduce the number of tiers. We will simply take the all tiers into one tier (subject by max_merge_tiers), so that we do a major compaction that includes all SST files.
+If none of the previous triggers produce compaction tasks, we will do a major compaction that merges SST files from the first up to `max_merge_tiers` tiers into one tier to reduce the number of tiers.
 
 With this compaction trigger enabled, you will see:
 
@@ -252,16 +252,19 @@ Read Amplification: 7x
 
 You can also try tiered compaction with more number of tiers:
 
+```bash
+cargo run --bin compaction-simulator tiered --iterations 200 --size-only --num-tiers 16
+```
 
 ```
 === Iteration 199 ===
 --- After Flush ---
-Levels: 0 1 1 4 5 21 28 140
+Levels: 0 1 1 1 1 1 1 1 1 1 1 15 175
 no compaction triggered
 --- Statistics ---
-Write Amplification: 742/200=3.710x
-Maximum Space Usage: 280/200=1.400x
-Read Amplification: 7x
+Write Amplification: 607/200=3.035x
+Maximum Space Usage: 350/200=1.750x
+Read Amplification: 12x
 ```
 
 **Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
