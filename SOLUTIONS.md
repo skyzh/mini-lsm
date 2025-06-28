@@ -6,6 +6,7 @@ You can add your solution to this page once you finish any full week of the cour
 * [pj/mini-lsm-simple-solution](https://github.com/pjzhong/mini-lsm-solution): A simple solution of Mini-LSM.
 
 ## Week 2
+* [7143192/mini-lsm](https://github.com/7143192/mini-lsm): A solution of mini-lsm, finish all tasks except bonus task in week 1 and week2.
 
 ## Week 3
 
