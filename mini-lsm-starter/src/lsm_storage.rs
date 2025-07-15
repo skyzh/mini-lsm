@@ -319,7 +319,7 @@ impl LsmStorageInner {
             }
         }
 
-        return Ok(None);
+        Ok(None)
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
