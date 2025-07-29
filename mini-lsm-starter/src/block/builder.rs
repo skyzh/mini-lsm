@@ -69,6 +69,10 @@ impl BlockBuilder {
         // Encode value content.
         self.data.put(value);
 
+        if self.first_key.is_empty() {
+            self.first_key = key.to_key_vec();
+        }
+
         true
     }
 

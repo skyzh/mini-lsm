@@ -35,10 +35,13 @@ impl Block {
     /// Note: You may want to recheck if any of the expected field is missing from your output
     pub fn encode(&self) -> Bytes {
         let mut buf = self.data.clone();
+
+        // offsets
         for offset in &self.offsets {
             buf.put_u16(*offset);
         }
 
+        // num_of_elements
         buf.put_u16(self.offsets.len() as u16);
 
         return buf.into();
@@ -46,6 +49,7 @@ impl Block {
 
     /// Decode from the data layout, transform the input `data` to a single `Block`
     pub fn decode(data: &[u8]) -> Self {
+        // num_of_elements
         let offset_len = (&data[data.len() - SIZEOF_U16..]).get_u16() as usize;
         let data_end = data.len() - SIZEOF_U16 - offset_len * SIZEOF_U16;
         let offsets_raw = &data[data_end..data.len() - SIZEOF_U16];
