@@ -169,6 +169,7 @@ where
 {
     for (k, v) in expected {
         assert!(iter.is_valid());
+
         assert_eq!(
             k,
             iter.key(),
