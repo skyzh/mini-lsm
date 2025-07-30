@@ -44,7 +44,6 @@ impl Block {
     fn get_first_key(&self) -> KeyVec {
         let mut buf = &self.data[..];
         let key_len = buf.get_u16();
-        println!("{:}", key_len);
         let key = &buf[..key_len as usize];
         KeyVec::from_vec(key.to_vec())
     }
@@ -79,13 +78,13 @@ impl BlockIterator {
 
     /// Returns the key of the current entry.
     pub fn key(&self) -> KeySlice {
-        debug_assert!(!self.key().is_empty(), "invalid iterator");
+        debug_assert!(!self.key.is_empty(), "invalid iterator");
         self.key.as_key_slice()
     }
 
     /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
-        debug_assert!(!self.key().is_empty(), "invalid iterator");
+        debug_assert!(!self.key.is_empty(), "invalid iterator");
         &self.block.data[self.value_range.0..self.value_range.1]
     }
 
@@ -110,7 +109,19 @@ impl BlockIterator {
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
     pub fn seek_to_key(&mut self, key: KeySlice) {
-        unimplemented!()
+        let mut low = 0;
+        let mut high = self.block.offsets.len();
+        while low < high {
+            let mid = low + (high - low) / 2;
+            self.seek_to(mid);
+            assert!(self.is_valid());
+            match self.key().cmp(&key) {
+                std::cmp::Ordering::Less => low = mid + 1,
+                std::cmp::Ordering::Equal => return,
+                std::cmp::Ordering::Greater => high = mid,
+            }
+        }
+        self.seek_to(low);
     }
 
     fn seek_to(&mut self, idx: usize) {
@@ -133,9 +144,8 @@ impl BlockIterator {
         self.key.append(key);
         entry.advance(key_len);
         let value_len = entry.get_u16() as usize;
-        let value = &entry[..value_len];
         let value_offset_begin = offset + SIZEOF_U16 + key_len + SIZEOF_U16;
-        let value_offset_end = value_offset_begin + value_len * SIZEOF_U16;
+        let value_offset_end = value_offset_begin + value_len;
         self.value_range = (value_offset_begin, value_offset_end);
         entry.advance(value_len);
     }
