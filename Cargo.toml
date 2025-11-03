@@ -1,6 +1,6 @@
 [workspace]
 members = ["mini-lsm", "xtask", "mini-lsm-starter", "mini-lsm-mvcc"]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 version = "0.2.0"
