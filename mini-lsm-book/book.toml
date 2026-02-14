@@ -1,11 +1,11 @@
 [book]
 authors = ["Alex Chi Z"]
 language = "en"
-multilingual = false
 src = "src"
 title = "LSM in a Week"
 
 [preprocessor.toc]
+optional = true
 command = "mdbook-toc"
 renderer = ["html"]
 
