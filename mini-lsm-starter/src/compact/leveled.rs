@@ -84,7 +84,7 @@ impl LeveledCompactionController {
             .for_each(|i| bottom_size += snapshot.sstables[i].table_size());
         target_sizes[snapshot.levels.len() - 1] = bottom_size as usize;
         for i in (0..snapshot.levels.len() - 1).rev() {
-            if target_sizes[i + 1] as usize >= self.options.base_level_size_mb * 1024 * 1024 {
+            if target_sizes[i + 1] >= self.options.base_level_size_mb * 1024 * 1024 {
                 target_sizes[i] = target_sizes[i + 1] / self.options.level_size_multiplier;
             }
         }
