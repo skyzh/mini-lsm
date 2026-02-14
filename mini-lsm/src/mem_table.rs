@@ -200,7 +200,7 @@ impl StorageIterator for MemTableIterator {
         &self.borrow_item().1[..]
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&'_ self) -> KeySlice<'_> {
         KeySlice::from_slice(&self.borrow_item().0[..])
     }
 

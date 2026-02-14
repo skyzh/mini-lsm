@@ -218,7 +218,7 @@ impl StorageIterator for MemTableIterator {
         self.borrow_item().1.as_ref()
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&self) -> KeySlice<'_> {
         Key::from_slice(self.borrow_item().0.as_ref())
     }
 

@@ -64,7 +64,7 @@ pub(crate) fn map_key_bound(bound: Bound<KeySlice>) -> Bound<KeyBytes> {
 }
 
 /// Create a bound of `Bytes` from a bound of `KeySlice`.
-pub(crate) fn map_key_bound_plus_ts(bound: Bound<&[u8]>, ts: u64) -> Bound<KeySlice> {
+pub(crate) fn map_key_bound_plus_ts(bound: Bound<&[u8]>, ts: u64) -> Bound<KeySlice<'_>> {
     match bound {
         Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, ts)),
         Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, ts)),
@@ -241,7 +241,7 @@ impl StorageIterator for MemTableIterator {
         &self.borrow_item().1[..]
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&self) -> KeySlice<'_> {
         self.borrow_item().0.as_key_slice()
     }
 

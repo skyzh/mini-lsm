@@ -96,7 +96,7 @@ impl StorageIterator for SsTableIterator {
         self.blk_iter.value()
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&'_ self) -> KeySlice<'_> {
         self.blk_iter.key()
     }
 

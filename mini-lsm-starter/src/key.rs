@@ -68,7 +68,7 @@ impl Key<Vec<u8>> {
         self.0.extend(key_slice.0);
     }
 
-    pub fn as_key_slice(&self) -> KeySlice {
+    pub fn as_key_slice(&self) -> KeySlice<'_> {
         Key(self.0.as_slice())
     }
 
@@ -91,7 +91,7 @@ impl Key<Vec<u8>> {
 }
 
 impl Key<Bytes> {
-    pub fn as_key_slice(&self) -> KeySlice {
+    pub fn as_key_slice(&self) -> KeySlice<'_> {
         Key(&self.0)
     }
 

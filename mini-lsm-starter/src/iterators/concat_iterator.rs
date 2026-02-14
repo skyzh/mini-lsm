@@ -108,7 +108,7 @@ impl SstConcatIterator {
 impl StorageIterator for SstConcatIterator {
     type KeyType<'a> = KeySlice<'a>;
 
-    fn key(&self) -> KeySlice {
+    fn key(&'_ self) -> KeySlice<'_> {
         // if !self.is_valid() {
         //     return KeySlice::from_slice(&[]);
         // }
