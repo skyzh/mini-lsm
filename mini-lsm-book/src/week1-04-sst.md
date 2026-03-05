@@ -11,7 +11,6 @@ In this chapter, you will:
 * Implement SST encoding and metadata encoding.
 * Implement SST decoding and iterator.
   
-
 To copy the test cases into the starter code and run them,
 
 ```
@@ -84,7 +83,7 @@ src/table.rs
 
 You can implement a new `read_block_cached` function on `SsTable` .
 
-We use `moka-rs` as our block cache implementation. Blocks are cached by `(sst_id, block_id)` as the cache key. You may use `try_get_with` to get the block from cache if it hits the cache / populate the cache if it misses the cache. If there are multiple requests reading the same block and cache misses, `try_get_with` will only issue a single read request to the disk and broadcast the result to all requests.
+We use [`moka-rs`](https://docs.rs/moka/latest/moka/) as our block cache implementation. Blocks are cached by `(sst_id, block_id)` as the cache key. You may use `try_get_with` to get the block from cache if it hits the cache / populate the cache if it misses the cache. If there are multiple requests reading the same block and cache misses, `try_get_with` will only issue a single read request to the disk and broadcast the result to all requests.
 
 At this point, you may change your table iterator to use `read_block_cached` instead of `read_block` to leverage the block cache.
 

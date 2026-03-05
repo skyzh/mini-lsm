@@ -12,7 +12,6 @@ In this chapter, you will:
 * Implement LSM read path `get` with SSTs.
 * Implement LSM read path `scan` with SSTs.
 
-
 To copy the test cases into the starter code and run them,
 
 ```
@@ -21,7 +20,6 @@ cargo x scheck
 ```
 
 ## Task 1: Two Merge Iterator
-
 
 In this task, you will need to modify:
 
@@ -51,7 +49,13 @@ type LsmIteratorInner =
 
 So that our internal iterator of the LSM storage engine will be an iterator combining both data from the memtables and the SSTs.
 
-Note that our SST iterator does not support passing an end bound to it. Therefore, you will need to handle the `end_bound` manually in `LsmIterator`. You will need to modify your `LsmIterator` logic to stop when the key from the inner iterator reaches the end boundary.
+Currently, our SST iterator doesn't support an end bound for scans. To address this, you'll need to implement this boundary check within the `LsmIterator` itself. This involves updating the `LsmIterator::new` constructor to accept an `end_bound` parameter:
+
+```rust,no_run
+pub(crate) fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {}
+```
+
+You will then need to modify the `LsmIterator`'s iteration logic to ensure it stops when the keys from the inner iterator reach or exceed this specified `end_bound`.
 
 Our test cases will generate some memtables and SSTs in `l0_sstables`, and you will need to scan all of these data out correctly in this task. You do not need to flush SSTs until next chapter. Therefore, you can go ahead and modify your `LsmStorageInner::scan` interface to create a merge iterator over all memtables and SSTs, so as to finish the read path of your storage engine.
 

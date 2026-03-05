@@ -12,7 +12,6 @@ In this chapter, you will:
 * Implement merge iterator.
 * Implement LSM read path `scan` for memtables.
 
-
 To copy the test cases into the starter code and run them,
 
 ```
@@ -30,9 +29,30 @@ In this task, you will need to modify:
 src/mem_table.rs
 ```
 
-All LSM iterators implement the `StorageIterator` trait. It has 4 functions: `key`, `value`, `next`, and `is_valid`. When the iterator is created, its cursor will stop on some element, and `key` / `value` will return the first key in the memtable/block/SST satisfying the start condition (i.e., start key). These two interfaces will return a `&[u8]` to avoid copy. Note that this iterator interface is different from the Rust-style iterator.
+All LSM iterators implement the `StorageIterator` trait. It has 4 functions: `key`, `value`, `next`, and `is_valid`. If you're familiar with Rust's standard library `Iterator` trait, you might find `StorageIterator` a bit different. Instead, `StorageIterator` employs a cursor-based API, a design pattern common in database systems and notably inspired by RocksDB's iterators (see [`iterator_base.h`](https://github.com/facebook/rocksdb/blob/main/include/rocksdb/iterator_base.h) and [`iterator.h`](https://github.com/facebook/rocksdb/blob/main/include/rocksdb/iterator.h) for reference).
 
-`next` moves the cursor to the next place. `is_valid` returns if the iterator has reached the end or errored. You can assume `next` will only be called when `is_valid` returns true. There will be a `FusedIterator` wrapper for iterators that block calls to `next` when the iterator is not valid to avoid users from misusing the iterators.
+When the iterator is created, its cursor will stop on some element, and `key` / `value` will return the first key in the memtable/block/SST satisfying the start condition (i.e., start key). These two interfaces will return a `&[u8]` to avoid copy.
+
+From the caller's perspective, the typical usage pattern is:
+
+```rust
+let mut iter: impl StorageIterator = ...;
+while iter.is_valid() {
+    let key = iter.key();
+    let value = iter.value();
+    // Process key and value
+    iter.next()?; // Advance to the next item, handling potential errors
+}
+```
+
+The semantics of `StorageIterator` are distinct for its core methods:
+
+* `next()`: This method is solely responsible for attempting to move the cursor to the next element. It returns a `Result` to report any errors encountered during this advancement (e.g., I/O issues). It does *not* inherently guarantee that the new position is valid, only that the attempt to move was made.
+* `is_valid()`: This method indicates whether the iterator's current cursor points to a valid data element. It does *not* advance the iterator.
+
+Therefore, as an implementer of `StorageIterator`, after each call to `next()` (even if it succeeds without an error from the `next()` operation itself), you are responsible for updating the internal state so that `is_valid()` correctly reflects whether the new cursor position actually points to a valid item.
+
+In summary, `next` moves the cursor to the next place. `is_valid` returns if the iterator has reached the end or errored. You can assume `next` will only be called when `is_valid` returns true. There will be a `FusedIterator` wrapper for iterators that block calls to `next` when the iterator is not valid to avoid users from misusing the iterators.
 
 Back to the memtable iterator. You should have found out that the iterator does not have any lifetime associated with that. Imagine that you create a `Vec<u64>` and call `vec.iter()`, the iterator type will be something like `VecIterator<'a>`, where `'a` is the lifetime of the `vec` object. The same applies to `SkipMap`, where its `iter` API returns an iterator with a lifetime. However, in our case, we do not want to have such lifetimes on our iterators to avoid making the system overcomplicated (and hard to compile...).
 
@@ -58,7 +78,7 @@ pub struct MemtableIterator { // <- with lifetime 'this
 
 Then the problem is solved! You can do this with the help of some third-party libraries like `ouroboros`. It provides an easy way to define self-referential structure. It is also possible to do this with unsafe Rust (and indeed, `ouroboros` itself uses unsafe Rust internally...)
 
-We have already defined the self-referential `MemtableIterator` fields for you, and you will need to implement `MemtableIterator` and the `Memtable::scan` API.
+We have leveraged [`ouroboros`](https://docs.rs/ouroboros/latest/ouroboros/attr.self_referencing.html) to define the self-referential `MemtableIterator` fields for you. You will need to implement the `MemtableIterator` logic and the `Memtable::scan` API based on this provided structure.
 
 ## Task 2: Merge Iterator
 
@@ -70,7 +90,7 @@ src/iterators/merge_iterator.rs
 
 Now that you have multiple memtables and you will create multiple memtable iterators. You will need to merge the results from the memtables and return the latest version of each key to the user.
 
-`MergeIterator` maintains a binary heap internally. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
+`MergeIterator` maintains a binary heap internally. Consider the challenge of merging `n` sorted sequences (our iterators) into a single sorted output; a binary heap is a natural fit here, as it efficiently helps identify which sequence currently holds the overall smallest element. You'll see that the ordering of the binary heap is such that the iterator with the lowest head key value is first. When multiple iterators have the same head key value, the newest one is first. Note that you will need to handle errors (i.e., when an iterator is not valid) and ensure that the latest version of a key-value pair comes out.
 
 For example, if we have the following data:
 
