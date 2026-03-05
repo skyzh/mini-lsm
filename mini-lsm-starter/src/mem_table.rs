@@ -20,13 +20,13 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
-use crate::key::KeySlice;
+use crate::key::{Key, KeySlice};
 use crate::table::SsTableBuilder;
 use crate::wal::Wal;
 
@@ -51,19 +51,32 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 }
 
 impl MemTable {
-    /// Create a new mem-table.
-    pub fn create(_id: usize) -> Self {
-        unimplemented!()
+    /// Create a new mem-table. id is the sst_id when flush this memtable to sst
+    pub fn create(id: usize) -> Self {
+        Self {
+            map: Arc::new(SkipMap::new()),
+            wal: None,
+            id,
+            approximate_size: Arc::new(AtomicUsize::new(0)),
+        }
     }
 
     /// Create a new mem-table with WAL
-    pub fn create_with_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
-        unimplemented!()
+    pub fn create_with_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+        let mut ret = Self::create(id);
+        let wal = Wal::create(path)?;
+        ret.wal = Some(wal);
+
+        Ok(ret)
     }
 
     /// Create a memtable from WAL
-    pub fn recover_from_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
-        unimplemented!()
+    pub fn recover_from_wal(id: usize, path: impl AsRef<Path>) -> Result<Self> {
+        let mut ret = Self::create(id);
+        let wal = Wal::recover(path, &ret.map)?;
+        ret.wal = Some(wal);
+
+        Ok(ret)
     }
 
     pub fn for_testing_put_slice(&self, key: &[u8], value: &[u8]) -> Result<()> {
@@ -79,15 +92,12 @@ impl MemTable {
         lower: Bound<&[u8]>,
         upper: Bound<&[u8]>,
     ) -> MemTableIterator {
-        // This function is only used in week 1 tests, so during the week 3 key-ts refactor, you do
-        // not need to consider the bound exclude/include logic. Simply provide `DEFAULT_TS` as the
-        // timestamp for the key-ts pair.
         self.scan(lower, upper)
     }
 
     /// Get a value by key.
-    pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
-        unimplemented!()
+    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
+        self.map.get(key).map(|x| x.value().clone())
     }
 
     /// Put a key-value pair into the mem-table.
@@ -95,13 +105,32 @@ impl MemTable {
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
     /// In week 3, day 5, modify the function to use the batch API.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
-        unimplemented!()
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.put_batch(&[(KeySlice::from_slice(key), value)])
     }
 
-    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
-    pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
-        unimplemented!()
+    /// Implement this in week 3, day 5.
+    pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
+        if let Some(wal) = &self.wal {
+            for (key, value) in data {
+                wal.put(key.raw_ref(), value)?;
+            }
+            wal.sync()?;
+        }
+
+        for (key, value) in data {
+            self.map.insert(
+                Bytes::copy_from_slice(key.raw_ref()),
+                Bytes::copy_from_slice(value),
+            );
+
+            self.approximate_size.fetch_add(
+                std::mem::size_of_val(key) + std::mem::size_of_val(*value),
+                std::sync::atomic::Ordering::SeqCst,
+            );
+        }
+
+        Ok(())
     }
 
     pub fn sync_wal(&self) -> Result<()> {
@@ -112,13 +141,24 @@ impl MemTable {
     }
 
     /// Get an iterator over a range of keys.
-    pub fn scan(&self, _lower: Bound<&[u8]>, _upper: Bound<&[u8]>) -> MemTableIterator {
-        unimplemented!()
+    pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
+        let mut iter = MemTableIteratorBuilder {
+            map: self.map.clone(),
+            iter_builder: |map| map.range((map_bound(lower), map_bound(upper))),
+            item: (Bytes::new(), Bytes::new()),
+        }
+        .build();
+        iter.next().unwrap();
+        iter
     }
 
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
-    pub fn flush(&self, _builder: &mut SsTableBuilder) -> Result<()> {
-        unimplemented!()
+    pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
+        for e in self.map.iter() {
+            builder.add(Key::from_bytes(e.key().clone()).as_key_slice(), e.value());
+        }
+
+        Ok(())
     }
 
     pub fn id(&self) -> usize {
@@ -133,6 +173,22 @@ impl MemTable {
     /// Only use this function when closing the database
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
+    }
+
+    pub fn range_overlap(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> bool {
+        if self.map.is_empty() {
+            return false;
+        }
+
+        let e = self.map.front().unwrap();
+        let lo = e.key();
+        let e = self.map.back().unwrap();
+        let hi = e.key();
+        match (lower, upper) {
+            (Bound::Included(x), Bound::Included(y)) => x >= lo && x <= hi || y >= lo && y <= hi,
+            (Bound::Excluded(x), Bound::Excluded(y)) => x > lo && x < hi || y > lo && y < hi,
+            _ => true,
+        }
     }
 }
 
@@ -159,18 +215,26 @@ impl StorageIterator for MemTableIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.borrow_item().1.as_ref()
     }
 
-    fn key(&self) -> KeySlice {
-        unimplemented!()
+    fn key(&self) -> KeySlice<'_> {
+        Key::from_slice(self.borrow_item().0.as_ref())
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.borrow_item().0.is_empty()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let n = self.with_iter_mut(|iter| {
+            iter.next()
+                .map(|e| (e.key().clone(), e.value().clone()))
+                .unwrap_or_else(|| (Bytes::from_static(&[]), Bytes::from_static(&[])))
+        });
+
+        self.with_mut(|m| *m.item = n);
+
+        Ok(())
     }
 }
