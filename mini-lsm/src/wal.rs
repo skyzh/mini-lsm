@@ -23,6 +23,8 @@ use bytes::{Buf, BufMut, Bytes};
 use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
 
+use crate::key::KeySlice;
+
 pub struct Wal {
     file: Arc<Mutex<BufWriter<File>>>,
 }
@@ -93,8 +95,8 @@ impl Wal {
         Ok(())
     }
 
-    /// Implement this in week 3, day 5.
-    pub fn put_batch(&self, _data: &[(&[u8], &[u8])]) -> Result<()> {
+    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
+    pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
 

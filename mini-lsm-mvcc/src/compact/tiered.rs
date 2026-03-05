@@ -61,7 +61,10 @@ impl TieredCompactionController {
         let space_amp_ratio =
             (size as f64) / (snapshot.levels.last().unwrap().1.len() as f64) * 100.0;
         if space_amp_ratio >= self.options.max_size_amplification_percent as f64 {
-            println!("compaction triggered by space amplification ratio: {space_amp_ratio}");
+            println!(
+                "compaction triggered by space amplification ratio: {}",
+                space_amp_ratio
+            );
             return Some(TieredCompactionTask {
                 tiers: snapshot.levels.clone(),
                 bottom_tier_included: true,
@@ -87,7 +90,8 @@ impl TieredCompactionController {
                         .take(id + 1)
                         .cloned()
                         .collect::<Vec<_>>(),
-                    bottom_tier_included: id + 1 >= snapshot.levels.len(),
+                    // Size ratio trigger will never include the bottom level
+                    bottom_tier_included: false,
                 });
             }
         }
