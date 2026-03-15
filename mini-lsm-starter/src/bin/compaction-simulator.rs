@@ -237,10 +237,10 @@ impl MockStorage {
 }
 
 fn generate_random_key_range() -> (KeyBytes, KeyBytes) {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let begin: usize = rng.gen_range(0..(1 << 31));
-    let end: usize = begin + rng.gen_range((1 << 10)..(1 << 31));
+    use rand::RngExt;
+    let mut rng = rand::rng();
+    let begin: usize = rng.random_range(0..(1 << 31));
+    let end: usize = begin + rng.random_range((1 << 10)..(1 << 31));
     let mut begin_bytes = BytesMut::new();
     let mut end_bytes = BytesMut::new();
     begin_bytes.put_u64(begin as u64);

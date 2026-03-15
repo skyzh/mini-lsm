@@ -176,76 +176,59 @@ impl Command {
         use nom::bytes::complete::*;
         use nom::character::complete::*;
 
+        use nom::Parser;
         use nom::branch::*;
         use nom::combinator::*;
-        use nom::sequence::*;
 
-        let uint = |i| {
+        let uint = || {
             map_res(digit1::<&str, nom::error::Error<_>>, |s: &str| {
-                s.parse()
+                s.parse::<u64>()
                     .map_err(|_| nom::error::Error::new(s, nom::error::ErrorKind::Digit))
-            })(i)
+            })
         };
 
-        let string = |i| {
+        let string = || {
             map(take_till1(|c: char| c.is_whitespace()), |s: &str| {
                 s.to_string()
-            })(i)
+            })
         };
 
-        let fill = |i| {
-            map(
-                tuple((tag_no_case("fill"), space1, uint, space1, uint)),
-                |(_, _, key, _, value)| Command::Fill {
+        let fill =
+            (tag_no_case("fill"), space1, uint(), space1, uint()).map(|(_, _, key, _, value)| {
+                Command::Fill {
                     begin: key,
                     end: value,
-                },
-            )(i)
-        };
+                }
+            });
 
-        let del = |i| {
-            map(
-                tuple((tag_no_case("del"), space1, string)),
-                |(_, _, key)| Command::Del { key },
-            )(i)
-        };
+        let del = (tag_no_case("del"), space1, string()).map(|(_, _, key)| Command::Del { key });
 
-        let get = |i| {
-            map(
-                tuple((tag_no_case("get"), space1, string)),
-                |(_, _, key)| Command::Get { key },
-            )(i)
-        };
+        let get = (tag_no_case("get"), space1, string()).map(|(_, _, key)| Command::Get { key });
 
-        let scan = |i| {
-            map(
-                tuple((
-                    tag_no_case("scan"),
-                    opt(tuple((space1, string, space1, string))),
-                )),
-                |(_, opt_args)| {
-                    let (begin, end) = opt_args
-                        .map_or((None, None), |(_, begin, _, end)| (Some(begin), Some(end)));
-                    Command::Scan { begin, end }
-                },
-            )(i)
-        };
+        let scan = (
+            tag_no_case("scan"),
+            opt((space1, string(), space1, string())),
+        )
+            .map(|(_, opt_args): (_, Option<(_, String, _, String)>)| {
+                let (begin, end) =
+                    opt_args.map_or((None, None), |(_, begin, _, end)| (Some(begin), Some(end)));
+                Command::Scan { begin, end }
+            });
 
-        let command = |i| {
-            alt((
-                fill,
-                del,
-                get,
-                scan,
-                map(tag_no_case("dump"), |_| Command::Dump),
-                map(tag_no_case("flush"), |_| Command::Flush),
-                map(tag_no_case("full_compaction"), |_| Command::FullCompaction),
-                map(tag_no_case("quit"), |_| Command::Quit),
-                map(tag_no_case("close"), |_| Command::Close),
-            ))(i)
-        };
+        let mut command = alt((
+            fill,
+            del,
+            get,
+            scan,
+            map(tag_no_case("dump"), |_| Command::Dump),
+            map(tag_no_case("flush"), |_| Command::Flush),
+            map(tag_no_case("full_compaction"), |_| Command::FullCompaction),
+            map(tag_no_case("quit"), |_| Command::Quit),
+            map(tag_no_case("close"), |_| Command::Close),
+        ));
 
-        command(input)
+        command
+            .parse(input)
             .map(|(_, c)| c)
             .map_err(|e| anyhow::anyhow!("{}", e))
     }

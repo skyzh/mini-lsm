@@ -10,6 +10,6 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-console = "0.15"
+console = "0.16"
 clap = { version = "4", features = ["derive"] }
-duct = "0.13"
+duct = "1"
