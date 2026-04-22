@@ -383,11 +383,15 @@ impl LsmStorageInner {
 
                         // try removing old ssts
                         for table_id in files_to_remove {
-                            if let Err(err) =
-                                std::fs::remove_file(Self::path_of_sst_static(path, table_id))
-                            {
+                            let sst_path = Self::path_of_sst_static(path, table_id);
+                            if let Err(err) = std::fs::remove_file(&sst_path) {
                                 if err.kind() != std::io::ErrorKind::NotFound {
-                                    return Err(err.into());
+                                    eprintln!(
+                                        "failed to remove obsolete SST during recovery: table_id={}, path={}, error={}",
+                                        table_id,
+                                        sst_path.display(),
+                                        err
+                                    );
                                 }
                             }
                         }
