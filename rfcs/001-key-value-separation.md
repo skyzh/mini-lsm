@@ -99,13 +99,13 @@ pub struct ValuePointer {
     pub size: u32,
 }
 
-/// Per-entry value-kind stored in SST block metadata alongside each key-value
-/// pair. This is the authoritative source of truth for distinguishing inline
-/// values from vLog pointers. A single-byte tag prefix in the value payload
-/// (see `VALUE_POINTER_TAG`) is also present as a fast-path sanity check, but
-/// the `KvKind` is what the reader trusts — it eliminates the collision risk
-/// where a user value whose first byte happens to be `0xFF` would otherwise be
-/// misclassified as a pointer.
+/// Per-entry value-kind stored with every key-value entry: in the memtable, WAL,
+/// and SST block metadata. This is the authoritative source of truth for
+/// distinguishing inline values from vLog pointers. A single-byte tag prefix in
+/// the value payload (see `VALUE_POINTER_TAG`) is also present as a fast-path
+/// sanity check, but the `KvKind` is what the reader trusts — it eliminates the
+/// collision risk where a user value whose first byte happens to be `0xFF`
+/// would otherwise be misclassified as a pointer.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KvKind {
@@ -114,13 +114,11 @@ pub enum KvKind {
     /// The value is a 17-byte encoded `ValuePointer` that references the vLog.
     ValuePointer = 1,
 }
-// NOTE: KvKind is stored per-entry in SST block metadata (not in the
-// memtable or WAL). During normal writes the memtable stores full values,
-// so the read path never needs KvKind from the memtable. During GC rewrites
-// the memtable receives a ValuePointer entry — the reader distinguishes it
-// by the VALUE_POINTER_TAG prefix byte (0xFF) which is reserved and cannot
-// appear as the first byte of a valid user value. This avoids changing the
-// memtable/WAL format.
+// NOTE: Normal user writes store full values with KvKind::Inline in the WAL and
+// memtable. GC rewrites store encoded ValuePointers with KvKind::ValuePointer.
+// The tag byte is only a corruption/desync check; payload sniffing is never
+// used as the authoritative classifier, so user values may freely start with
+// 0xFF.
 
 impl KvKind {
     pub fn from_u8(v: u8) -> Option<Self> {
@@ -136,10 +134,10 @@ impl KvKind {
 ///
 /// Serves as a fast-path sanity check: if the first byte of a candidate value
 /// is not `0xFF`, the value is definitely not a pointer. However the
-/// authoritative classification comes from `KvKind` stored in the SST block
-/// metadata, because a user value can legitimately start with `0xFF`.
+/// authoritative classification comes from the entry's `KvKind` metadata,
+/// because a user value can legitimately start with `0xFF`.
 /// Fast-path sanity byte prefix on encoded ValuePointers.
-/// With KvKind as authoritative SST metadata, this tag is technically redundant
+/// With KvKind as authoritative metadata, this tag is technically redundant
 /// for classification. It is retained as a cheap corruption/desync detector:
 /// if a reader sees KvKind::ValuePointer but the payload doesn't start with
 /// 0xFF, something is wrong. The 1-byte overhead (17 vs 16 bytes) is negligible
@@ -178,10 +176,10 @@ impl ValuePointer {
     /// Try to decode from bytes. Returns `None` if the buffer is too short or
     /// does not start with the `VALUE_POINTER_TAG` byte.
     ///
-    /// Callers that have access to the SST block's `KvKind` metadata should
-    /// check that first (it is authoritative) and only use `try_decode` as a
-    /// fast-path filter. This avoids the edge-case collision where a user value
-    /// whose first byte is `0xFF` could be misclassified as a pointer.
+/// Callers should check the entry's `KvKind` metadata first (it is
+/// authoritative) and only use `try_decode` as a fast-path filter. This avoids
+/// the edge-case collision where a user value whose first byte is `0xFF` could
+/// be misclassified as a pointer.
     pub fn try_decode(buf: &[u8]) -> Option<Self> {
         if buf.len() < Self::encoded_size() || buf[0] != VALUE_POINTER_TAG {
             return None;
@@ -212,17 +210,20 @@ impl ValuePointer {
 │                                                                     │
 │  ┌───────────┬─────────┬───────────┬───────────┐                   │
 │  │ Header    │ Key     │ Value     │ Padding   │                   │
-│  │ (16 bytes)│ (var)   │ (var)     │ (0-7 bytes)│                  │
+│  │ (24 bytes)│ (var)   │ (var)     │ (0-7 bytes)│                  │
 │  └───────────┴─────────┴───────────┴───────────┘                   │
 │                                                                     │
-│  Header Format (16 bytes total):                                    │
-│  ┌─────────────┬─────────────┬─────────────┬───────────────┬──────────┐
-│  │ crc32       │ value_length│ key_length  │ flags         │ padding  │
-│  │ (4 bytes)   │ (4 bytes)   │ (2 bytes)   │ (2 bytes)     │ (4 bytes)│
-│  └─────────────┴─────────────┴─────────────┴───────────────┴──────────┘
+│  Header Format (24 bytes total):                                    │
+│  ┌─────────────┬─────────────┬─────────────┬───────────────┬─────────────┬──────────┐
+│  │ header_crc32│ value_crc32 │ value_length│ key_length    │ flags       │ padding  │
+│  │ (4 bytes)   │ (4 bytes)   │ (4 bytes)   │ (2 bytes)     │ (2 bytes)   │ (8 bytes)│
+│  └─────────────┴─────────────┴─────────────┴───────────────┴─────────────┴──────────┘
 │                                                                     │
-│  CRC32: Covers (header_without_crc) + key + value to detect         │
-│         corruption of length fields as well as the payload          │
+│  Header CRC32: Covers (header_without_header_crc) + key so          │
+│         header-only GC scans can validate length fields and skip     │
+│         values safely.                                              │
+│  Value CRC32: Covers only the value payload and is checked when      │
+│         the value is read.                                          │
 │                                                                     │
 │  Alignment: Each entry (header + key + value) is padded to an       │
 │             8-byte boundary on disk; the trailing pad bytes are     │
@@ -250,7 +251,7 @@ pub struct VlogFileHeader {
 /// Field order is chosen so that all u32 fields come before u16 fields, which
 /// keeps the C struct layout naturally 4-byte-aligned with no implicit padding
 /// between the declared fields. The trailing `_padding` brings the total to a
-/// flat 16 bytes and preserves the file's 8-byte alignment guarantee.
+/// flat 24 bytes and preserves the file's 8-byte alignment guarantee.
 ///
 /// **Serialization note:** Do NOT cast raw byte buffers to `&VlogEntryHeader`
 /// — vLog entries are read from arbitrary file offsets where 4-byte alignment
@@ -258,24 +259,19 @@ pub struct VlogFileHeader {
 /// serialize/deserialize each field individually using explicit little-endian
 /// encoding (e.g., `bytes::Buf::get_u32_le()` / `bytes::BufMut::put_u32_le()`).
 /// This also makes `#[repr(C)]` and `std::mem::size_of` unnecessary; the
-/// header is always exactly 16 bytes by construction.
+/// header is always exactly 24 bytes by construction.
 pub struct VlogEntryHeader {
-    pub crc32: u32,           // CRC32 of the rest of the header + key + value (4 bytes)
+    pub header_crc32: u32,    // CRC32 of the rest of the header + key (4 bytes)
+    pub value_crc32: u32,     // CRC32 of the value payload (4 bytes)
     pub value_len: u32,       // Value length (max 4GB) (4 bytes)
     pub key_len: u16,         // Key length (max 64KB). Large keys must be stored inline. (2 bytes)
     pub flags: u16,           // Flags (tombstone, etc.) (2 bytes)
-    pub _padding: [u8; 4],    // Reserved / padding to a 16-byte total
+    pub _padding: [u8; 8],    // Reserved / padding to a 24-byte total
 }
-// NOTE: To allow robust header-only validation and resynchronization
-// after corruption, the on-disk format should use a split checksum:
-// 1. A 4-byte CRC32 covering the header and key (allowing the header-only
-//    iterator to fully validate integrity and safely skip the value).
-// 2. A separate CRC32 covering the value payload.
-// The current single-CRC32 design means a corrupted value_len or key_len
-// cannot be detected without reading the full entry, which risks
-// desynchronization during header-only scans.
+// The split checksum is intentional: GC analysis can validate header + key
+// without reading large values, while normal reads still verify payload bytes.
 
-const HEADER_SIZE: usize = 16; // VlogEntryHeader is always 16 bytes
+const HEADER_SIZE: usize = 24; // VlogEntryHeader is always 24 bytes
 const ALIGNMENT: usize = 8;
 ```
 
@@ -1148,18 +1144,23 @@ manual removal) to prevent leaked references that block vLog space reclamation.
 
 ### Phase 2: SSTable Integration (Week 2)
 
-1. **Modified SSTableBuilder**
+1. **Modified MemTable and WAL**
+   - Store `(value, KvKind)` entries so GC pointer rewrites are unambiguous
+   - Encode `KvKind` in WAL records for crash recovery
+   - Preserve normal user writes as `KvKind::Inline` full values
+
+2. **Modified SSTableBuilder**
    - Add `ValueLogBuilder` integration
    - Threshold-based value separation
    - Track which vLog files are referenced via `referenced_vlogs: HashSet<u32>`
    - Register SST -> vLog mapping via `register_sst_references()` when SST is finalized
 
-2. **Modified SsTable and SsTableIterator**
+3. **Modified SsTable and SsTableIterator**
    - Detect and decode `ValuePointer` values
    - Transparent value fetching from vLog
    - Iterator support for separated values
 
-3. **ValueLog Manager**
+4. **ValueLog Manager**
    - Lifecycle management of vLog files
    - Reference tracking from SSTs
    - File caching and cleanup
@@ -1228,7 +1229,7 @@ impl MiniLsm {
     /// Get statistics about value log usage
     pub fn vlog_stats(&self) -> ValueLogStats;
 
-    /// Get a value along with its authoritative KvKind metadata from SST blocks.
+    /// Get a value along with its authoritative KvKind metadata.
     /// Returns None if the key is deleted. Used by GC's is_entry_live() to avoid
     /// ambiguous payload-based pointer detection.
     pub fn get_with_kind(&self, key: &[u8]) -> Result<Option<(Bytes, KvKind)>>;
@@ -1369,7 +1370,8 @@ pub enum ManifestRecord {
     Compaction(CompactionTask, Vec<usize>),
     CompactionV2 { task: CompactionTask, output_ssts: Vec<(usize, Vec<u32>)> },
 
-    /// vLog file lifecycle.
+    /// vLog file lifecycle. `NewVlogFile` records that a file ID was allocated
+    /// so future rotations do not reuse it; it is not a liveness root by itself.
     NewVlogFile(u32),
     DeleteVlogFile(u32),
 }
@@ -1386,29 +1388,40 @@ having an empty vLog set. SSTable footers still embed the vLog reference list
 as a redundant copy, used by `fsck`-style consistency checks and by older
 snapshots whose manifest record predates this format.
 
+`NewVlogFile` records participate in ID allocation and crash recovery, but not
+data liveness. A vLog file is live only if it is referenced by an SST reference
+set or by a WAL-recovered memtable entry with `KvKind::ValuePointer`.
+
 ## Crash Recovery
 
-The WAL stores full values for user writes, so crash recovery for the normal write path does not depend on vLog pointers at all. Recovery proceeds in three phases:
+The WAL stores full values for user writes and stores kind-tagged pointer
+entries for GC CAS rewrites. Recovery proceeds in three phases:
 
-1. **WAL replay**: rebuilds the memtable with full values — identical to a non-separated engine. No vLog validation needed for user writes.
+1. **WAL replay**: rebuilds the memtable with `(value, KvKind)` entries. User writes replay as `KvKind::Inline` full values; GC CAS rewrites replay as `KvKind::ValuePointer` entries.
 2. **Manifest replay**: for every `Flush` / `FlushV2` / `Compaction` / `CompactionV2` record, call `register_sst_references(sst_id, vlog_ids)` to populate both `sst_to_vlogs` and `vlog_to_ssts` indexes.
-3. **Orphan vLog cleanup**: scan the data directory for `.vlog` files. Any file not referenced by a `NewVlogFile` manifest record, by any SST's vLog reference list, **or by the WAL-recovered memtable** is orphaned and deleted. The memtable check is critical: GC's `compare_and_set_with_kind` writes `ValuePointer` entries to the memtable (and WAL), so after WAL replay these pointers must remain valid. Deleting a vLog file reachable only through the recovered memtable would cause read failures.
+3. **Orphan vLog cleanup**: scan the data directory for `.vlog` files. Any file not referenced by any SST's vLog reference list **and** not referenced by the WAL-recovered memtable is orphaned and deleted. `NewVlogFile` alone is not enough to keep a file: a crash after file allocation but before `FlushV2`/GC CAS would otherwise leak a fully unreferenced file.
 
 **Flush-time crash safety**: vLog writes are fsynced (batch, once per flush) before the SST is written to disk. If a crash occurs:
 - **Before SST is committed to manifest**: the flush is incomplete — the memtable (rebuilt from WAL) still contains the full values. The partially written vLog and SST files are orphaned.
 - **After SST is committed to manifest**: all vLog pointers in the SST are guaranteed valid (vLog was fsynced first).
 - **Partial vLog write**: detected by CRC32 mismatch and skipped during reads.
 
-**GC crash safety**: GC's `compact_file` fsyncs the new vLog BEFORE performing any CAS operations (Phase 1 → Phase 2 ordering). On crash:
+**GC crash safety**: GC's `compact_file` fsyncs the new vLog BEFORE performing any CAS operations (Phase 1 → Phase 2 ordering). Each successful `compare_and_set_with_kind` appends a kind-tagged WAL entry before exposing the pointer in the memtable. On crash:
 - **Before CAS**: WAL replay restores the old ValuePointer (pre-CAS state). The new vLog file is orphaned but harmless — it will be cleaned up on the next GC pass or startup orphan sweep.
 - **After CAS, before SST flush**: WAL replay restores the NEW ValuePointer (post-CAS state). This is safe because the new vLog was fsynced before the CAS (Phase 1 ordering), so the pointer is always valid.
 - **After CAS is flushed to SST**: the new ValuePointer is durable in the SST. The new vLog file is referenced by the SST and will not be deleted.
 
 ### WAL Interaction
 
-The WAL stores the **full value** for every write — the same as a non-separated LSM tree. Value separation into the vLog happens **during flush** (memtable → SST), not during the put path:
+The WAL stores `(key, value, KvKind)` for every write. Normal user writes store
+the full value with `KvKind::Inline`, preserving the same latency profile as a
+non-separated LSM tree. GC CAS rewrites store the encoded `ValuePointer` with
+`KvKind::ValuePointer` so recovery can reconstruct the post-GC memtable state
+without payload sniffing. Value separation for normal user writes still happens
+**during flush** (memtable → SST), not during the put path:
 
-- **Write path (put)**: value → WAL (full value) → **WAL fsync** → memtable
+- **Write path (put)**: value + `KvKind::Inline` → WAL → **WAL fsync** → memtable
+- **GC CAS path**: encoded `ValuePointer` + `KvKind::ValuePointer` → WAL → memtable
 - **Flush path**: scan memtable → for each entry with `value.len() >= min_value_size`:
   1. append value to vLog buffer (in-memory)
   2. add `ValuePointer` to in-memory SST block
@@ -1418,13 +1431,16 @@ The WAL stores the **full value** for every write — the same as a non-separate
 
 This design avoids the double-fsync problem entirely. The write path has exactly one fsync (WAL), identical to a non-separated engine. The vLog fsync cost is paid once per flush (not per entry), which is a background operation and does not add latency to the put path.
 
-**Tradeoff**: the WAL now stores full values instead of 17-byte pointers, increasing WAL size and recovery time. For workloads with many large values, the WAL can grow significantly between flushes. This is mitigated by (a) frequent flushes (small memtable), and (b) the fact that WAL entries are deleted after flush.
+**Tradeoff**: user writes still store full values in the WAL, increasing WAL
+size and recovery time for workloads with many large values. GC rewrites are the
+exception: they store compact pointer entries because the referenced vLog entry
+has already been fsynced.
 
 **Crash recovery**:
 - **Crash before flush**: WAL replay rebuilds the memtable with full values — no vLog pointers to validate.
 - **Crash during flush**: the flush is atomic — either the SST (with valid vLog pointers) is committed to the manifest, or it is not. Partial vLog writes are detected by CRC32 mismatch and skipped.
 - **No dangling pointers**: because vLog writes are fsynced (batch, once per flush) before the SST is written, every `ValuePointer` in every SST is guaranteed to reference durable data.
-- **Orphan cleanup**: on startup, any `.vlog` file not referenced by the manifest, any SST, or the WAL-recovered memtable is deleted.
+- **Orphan cleanup**: on startup, any `.vlog` file not referenced by any SST reference set or by the WAL-recovered memtable is deleted. `NewVlogFile` records alone do not keep files live.
 
 ## Performance Considerations
 
