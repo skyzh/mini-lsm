@@ -137,14 +137,15 @@ impl LsmStorageInner {
         &self,
         mut iter: impl for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>> + 'static,
         compact_to_bottom_level: bool,
-    ) -> Result<Vec<Arc<SsTable>>> {
+    ) -> Result<(Vec<Arc<SsTable>>, Vec<u32>)> {
         let mut ret = vec![];
+        let mut all_vlog_ids = vec![];
         let mut builder = SsTableBuilder::new(self.options.block_size);
 
         while iter.is_valid() {
             if builder.estimated_size() >= self.options.target_sst_size {
+                all_vlog_ids.extend_from_slice(builder.vlog_file_ids());
                 let sst_id = self.next_sst_id();
-                // TODO: refill the cache base on the previous id/key with new block ids that overlap with the previous sst
                 let sst = builder.build(
                     sst_id,
                     Some(self.block_cache.clone()),
@@ -154,13 +155,17 @@ impl LsmStorageInner {
                 builder = SsTableBuilder::new(self.options.block_size);
             }
 
-            if !iter.value().is_empty() || !compact_to_bottom_level {
-                builder.add(iter.key(), iter.value());
+            // Detect tombstones from raw value: tombstone = [KvKind::Inline:1] only (1 byte)
+            let raw = iter.raw_value();
+            let is_tombstone = raw.len() == 1 && raw[0] == crate::vlog::KvKind::Inline as u8;
+            if !is_tombstone || !compact_to_bottom_level {
+                builder.add_raw(iter.key(), iter.raw_value())?;
             }
             iter.next()?;
         }
 
         if !builder.is_empty() {
+            all_vlog_ids.extend_from_slice(builder.vlog_file_ids());
             let sst_id = self.next_sst_id();
             let sst = builder.build(
                 sst_id,
@@ -170,7 +175,9 @@ impl LsmStorageInner {
             ret.push(Arc::new(sst));
         }
 
-        Ok(ret)
+        all_vlog_ids.sort_unstable();
+        all_vlog_ids.dedup();
+        Ok((ret, all_vlog_ids))
     }
 
     fn compact_from_iters(
@@ -178,7 +185,7 @@ impl LsmStorageInner {
         upper_level_iter: impl for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>> + 'static,
         lower_level_iter: impl for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>> + 'static,
         compact_to_bottom_level: bool,
-    ) -> Result<Vec<Arc<SsTable>>> {
+    ) -> Result<(Vec<Arc<SsTable>>, Vec<u32>)> {
         let s_it = TwoMergeIterator::create(upper_level_iter, lower_level_iter)?;
 
         self.compact_from_iter(s_it, compact_to_bottom_level)
@@ -189,7 +196,7 @@ impl LsmStorageInner {
         l0_sst_ids: Vec<usize>,
         l1_sst_ids: Vec<usize>,
         compact_to_bottom_level: bool,
-    ) -> Result<Vec<Arc<SsTable>>> {
+    ) -> Result<(Vec<Arc<SsTable>>, Vec<u32>)> {
         let state = self.state.read().clone();
         let mut m_it = vec![];
         for i in l0_sst_ids.iter() {
@@ -209,7 +216,7 @@ impl LsmStorageInner {
         self.compact_from_iters(upper_level_iter, lower_level_iter, compact_to_bottom_level)
     }
 
-    fn compact(&self, task: &CompactionTask) -> Result<Vec<Arc<SsTable>>> {
+    fn compact(&self, task: &CompactionTask) -> Result<(Vec<Arc<SsTable>>, Vec<u32>)> {
         let state = self.state.read().clone();
         match task {
             CompactionTask::Simple(SimpleLeveledCompactionTask {
@@ -288,12 +295,24 @@ impl LsmStorageInner {
             l1_sstables: ssts_to_compact.1.clone(),
         };
 
-        let new_ssts = self.compact(&task)?;
+        let (new_ssts, compact_vlog_ids) = self.compact(&task)?;
 
         {
             let _state_lock = self.state_lock.lock();
             let mut guard = self.state.write();
             let mut snashot = guard.as_ref().clone();
+
+            // Unregister vLog references for old SSTs
+            if let Some(ref vlog) = self.vlog {
+                for id in ssts_to_compact.0.iter().chain(ssts_to_compact.1) {
+                    vlog.unregister_sst_references(*id);
+                }
+                // Register vLog references for new SSTs
+                for sst in &new_ssts {
+                    let sst_vlog_ids = compact_vlog_ids.iter().copied().collect::<Vec<_>>();
+                    vlog.register_sst_references(sst.sst_id(), &sst_vlog_ids);
+                }
+            }
 
             ssts_to_compact
                 .0
@@ -315,10 +334,16 @@ impl LsmStorageInner {
             drop(guard);
 
             self.sync_dir()?;
+            // Use CompactionV2 if vLog references exist
+            let manifest_record = if self.vlog.is_some() {
+                ManifestRecord::CompactionV2(task, new_sst_ids.clone(), compact_vlog_ids)
+            } else {
+                ManifestRecord::Compaction(task, new_sst_ids.clone())
+            };
             self.manifest
                 .as_ref()
                 .unwrap()
-                .add_record(&_state_lock, ManifestRecord::Compaction(task, new_sst_ids))?;
+                .add_record(&_state_lock, manifest_record)?;
         }
 
         for id in ssts_to_compact.0.iter().chain(ssts_to_compact.1) {
@@ -337,7 +362,7 @@ impl LsmStorageInner {
         }
 
         let t = task.as_ref().unwrap();
-        let new_ssts = self.compact(t)?;
+        let (new_ssts, compact_vlog_ids) = self.compact(t)?;
         let new_sst_ids = new_ssts.iter().map(|x| x.sst_id()).collect::<Vec<_>>();
 
         let rm_sst_ids = {
@@ -350,6 +375,17 @@ impl LsmStorageInner {
             let (snapshot_partial, rm_sst_ids) = self
                 .compaction_controller
                 .apply_compaction_result(&snapshot, t, new_sst_ids.as_slice());
+
+            // Unregister vLog references for removed SSTs
+            if let Some(ref vlog) = self.vlog {
+                for id in &rm_sst_ids {
+                    vlog.unregister_sst_references(*id);
+                }
+                // Register vLog references for new SSTs
+                for sst in &new_ssts {
+                    vlog.register_sst_references(sst.sst_id(), &compact_vlog_ids);
+                }
+            }
 
             let mut guard = self.state.write();
             let mut snapshot = guard.as_ref().clone();
@@ -364,10 +400,16 @@ impl LsmStorageInner {
             drop(guard);
 
             self.sync_dir()?;
-            self.manifest.as_ref().unwrap().add_record(
-                &_state_lock,
-                ManifestRecord::Compaction(task.unwrap(), new_sst_ids),
-            )?;
+            // Use CompactionV2 if vLog is enabled
+            let manifest_record = if self.vlog.is_some() {
+                ManifestRecord::CompactionV2(task.unwrap(), new_sst_ids, compact_vlog_ids)
+            } else {
+                ManifestRecord::Compaction(task.unwrap(), new_sst_ids)
+            };
+            self.manifest
+                .as_ref()
+                .unwrap()
+                .add_record(&_state_lock, manifest_record)?;
 
             rm_sst_ids
         };

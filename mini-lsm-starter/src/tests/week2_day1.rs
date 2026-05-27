@@ -144,10 +144,12 @@ fn generate_concat_sst(
     let mut builder = SsTableBuilder::new(128);
     for idx in start_key..end_key {
         let key = format!("{idx:05}");
-        builder.add(
-            KeySlice::for_testing_from_slice_no_ts(key.as_bytes()),
-            b"test",
-        );
+        builder
+            .add(
+                KeySlice::for_testing_from_slice_no_ts(key.as_bytes()),
+                b"test",
+            )
+            .unwrap();
     }
     let path = dir.as_ref().join(format!("{id}.sst"));
     builder.build_for_test(path).unwrap()

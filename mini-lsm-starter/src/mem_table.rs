@@ -155,7 +155,7 @@ impl MemTable {
     /// Flush the mem-table to SSTable. Implement in week 1 day 6.
     pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
         for e in self.map.iter() {
-            builder.add(Key::from_bytes(e.key().clone()).as_key_slice(), e.value());
+            builder.add(Key::from_bytes(e.key().clone()).as_key_slice(), e.value())?;
         }
 
         Ok(())

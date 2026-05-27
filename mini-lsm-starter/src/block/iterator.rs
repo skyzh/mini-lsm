@@ -118,6 +118,11 @@ impl BlockIterator {
         &self.block.data[self.value_range.0..self.value_range.1]
     }
 
+    /// Returns the raw value bytes including any kind prefix.
+    pub fn raw_value(&self) -> &[u8] {
+        self.value()
+    }
+
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {

@@ -125,4 +125,8 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
     fn num_active_iterators(&self) -> usize {
         self.iters.len() + 1
     }
+
+    fn raw_value(&self) -> &[u8] {
+        self.current.as_ref().unwrap().1.raw_value()
+    }
 }

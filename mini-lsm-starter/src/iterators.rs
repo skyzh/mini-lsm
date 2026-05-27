@@ -33,6 +33,12 @@ pub trait StorageIterator {
     /// Move to the next position.
     fn next(&mut self) -> anyhow::Result<()>;
 
+    /// Get the raw value bytes without dereferencing ValuePointers.
+    /// Used by compaction to preserve existing pointers. Default returns `self.value()`.
+    fn raw_value(&self) -> &[u8] {
+        self.value()
+    }
+
     /// Number of underlying active iterators for this iterator.
     fn num_active_iterators(&self) -> usize {
         1

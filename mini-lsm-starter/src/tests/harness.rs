@@ -188,7 +188,9 @@ pub fn generate_sst(
 ) -> SsTable {
     let mut builder = SsTableBuilder::new(128);
     for (key, value) in data {
-        builder.add(KeySlice::for_testing_from_slice_no_ts(&key[..]), &value[..]);
+        builder
+            .add(KeySlice::for_testing_from_slice_no_ts(&key[..]), &value[..])
+            .unwrap();
     }
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }
@@ -202,10 +204,12 @@ pub fn generate_sst_with_ts(
 ) -> SsTable {
     let mut builder = SsTableBuilder::new(128);
     for ((key, ts), value) in data {
-        builder.add(
-            KeySlice::for_testing_from_slice_with_ts(&key[..], ts),
-            &value[..],
-        );
+        builder
+            .add(
+                KeySlice::for_testing_from_slice_with_ts(&key[..], ts),
+                &value[..],
+            )
+            .unwrap();
     }
     builder.build(id, block_cache, path.as_ref()).unwrap()
 }

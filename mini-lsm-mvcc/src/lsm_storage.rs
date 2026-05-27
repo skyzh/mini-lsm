@@ -95,6 +95,8 @@ pub struct LsmStorageOptions {
     pub compaction_options: CompactionOptions,
     pub enable_wal: bool,
     pub serializable: bool,
+    /// Placeholder for key-value separation options (not used in mvcc impl).
+    pub value_separation: Option<()>,
 }
 
 impl LsmStorageOptions {
@@ -106,6 +108,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 50,
             serializable: false,
+            value_separation: None,
         }
     }
 
@@ -117,6 +120,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 2,
             serializable: false,
+            value_separation: None,
         }
     }
 
@@ -128,6 +132,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 2,
             serializable: false,
+            value_separation: None,
         }
     }
 }

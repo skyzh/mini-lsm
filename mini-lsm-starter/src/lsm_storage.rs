@@ -26,6 +26,7 @@ use crate::manifest::{Manifest, ManifestRecord};
 use crate::mem_table::{self, MemTable};
 use crate::mvcc::LsmMvccInner;
 use crate::table::{FileObject, SsTable, SsTableBuilder, SsTableIterator};
+use crate::vlog::{ValueLog, ValueSeparationOptions};
 
 // TODO: try this one https://github.com/cloudflare/pingora/tree/main/tinyufo with bech later
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -84,6 +85,9 @@ pub struct LsmStorageOptions {
     pub compaction_options: CompactionOptions,
     pub enable_wal: bool,
     pub serializable: bool,
+    /// Options for key-value separation (vLog). If `Some` with `enabled` true, large
+    /// values are stored in a separate Value Log file. Defaults to `None` (disabled).
+    pub value_separation: Option<ValueSeparationOptions>,
 }
 
 impl LsmStorageOptions {
@@ -95,6 +99,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 50,
             serializable: false,
+            value_separation: None,
         }
     }
 
@@ -106,6 +111,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 2,
             serializable: false,
+            value_separation: None,
         }
     }
 
@@ -117,6 +123,7 @@ impl LsmStorageOptions {
             enable_wal: false,
             num_memtable_limit: 2,
             serializable: false,
+            value_separation: None,
         }
     }
 }
@@ -145,6 +152,8 @@ pub(crate) struct LsmStorageInner {
     pub(crate) manifest: Option<Manifest>,
     pub(crate) mvcc: Option<LsmMvccInner>,
     pub(crate) compaction_filters: Arc<Mutex<Vec<CompactionFilter>>>,
+    /// Value Log manager for key-value separation. `None` if value separation is disabled.
+    pub(crate) vlog: Option<Arc<ValueLog>>,
 }
 
 /// A thin wrapper for `LsmStorageInner` and the user interface for MiniLSM.
@@ -299,6 +308,7 @@ impl LsmStorageInner {
 
         let mut max_id = state.memtable.id();
         let manifest_path = path.join("MANIFEST");
+        let mut recovered_vlog_refs: HashMap<usize, Vec<u32>> = HashMap::new();
         let manifest = if !manifest_path.exists() {
             if options.enable_wal {
                 state.memtable = Arc::new(MemTable::create_with_wal(
@@ -340,6 +350,35 @@ impl LsmStorageInner {
                         );
                         state = new_state;
                         max_id = std::cmp::max(max_id, *ids.last().unwrap_or(&max_id));
+                    }
+                    ManifestRecord::FlushV2(id, vlog_ids) => {
+                        if compaction_controller.flush_to_l0() {
+                            state.l0_sstables.insert(0, id);
+                        } else {
+                            state.levels.insert(0, (id, vec![id]));
+                        }
+                        im_memtables.remove(&id);
+                        max_id = std::cmp::max(max_id, id);
+                        if !vlog_ids.is_empty() {
+                            recovered_vlog_refs.insert(id, vlog_ids);
+                        }
+                    }
+                    ManifestRecord::CompactionV2(task, ids, vlog_ids) => {
+                        let (new_state, _) = compaction_controller.apply_compaction_result(
+                            &state,
+                            &task,
+                            ids.as_slice(),
+                        );
+                        state = new_state;
+                        max_id = std::cmp::max(max_id, *ids.last().unwrap_or(&max_id));
+                        if !vlog_ids.is_empty() {
+                            for &sst_id in &ids {
+                                recovered_vlog_refs.insert(sst_id, vlog_ids.clone());
+                            }
+                        }
+                    }
+                    ManifestRecord::NewVlogFile(_id) | ManifestRecord::DeleteVlogFile(_id) => {
+                        // vLog file lifecycle — will be handled in vLog recovery
                     }
                 }
             }
@@ -383,6 +422,23 @@ impl LsmStorageInner {
             ret.0
         };
 
+        // Initialize Value Log if value separation is enabled
+        let value_separation = options.value_separation.clone().unwrap_or_default();
+        let vlog = if value_separation.enabled {
+            let vlog_path = path.join("vlog");
+            if !vlog_path.exists() {
+                fs::create_dir_all(&vlog_path)?;
+            }
+            let vlog = Arc::new(ValueLog::open(&vlog_path, value_separation)?);
+            // Register vLog references recovered from manifest records
+            for (sst_id, vlog_ids) in &recovered_vlog_refs {
+                vlog.register_sst_references(*sst_id, vlog_ids);
+            }
+            Some(vlog)
+        } else {
+            None
+        };
+
         let storage = Self {
             state: Arc::new(RwLock::new(Arc::new(state))),
             state_lock: Mutex::new(()),
@@ -394,6 +450,7 @@ impl LsmStorageInner {
             options: options.into(),
             mvcc: None,
             compaction_filters: Arc::new(Mutex::new(Vec::new())),
+            vlog,
         };
         storage.sync_dir()?;
 
@@ -447,8 +504,11 @@ impl LsmStorageInner {
         });
 
         for s in sstables_l0.iter() {
-            let s_it =
+            let mut s_it =
                 SsTableIterator::create_and_seek_to_key(s.clone(), KeySlice::from_slice(key))?;
+            if let Some(ref vlog) = self.vlog {
+                s_it.set_vlog(vlog.clone());
+            }
             if s_it.is_valid() && s_it.key().raw_ref() == key {
                 if s_it.value().is_empty() {
                     return Ok(None);
@@ -476,8 +536,15 @@ impl LsmStorageInner {
                 }
             });
 
-            let s_it =
-                SstConcatIterator::create_and_seek_to_key(sstables, KeySlice::from_slice(key))?;
+            let s_it = if let Some(ref vlog) = self.vlog {
+                SstConcatIterator::create_and_seek_to_key_with_vlog(
+                    sstables,
+                    KeySlice::from_slice(key),
+                    vlog.clone(),
+                )?
+            } else {
+                SstConcatIterator::create_and_seek_to_key(sstables, KeySlice::from_slice(key))?
+            };
             if s_it.is_valid() && s_it.key().raw_ref() == key {
                 if s_it.value().is_empty() {
                     return Ok(None);
@@ -609,14 +676,41 @@ impl LsmStorageInner {
             guard.imm_memtables.last().unwrap().clone()
         };
 
-        let mut ss_table_builder = SsTableBuilder::new(self.options.block_size);
-        memtable_to_flush.flush(&mut ss_table_builder)?;
         let sst_id = memtable_to_flush.id();
-        let sst = ss_table_builder.build(
-            sst_id,
-            Some(self.block_cache.clone()),
-            self.path_of_sst(sst_id),
-        )?;
+
+        // Build SST with optional vLog support
+        let (sst, vlog_ids) = if let Some(ref vlog) = self.vlog {
+            let vlog_file_id = vlog.next_file_id();
+            let vs_opts = self.options.value_separation.as_ref().unwrap().clone();
+            let vlog_builder = crate::vlog::ValueLogBuilder::create(
+                vlog.path_of_file(vlog_file_id),
+                vlog_file_id,
+                vs_opts.clone(),
+            )?;
+            let mut builder =
+                SsTableBuilder::new_with_vlog(self.options.block_size, vlog_builder, vs_opts);
+            memtable_to_flush.flush(&mut builder)?;
+            let vlog_ids = builder.vlog_file_ids().to_vec();
+            let sst = builder.build(
+                sst_id,
+                Some(self.block_cache.clone()),
+                self.path_of_sst(sst_id),
+            )?;
+            // Register vLog references
+            if !vlog_ids.is_empty() {
+                vlog.register_sst_references(sst_id, &vlog_ids);
+            }
+            (sst, vlog_ids)
+        } else {
+            let mut builder = SsTableBuilder::new(self.options.block_size);
+            memtable_to_flush.flush(&mut builder)?;
+            let sst = builder.build(
+                sst_id,
+                Some(self.block_cache.clone()),
+                self.path_of_sst(sst_id),
+            )?;
+            (sst, vec![])
+        };
 
         {
             let mut guard = self.state.write();
@@ -636,10 +730,15 @@ impl LsmStorageInner {
 
         self.sync_dir()?;
 
+        let manifest_record = if vlog_ids.is_empty() {
+            ManifestRecord::Flush(sst_id)
+        } else {
+            ManifestRecord::FlushV2(sst_id, vlog_ids)
+        };
         self.manifest
             .as_ref()
             .unwrap()
-            .add_record(&state_lock, ManifestRecord::Flush(sst_id))
+            .add_record(&state_lock, manifest_record)
     }
 
     pub fn new_txn(&self) -> Result<()> {
@@ -671,7 +770,7 @@ impl LsmStorageInner {
                 continue;
             }
 
-            let s = match lower {
+            let mut s = match lower {
                 Bound::Included(lower) => {
                     SsTableIterator::create_and_seek_to_key(t.clone(), KeySlice::from_slice(lower))?
                 }
@@ -693,6 +792,9 @@ impl LsmStorageInner {
                 }
                 Bound::Unbounded => SsTableIterator::create_and_seek_to_first(t.clone())?,
             };
+            if let Some(ref vlog) = self.vlog {
+                s.set_vlog(vlog.clone());
+            }
             l0_iters.push(Box::new(s));
         }
         let m_l0_iter = MergeIterator::create(l0_iters);
@@ -706,23 +808,47 @@ impl LsmStorageInner {
                 let t = state.sstables[i].clone();
                 ss_tables.push(t);
             }
-            let concat_iter = match lower {
-                Bound::Included(lower) => SstConcatIterator::create_and_seek_to_key(
-                    ss_tables,
-                    KeySlice::from_slice(lower),
-                )?,
-                Bound::Excluded(lower) => {
-                    let mut iter = SstConcatIterator::create_and_seek_to_key(
+            let concat_iter = if let Some(ref vlog) = self.vlog {
+                match lower {
+                    Bound::Included(lower) => SstConcatIterator::create_and_seek_to_key_with_vlog(
                         ss_tables,
                         KeySlice::from_slice(lower),
-                    )?;
-                    if iter.is_valid() && iter.key().raw_ref() == lower {
-                        iter.next()?;
+                        vlog.clone(),
+                    )?,
+                    Bound::Excluded(lower) => {
+                        let mut iter = SstConcatIterator::create_and_seek_to_key_with_vlog(
+                            ss_tables,
+                            KeySlice::from_slice(lower),
+                            vlog.clone(),
+                        )?;
+                        if iter.is_valid() && iter.key().raw_ref() == lower {
+                            iter.next()?;
+                        }
+                        iter
                     }
-
-                    iter
+                    Bound::Unbounded => SstConcatIterator::create_and_seek_to_first_with_vlog(
+                        ss_tables,
+                        vlog.clone(),
+                    )?,
                 }
-                Bound::Unbounded => SstConcatIterator::create_and_seek_to_first(ss_tables)?,
+            } else {
+                match lower {
+                    Bound::Included(lower) => SstConcatIterator::create_and_seek_to_key(
+                        ss_tables,
+                        KeySlice::from_slice(lower),
+                    )?,
+                    Bound::Excluded(lower) => {
+                        let mut iter = SstConcatIterator::create_and_seek_to_key(
+                            ss_tables,
+                            KeySlice::from_slice(lower),
+                        )?;
+                        if iter.is_valid() && iter.key().raw_ref() == lower {
+                            iter.next()?;
+                        }
+                        iter
+                    }
+                    Bound::Unbounded => SstConcatIterator::create_and_seek_to_first(ss_tables)?,
+                }
             };
             concat_iters.push(Box::new(concat_iter));
         }

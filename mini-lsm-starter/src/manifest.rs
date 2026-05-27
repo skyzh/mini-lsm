@@ -37,6 +37,14 @@ pub enum ManifestRecord {
     NewMemtable(usize),
     /// (task, new_sst_ids)
     Compaction(CompactionTask, Vec<usize>),
+    /// Flush with vLog references: (sst_id, vlog_file_ids)
+    FlushV2(usize, Vec<u32>),
+    /// Compaction with vLog references: (task, new_sst_ids, vlog_file_ids)
+    CompactionV2(CompactionTask, Vec<usize>, Vec<u32>),
+    /// A new vLog file was created
+    NewVlogFile(u32),
+    /// A vLog file was deleted
+    DeleteVlogFile(u32),
 }
 
 // TODO: base on size or interval take snapshot of manifest in MANIFEST_SNAPSHOT file. after that, write to a new manifest file,

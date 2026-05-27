@@ -28,3 +28,6 @@ pub mod wal;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod vlog_integration_tests;
