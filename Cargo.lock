@@ -496,6 +496,7 @@ dependencies = [
  "arc-swap",
  "bytes",
  "clap",
+ "crc32fast",
  "crossbeam-channel",
  "crossbeam-epoch",
  "crossbeam-skiplist",
