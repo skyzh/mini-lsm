@@ -1,12 +1,24 @@
 # RFC: Key-Value Separation for Mini-LSM
 
-**Status**: Draft  
+**Status**: Implemented (Phases 1–3)  
 **Author**: Mini-LSM Contributors  
 **Created**: 2026-03-08  
+**Last Updated**: 2026-05-28  
 **Target Version**: Post-Week 3  
 **Tracking Issue**: N/A (design RFC, tracked via implementation tasks)
 
 ---
+
+## Implementation Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Core Infrastructure (`ValuePointer`, `ValueLog` file format, reader/writer) | ✅ Implemented |
+| Phase 2 | SSTable Integration (`SsTableBuilder` vLog separation, memtable `KvKind` tagging, reference tracking) | ✅ Implemented |
+| Phase 3 | Garbage Collection (`GarbageCollector`, `compare_and_set_with_kind`, post-compaction GC trigger) | ✅ Implemented |
+| Phase 4 | Testing, Optimization, Metrics | 🔄 Partially complete (integration tests present; metrics API pending) |
+
+This RFC originally served as a design proposal. It has been updated to reflect the *actual* implementation as merged in PR #79. Sections where the implementation diverges from the original design are marked with **⚠️ Implementation Note** callouts.
 
 ## Summary
 
@@ -584,6 +596,8 @@ pub struct ValueLog {
     /// records during file rotation and deletion.
     manifest: Arc<Manifest>,
 }
+
+> **Implementation Note:** The `lsm_clock` and `Clock` trait described above are not present in the actual implementation. Instead, `pending_deletions` stores only `file_id` (no `obsolete_at_ts`) and relies on SST reference counting plus `reader_count()` to determine when a file is safe to delete. See [Known Limitations](#known-limitations) for details.
 
 impl ValueLog {
     /// Write a key-value pair to the active vLog file.
@@ -1503,6 +1517,8 @@ pub enum ManifestRecord {
 }
 ```
 
+> **Implementation Note:** Only `GcCompaction` (with `input_vlog_ids` and `output_vlog_ids`) was actually added to the manifest. The `FlushV2`, `CompactionV2`, `NewVlogFile`, and `DeleteVlogFile` variants were designed but not implemented. Recovery currently re-opens SST footers to rebuild the `sst_to_vlogs` index on startup instead of reading it directly from the manifest.
+
 Recovery walks the manifest as before; for every `Flush` / `FlushV2` /
 `Compaction` / `CompactionV2` record it calls `register_sst_references(sst_id,
 vlog_ids)` to populate **both** `sst_to_vlogs` and `vlog_to_ssts` indexes.
@@ -1526,6 +1542,8 @@ entries for GC CAS rewrites. Recovery proceeds in three phases:
 1. **WAL replay**: rebuilds the memtable with `(value, KvKind)` entries. User writes replay as `KvKind::Inline` full values; GC CAS rewrites replay as `KvKind::ValuePointer` entries.
 2. **Manifest replay**: for every `Flush` / `FlushV2` / `Compaction` / `CompactionV2` record, call `register_sst_references(sst_id, vlog_ids)` to populate both `sst_to_vlogs` and `vlog_to_ssts` indexes.
 3. **Orphan vLog cleanup**: scan the data directory for `.vlog` files. Any file not referenced by any SST's vLog reference list **and** not referenced by the WAL-recovered memtable is orphaned and deleted. `NewVlogFile` alone is not enough to keep a file: a crash after file allocation but before `FlushV2`/GC CAS would otherwise leak a fully unreferenced file.
+
+> **Implementation Note:** The actual implementation uses a simpler check during recovery: only vLog files referenced by *active* SSTs (those present in `state.sstables`) are registered via `register_sst_references`. Orphaned files are left on disk (no automatic deletion on startup). Pending deletions are memory-only and lost on restart, which can leak disk space; see [Known Limitations](#known-limitations).
 
 **Flush-time crash safety**: vLog writes are fsynced (batch, once per flush) before the SST is written to disk. If a crash occurs:
 - **Before SST is committed to manifest**: the flush is incomplete — the memtable (rebuilt from WAL) still contains the full values. The partially written vLog and SST files are orphaned.
@@ -1699,6 +1717,58 @@ Rolling back after enabling key-value separation requires care:
    inline values). This is not implemented by default but is straightforward to
    add as an offline tool.
 
+## Implementation Notes
+
+This section documents intentional deviations between the original RFC design and the merged implementation (PR #79).
+
+### Deferred Deletion Simplification
+
+**Original design:** `PendingDeletion` carried an `obsolete_at_ts: u64` timestamp and `reclaim_pending_deletions` accepted a `watermark_ts: u64` parameter. Files were only deleted after the MVCC watermark advanced past the retirement timestamp.
+
+**Actual implementation:** `PendingDeletion` stores only `file_id: u32`. `reclaim_pending_deletions()` checks two conditions: (1) no open reader handles reference the file, and (2) no SSTs reference it (`get_ssts_referencing().is_empty()`). The MVCC watermark check is omitted because the starter crate does not use MVCC timestamps for snapshot isolation in the vLog reclamation path.
+
+### Background GC Thread Pool
+
+**Original design:** `CompactionController` owned a `rayon::ThreadPool` and spawned GC tasks asynchronously after compaction.
+
+**Actual implementation:** `post_compaction_gc` runs GC synchronously on the compaction thread. There is no background thread pool. This simplifies correctness but means heavy GC can delay compaction completion.
+
+### Manifest Records
+
+**Original design:** New manifest variants `FlushV2`, `CompactionV2`, `NewVlogFile`, and `DeleteVlogFile` were specified to persist SST→vLog references and vLog file lifecycle.
+
+**Actual implementation:** Only a `GcCompaction(old_file_id, new_file_id)` manifest record was added. SST→vLog references are rebuilt from existing SST footers during recovery (via `register_sst_references`). vLog file IDs are discovered by scanning the `.vlog` directory on startup rather than tracking them in the manifest.
+
+### ValueLogStats / Metrics API
+
+**Original design:** A `ValueLogStats` struct and `vlog_stats()` public API were specified for runtime observability.
+
+**Actual implementation:** No metrics API is exposed. Internal GC results (`GcResult`) are returned from `compact_file` but are not accumulated into global counters.
+
+### Reader Refcounting
+
+**Original design:** `get_reader` returned a `ValueLogReaderHandle` RAII guard that incremented/decremented a per-file `AtomicUsize` refcount, preventing deletion while iterators held open handles.
+
+**Actual implementation:** `get_reader` returns a plain `ValueLogReader`. The reader cache (`moka::sync::Cache`) provides implicit liveness, and `reclaim_pending_deletions` checks the cache for active entries before unlinking. Explicit per-file refcounts are not implemented.
+
+### WAL Format
+
+**Original design:** WAL stored `(key, value, KvKind)` triples for every write.
+
+**Actual implementation:** WAL stores raw bytes with a 1-byte `KvKind` prefix. `KvKind` is inferred from the prefix byte during WAL replay. GC CAS rewrites store `KvKind::ValuePointer` prefixed bytes. This is functionally equivalent but serializes as a single byte slice rather than a structured tuple.
+
+## Known Limitations
+
+1. **Pending deletions lost on restart** — `schedule_deletion` only records pending files in memory. A restart between scheduling and reclamation loses the deletion intent, potentially leaking orphaned vLog files on disk.
+
+2. **No automatic reclamation after post-compaction GC** — `post_compaction_gc` schedules old files for deletion but does not call `reclaim_pending_deletions()` afterwards. Files remain on disk until `trigger_gc()` is invoked manually.
+
+3. **GC CAS is not batched** — Each live entry is rewritten as an independent `compare_and_set_with_kind` call. This is correct but adds per-call lock overhead. A future optimization can batch CAS calls under a single lock acquisition.
+
+4. **Synchronous GC blocks compaction** — `post_compaction_gc` runs on the compaction thread. Under heavy GC load (many files above threshold), compaction latency increases.
+
+5. **No vLog file header** — `.vlog` files do not include the `VlogFileHeader` (magic + version) specified in the file format section. Files are identified by extension only.
+
 ## Future Work
 
 ### Exploratory (no near-term plan)
@@ -1722,10 +1792,12 @@ Rolling back after enabling key-value separation requires care:
 ### Concrete (near-term)
 
 6. **Batch GC CAS**: Batch `compare_and_set_with_kind` calls for live entries during GC to reduce atomic operation overhead and contention with user writes
-6. **Batch GC CAS**: Batch `compare_and_set_with_kind` calls for live entries during GC to reduce atomic operation overhead and contention with user writes
 7. **Lock-free vLog writer**: Replace the `active_writer` Mutex with a lock-free append buffer, dedicated writer thread with request channel, or multiple active vLog files to improve write concurrency
 8. **Pre-created vLog rotation**: Prepare the next vLog file in the background so rotation doesn't block the writer with synchronous file creation
 9. **Remove VALUE_POINTER_TAG**: If the 1-byte tag overhead becomes a bottleneck, remove it and rely solely on KvKind for classification (encoded size drops from 17 to 16 bytes)
+10. **Persist pending deletions**: Write the pending-deletion queue to disk (e.g., a `.vlog_pending_deletions` file) so orphaned files are not leaked across restarts
+11. **Reclaim after post-compaction GC**: Call `reclaim_pending_deletions()` automatically after `post_compaction_gc` completes so workloads relying on automatic compaction-triggered GC do not leave eligible files on disk indefinitely
+12. **ValueLogStats API**: Expose `vlog_stats()` for runtime observability of vLog space usage, GC progress, and read latency
 
 ## References
 
