@@ -129,12 +129,12 @@ impl SsTableBuilder {
     /// Used during compaction to preserve existing ValuePointers.
     pub fn add_raw(&mut self, key: KeySlice, raw_value: &[u8]) -> Result<()> {
         // Track vLog file IDs referenced by ValuePointer entries
-        if raw_value.len() > 1 && raw_value[0] == KvKind::ValuePointer as u8 {
-            if let Some(ptr) = ValuePointer::try_decode(&raw_value[1..]) {
-                if !self.referenced_vlog_ids.contains(&ptr.file_id) {
-                    self.referenced_vlog_ids.push(ptr.file_id);
-                }
-            }
+        if raw_value.len() > 1
+            && raw_value[0] == KvKind::ValuePointer as u8
+            && let Some(ptr) = ValuePointer::try_decode(&raw_value[1..])
+            && !self.referenced_vlog_ids.contains(&ptr.file_id)
+        {
+            self.referenced_vlog_ids.push(ptr.file_id);
         }
         self.add_inner(key, raw_value)
     }

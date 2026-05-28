@@ -1,7 +1,9 @@
 pub mod builder;
+pub mod gc;
 pub mod reader;
 
 pub use builder::ValueLogBuilder;
+pub use gc::GarbageCollector;
 pub use reader::{ValueLogReader, VlogEntryMeta};
 
 use std::collections::{HashMap, HashSet};
@@ -331,6 +333,11 @@ impl VlogReferences {
     }
 }
 
+/// Entry pending deletion: a vLog file scheduled for deferred removal.
+pub struct PendingDeletion {
+    pub file_id: u32,
+}
+
 /// Manager for the value log file set.
 ///
 /// Owns the active writer (for flushing), a cache of open readers, and
@@ -346,8 +353,11 @@ pub struct ValueLog {
     readers: Cache<u32, Arc<ValueLogReader>>,
     /// Tracks which SSTs reference which vLog files.
     pub references: VlogReferences,
-    /// Pending vLog file ids waiting for GC reclaim (Phase 3).
-    pending_deletions: Mutex<Vec<u32>>,
+    /// Pending vLog files waiting for GC reclaim.
+    pending_deletions: Mutex<Vec<PendingDeletion>>,
+    /// Per-file GC locks to prevent concurrent GC on the same file.
+    /// Shared across all GarbageCollector instances.
+    gc_locks: Mutex<HashSet<u32>>,
 }
 
 impl ValueLog {
@@ -369,12 +379,11 @@ impl ValueLog {
                 continue;
             }
             let name = entry.file_name();
-            if let Some(name) = name.to_str() {
-                if let Some(stem) = name.strip_suffix(".vlog") {
-                    if let Ok(id) = stem.parse::<u32>() {
-                        max_id = Some(max_id.map_or(id, |m| m.max(id)));
-                    }
-                }
+            if let Some(name) = name.to_str()
+                && let Some(stem) = name.strip_suffix(".vlog")
+                && let Ok(id) = stem.parse::<u32>()
+            {
+                max_id = Some(max_id.map_or(id, |m| m.max(id)));
             }
         }
 
@@ -387,6 +396,7 @@ impl ValueLog {
             readers,
             references: VlogReferences::new(),
             pending_deletions: Mutex::new(Vec::new()),
+            gc_locks: Mutex::new(HashSet::new()),
         })
     }
 
@@ -426,6 +436,14 @@ impl ValueLog {
         Ok(Bytes::from(entry.value))
     }
 
+    /// Read a full vLog entry (key, value) at the given pointer.
+    /// Used by GC to re-read entries for rewriting.
+    pub fn read_entry(&self, ptr: &ValuePointer) -> Result<(Vec<u8>, Vec<u8>)> {
+        let reader = self.get_reader(ptr.file_id)?;
+        let entry = reader.read_entry(ptr.offset, ptr.size)?;
+        Ok((entry.key, entry.value))
+    }
+
     /// Register that `sst_id` references the given vLog file ids.
     pub fn register_sst_references(&self, sst_id: usize, vlog_ids: &[u32]) {
         self.references.register(sst_id, vlog_ids);
@@ -449,10 +467,10 @@ impl ValueLog {
     /// Remove a vLog file from disk and the reader cache.
     pub fn remove_file(&self, file_id: u32) -> Result<()> {
         let path = self.path_of_file(file_id);
-        if let Err(e) = std::fs::remove_file(&path) {
-            if e.kind() != std::io::ErrorKind::NotFound {
-                return Err(e.into());
-            }
+        if let Err(e) = std::fs::remove_file(&path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(e.into());
         }
         self.readers.invalidate(&file_id);
         Ok(())
@@ -462,42 +480,56 @@ impl ValueLog {
     // Phase 3 placeholders (GC)
     // -----------------------------------------------------------------
 
+    /// Try to acquire the GC lock for a file. Returns false if already locked.
+    /// Shared across all GarbageCollector instances to prevent concurrent GC
+    /// on the same file.
+    pub fn try_acquire_gc_lock(&self, file_id: u32) -> bool {
+        self.gc_locks.lock().insert(file_id)
+    }
+
+    /// Release the GC lock for a file.
+    pub fn release_gc_lock(&self, file_id: u32) {
+        self.gc_locks.lock().remove(&file_id);
+    }
+
     /// Schedule a vLog file for later deletion once all SST references
     /// are dropped. Called during GC.
     pub fn schedule_deletion(&self, file_id: u32) {
-        self.pending_deletions.lock().push(file_id);
+        self.pending_deletions
+            .lock()
+            .push(PendingDeletion { file_id });
     }
 
     /// Attempt to delete any pending vLog files that are no longer
     /// referenced by any SST.
     pub fn reclaim_pending_deletions(&self) -> Result<usize> {
-        let mut to_process: Vec<u32> = {
+        let mut to_process: Vec<PendingDeletion> = {
             let mut pending = self.pending_deletions.lock();
             std::mem::take(&mut *pending)
         };
-        to_process.sort_unstable();
-        to_process.dedup();
+        to_process.sort_unstable_by_key(|p| p.file_id);
+        to_process.dedup_by_key(|p| p.file_id);
 
         let mut remaining = Vec::new();
         let mut deleted = 0usize;
         let mut first_err = None;
-        for file_id in to_process {
+        for entry in to_process {
             if self
-                .get_ssts_referencing(file_id)
+                .get_ssts_referencing(entry.file_id)
                 .unwrap_or_default()
                 .is_empty()
             {
-                match self.remove_file(file_id) {
+                match self.remove_file(entry.file_id) {
                     Ok(()) => deleted += 1,
                     Err(e) => {
                         if first_err.is_none() {
                             first_err = Some(e);
                         }
-                        remaining.push(file_id);
+                        remaining.push(entry);
                     }
                 }
             } else {
-                remaining.push(file_id);
+                remaining.push(entry);
             }
         }
         {

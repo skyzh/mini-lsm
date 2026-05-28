@@ -45,6 +45,8 @@ pub enum ManifestRecord {
     NewVlogFile(u32),
     /// A vLog file was deleted
     DeleteVlogFile(u32),
+    /// GC rewrote entries: old_vlog_id, new_vlog_id, keys_rewritten
+    GcCompaction(u32, u32, usize),
 }
 
 // TODO: base on size or interval take snapshot of manifest in MANIFEST_SNAPSHOT file. after that, write to a new manifest file,

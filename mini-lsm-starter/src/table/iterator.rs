@@ -152,10 +152,10 @@ impl StorageIterator for SsTableIterator {
             Some(KvKind::ValuePointer) => {
                 // Check cache first (safe: only accessed from this iterator)
                 let cache = unsafe { &*self.deref_cache.get() };
-                if let Some((cached_key, cached_val)) = cache {
-                    if cached_key.as_key_slice().raw_ref() == self.blk_iter.key().raw_ref() {
-                        return cached_val;
-                    }
+                if let Some((cached_key, cached_val)) = cache
+                    && cached_key.as_key_slice().raw_ref() == self.blk_iter.key().raw_ref()
+                {
+                    return cached_val;
                 }
                 // Cache miss: dereference from vLog
                 let vlog = self
