@@ -219,6 +219,47 @@ fn test_task2_storage_scan() {
 }
 
 #[test]
+fn test_task2_storage_scan_end_bound_at_seek_position() {
+    let dir = tempdir().unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
+    let sst1 = generate_sst(
+        10,
+        dir.path().join("10.sst"),
+        vec![
+            (Bytes::from_static(b"key00"), Bytes::from_static(b"233")),
+            (Bytes::from_static(b"key11"), Bytes::from_static(b"2333")),
+        ],
+        Some(storage.block_cache.clone()),
+    );
+    {
+        let mut state = storage.state.write();
+        let mut snapshot = state.as_ref().clone();
+        snapshot.l0_sstables.push(sst1.sst_id());
+        snapshot.sstables.insert(sst1.sst_id(), sst1.into());
+        *state = snapshot.into();
+    }
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"key01"), Bound::Included(b"key01"))
+            .unwrap(),
+        vec![],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"key01"), Bound::Excluded(b"key11"))
+            .unwrap(),
+        vec![],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"key01"), Bound::Included(b"key11"))
+            .unwrap(),
+        vec![(Bytes::from("key11"), Bytes::from("2333"))],
+    );
+}
+
+#[test]
 fn test_task3_storage_get() {
     let dir = tempdir().unwrap();
     let storage =
