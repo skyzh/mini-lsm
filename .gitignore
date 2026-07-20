@@ -1,5 +1,7 @@
 /target
 .vscode/
+.idea/
 sync-tmp/
 mini-lsm.db/
 lsm.db/
+.DS_Store
