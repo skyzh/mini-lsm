@@ -166,16 +166,16 @@ impl LsmStorageInner {
                 entries_in_builder = 0;
             }
         }
-        if let Some(builder) = builder {
-            if entries_in_builder > 0 {
-                let sst_id = self.next_sst_id(); // lock dropped here
-                let sst = Arc::new(builder.build(
-                    sst_id,
-                    Some(self.block_cache.clone()),
-                    self.path_of_sst(sst_id),
-                )?);
-                new_sst.push(sst);
-            }
+        if let Some(builder) = builder
+            && entries_in_builder > 0
+        {
+            let sst_id = self.next_sst_id(); // lock dropped here
+            let sst = Arc::new(builder.build(
+                sst_id,
+                Some(self.block_cache.clone()),
+                self.path_of_sst(sst_id),
+            )?);
+            new_sst.push(sst);
         }
         Ok(new_sst)
     }
