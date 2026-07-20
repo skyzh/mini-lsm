@@ -74,8 +74,7 @@ impl Transaction {
             item: (Bytes::new(), Bytes::new()),
         }
         .build();
-        let entry = local_iter.with_iter_mut(|iter| TxnLocalIterator::entry_to_item(iter.next()));
-        local_iter.with_mut(|x| *x.item = entry);
+        local_iter.next()?;
 
         TxnIterator::create(
             self.clone(),
