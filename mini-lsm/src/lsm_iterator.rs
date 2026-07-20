@@ -43,8 +43,20 @@ impl LsmIterator {
             inner: iter,
             end_bound,
         };
+        iter.check_end_bound();
         iter.move_to_non_delete()?;
         Ok(iter)
+    }
+
+    fn check_end_bound(&mut self) {
+        if !self.is_valid {
+            return;
+        }
+        match self.end_bound.as_ref() {
+            Bound::Unbounded => {}
+            Bound::Included(key) => self.is_valid = self.inner.key().raw_ref() <= key.as_ref(),
+            Bound::Excluded(key) => self.is_valid = self.inner.key().raw_ref() < key.as_ref(),
+        }
     }
 
     fn next_inner(&mut self) -> Result<()> {
@@ -53,11 +65,7 @@ impl LsmIterator {
             self.is_valid = false;
             return Ok(());
         }
-        match self.end_bound.as_ref() {
-            Bound::Unbounded => {}
-            Bound::Included(key) => self.is_valid = self.inner.key().raw_ref() <= key.as_ref(),
-            Bound::Excluded(key) => self.is_valid = self.inner.key().raw_ref() < key.as_ref(),
-        }
+        self.check_end_bound();
         Ok(())
     }
 
