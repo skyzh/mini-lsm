@@ -2,6 +2,7 @@
 name = "mini-lsm-starter"
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.97.1"
 publish = false
 
 [dependencies]
@@ -20,7 +21,7 @@ serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 farmhash = "1"
 nom = "8"
-rustyline = "17"
+rustyline = "18"
 
 [dev-dependencies]
 tempfile = "3"
