@@ -9,10 +9,10 @@
 In this chapter, you will:
 
 * Implement SST block encoding.
-* Implement SST block decoding and block iterator.
+* Implement SST block decoding and a block iterator.
 
 
-To copy the test cases into the starter code and run them,
+To copy the test cases into the starter code and run them:
 
 ```
 cargo x copy-test --week 1 --day 3
@@ -21,7 +21,7 @@ cargo x scheck
 
 ## Task 1: Block Builder
 
-You have already implemented all in-memory structures for an LSM storage engine in the previous two chapters. Now it's time to build the on-disk structures. The basic unit of the on-disk structure is blocks. Blocks are usually of 4-KB size (the size may vary depending on the storage medium), which is equivalent to the page size in the operating system and the page size on an SSD. A block stores ordered key-value pairs. An SST is composed of multiple blocks. When the number of memtables exceed the system limit, it will flush the memtable as an SST. In this chapter, you will implement the encoding and decoding of a block.
+In the previous two chapters, you implemented the in-memory structures for an LSM storage engine. Now it is time to build the on-disk structures. Their basic unit is the block, which stores sorted key-value pairs. Blocks are often 4 KiB—the typical size of an operating-system page and an SSD page—although the ideal size depends on the storage medium. An SST consists of multiple blocks. When the number of memtables exceeds the configured limit, the engine flushes a memtable to an SST. In this chapter, you will implement block encoding and decoding.
 
 In this task, you will need to modify:
 
@@ -50,12 +50,11 @@ Each entry is a key-value pair.
 -----------------------------------------------------------------------
 ```
 
-Key length and value length are both 2 bytes, which means their maximum lengths are 65535. (Internally stored as `u16`)
+The key and value lengths are each encoded in 2 bytes as `u16` values, so their maximum encoded length is 65,535 bytes.
 
-We assume that keys will never be empty, and values can be empty. An empty value means that the corresponding key has been deleted in the view of other parts of the system. For the `BlockBuilder` and `BlockIterator`, we just treat the empty value as-is.
+We assume that keys are never empty, but values may be. Other parts of the system interpret an empty value as a deletion marker, or tombstone. `BlockBuilder` and `BlockIterator` simply preserve the empty value.
 
-At the end of each block, we will store the offsets of each entry and the total number of entries. For example, if
-the first entry is at 0th position of the block, and the second entry is at 12th position of the block.
+At the end of each block, we store the offset of every entry followed by the total number of entries. For example, suppose the first entry starts at byte 0 and the second starts at byte 12:
 
 ```
 -------------------------------
@@ -65,13 +64,13 @@ the first entry is at 0th position of the block, and the second entry is at 12th
 -------------------------------
 ```
 
-The footer of the block will be as above. Each of the number is stored as `u16`.
+The block footer then has the layout shown above. Every number in the footer is stored as a `u16`.
 
-The block has a size limit, which is `target_size`. Unless the first key-value pair exceeds the target block size, you should ensure that the encoded block size is always less than or equal to `target_size`. (In the provided code, the `target_size` here is essentially the `block_size`)
+Each block has a size limit, `target_size`, which corresponds to `block_size` in the provided code. Unless the first key-value pair alone exceeds this limit, ensure that the encoded block is no larger than `target_size`.
 
-The `BlockBuilder` will produce the data part and unencoded entry offsets when `build` is called. The information will be stored in the `Block` structure. As key-value entries are stored in raw format and offsets are stored in a separate vector, this reduces unnecessary memory allocations and processing overhead when decoding data —— what you need to do is to simply copy the raw block data to the `data` vector and decode the entry offsets every 2 bytes, *instead of* creating something like `Vec<(Vec<u8>, Vec<u8>)>` to store all the key-value pairs in one block in memory. This compact memory layout is very efficient.
+When `BlockBuilder::build` is called, it produces the raw data section and the unencoded entry offsets, which are stored in a `Block`. Keeping raw key-value data contiguous and storing offsets separately avoids unnecessary allocations and decoding work. Copy the raw block data into the `data` vector and decode one entry offset every 2 bytes, rather than materializing all entries as a structure such as `Vec<(Vec<u8>, Vec<u8>)>`. This compact layout is efficient.
 
-In `Block::encode` and `Block::decode`, you will need to encode/decode the block in the format as indicated above.
+Implement `Block::encode` and `Block::decode` according to the format above.
 
 ## Task 2: Block Iterator
 
@@ -81,37 +80,37 @@ In this task, you will need to modify:
 src/block/iterator.rs
 ```
 
-Now that we have an encoded block, we will need to implement the `BlockIterator` interface, so that the user can lookup/scan keys in the block.
+Now that you have an encoded block, implement `BlockIterator` so that callers can look up and scan keys within it.
 
-`BlockIterator` can be created with an `Arc<Block>`. If `create_and_seek_to_first` is called, it will be positioned at the first key in the block. If `create_and_seek_to_key` is called, the iterator will be positioned at the first key that is `>=` the provided key. For example, if `1, 3, 5` is in a block.
+Create a `BlockIterator` from an `Arc<Block>`. `create_and_seek_to_first` positions it at the first key in the block. `create_and_seek_to_key` positions it at the first key greater than or equal to the requested key. For example, suppose a block contains `1`, `3`, and `5`:
 
 ```rust,no_run
 let mut iter = BlockIterator::create_and_seek_to_key(block, b"2");
 assert_eq!(iter.key(), b"3");
 ```
 
-The above `seek 2` will make the iterator to be positioned at the next available key of `2`, which in this case is `3`.
+Seeking to `2` positions the iterator at the next available key, which is `3`.
 
-The iterator should copy `key` from the block and store them inside the iterator (we will have key compression in the future and you will have to do so). For the value, you should only store the begin/end offset in the iterator without copying them.
+The iterator should copy the current key from the block and store it internally; this will be necessary when you add key compression. For the value, store only its start and end offsets instead of copying its bytes.
 
-When `next` is called, the iterator will move to the next position. If we reach the end of the block, we can set `key` to empty and return `false` from `is_valid`, so that the caller can switch to another block if possible.
+When `next` is called, advance the iterator by one entry. At the end of the block, set `key` to empty so that `is_valid` returns `false`; the caller can then move to another block if one is available.
 
 ## Test Your Understanding
 
 * What is the time complexity of seeking a key in the block?
 * Where does the cursor stop when you seek a non-existent key in your implementation?
-* So `Block` is simply a vector of raw data and a vector of offsets. Can we change them to `Byte` and `Arc<[u16]>`, and change all the iterator interfaces to return `Byte` instead of `&[u8]`? (Assume that we use `Byte::slice` to return a slice of the block without copying.) What are the pros/cons?
-* What is the endian of the numbers written into the blocks in your implementation?
-* Is your implementation prune to a maliciously-built block? Will there be invalid memory access, or OOMs, if a user deliberately construct an invalid block?
+* `Block` is simply a vector of raw data and a vector of offsets. Could we change them to `Bytes` and `Arc<[u16]>`, then change the iterator interfaces to return `Bytes` instead of `&[u8]`? Assume that we use `Bytes::slice` to return a slice without copying. What are the advantages and disadvantages?
+* What endianness does your implementation use for numbers written to blocks?
+* Is your implementation vulnerable to a maliciously constructed block? Could invalid input cause an out-of-bounds access or an out-of-memory condition?
 * Can a block contain duplicated keys?
 * What happens if the user adds a key larger than the target block size?
-* Consider the case that the LSM engine is built on object store services (S3). How would you optimize/change the block format and parameters to make it suitable for such services?
+* Suppose the LSM engine uses an object-storage service such as S3. How would you adapt the block format and its parameters to suit that environment?
 * Do you love bubble tea? Why or why not?
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 
-* **Backward Iterators.** You may implement `prev` for your `BlockIterator` so that you will be able to iterate the key-value pairs reversely. You may also have a variant of backward merge iterator and backward SST iterator (in the next chapter) so that your storage engine can do a reverse scan.
+* **Backward Iterators.** Implement `prev` for `BlockIterator` to iterate over key-value pairs in reverse. You can also implement backward variants of the merge iterator and, in the next chapter, the SST iterator so that the storage engine can perform reverse scans.
 
 {{#include copyright.md}}

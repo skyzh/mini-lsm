@@ -4,19 +4,19 @@
 
 # Environment Setup
 
-The starter code and reference solution is available at [https://github.com/skyzh/mini-lsm](https://github.com/skyzh/mini-lsm).
+The starter code and reference solution are available in the [Mini-LSM repository](https://github.com/skyzh/mini-lsm).
 
 ## Install Rust
 
 See [https://rustup.rs](https://rustup.rs) for more information.
 
-## Clone the repo
+## Clone the Repository
 
 ```
 git clone https://github.com/skyzh/mini-lsm
 ```
 
-## Starter code
+## Open the Starter Code
 
 ```
 cd mini-lsm/mini-lsm-starter
@@ -25,19 +25,19 @@ code .
 
 ## Install Tools
 
-You will need the latest stable Rust to compile this project. The minimum requirement is `1.74`.
+The repository pins the required Rust toolchain in `rust-toolchain.toml`. If you use `rustup`, Cargo will select and install that toolchain automatically.
 
 ```
 cargo x install-tools
 ```
 
-## Run tests
+## Run the Tests
 
 ```
 cargo x copy-test --week 1 --day 1
 cargo x scheck
 ```
 
-Now, you can go ahead and start [Week 1: Mini-LSM](./week1-overview.md).
+You are now ready to begin [Week 1: Mini-LSM](./week1-overview.md).
 
 {{#include copyright.md}}

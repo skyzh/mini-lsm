@@ -9,10 +9,10 @@
 In this chapter, you will:
 
 * Implement memtables based on skiplists.
-* Implement freezing memtable logic.
-* Implement LSM read path `get` for memtables.
+* Implement the logic for freezing memtables.
+* Implement the memtable portion of the LSM `get` read path.
 
-To copy the test cases into the starter code and run them,
+To copy the test cases into the starter code and run them:
 
 ```
 cargo x copy-test --week 1 --day 1
@@ -27,15 +27,15 @@ In this task, you will need to modify:
 src/mem_table.rs
 ```
 
-Firstly, let us implement the in-memory structure of an LSM storage engine -- the memtable. We choose [crossbeam's skiplist implementation](https://docs.rs/crossbeam-skiplist/latest/crossbeam_skiplist/) as the data structure of the memtable as it supports lock-free concurrent read and write. We will not cover in-depth how a skiplist works, and in a nutshell, it is an ordered key-value map that easily allows concurrent read and write.
+First, let us implement the in-memory structure of an LSM storage engine: the memtable. We use [crossbeam-skiplist](https://docs.rs/crossbeam-skiplist/latest/crossbeam_skiplist/) because it supports lock-free concurrent reads and writes. We will not explore skiplists in depth. For this course, you can think of a skiplist as an ordered key-value map that supports concurrent access efficiently.
 
-crossbeam-skiplist provides similar interfaces to the Rust std's `BTreeMap`: insert, get, and iter. The only difference is that the modification interfaces (i.e., `insert`) only require an immutable reference to the skiplist, instead of a mutable one. Therefore, in your implementation, you should not take any mutex when implementing the memtable structure.
+`crossbeam-skiplist` provides methods similar to those on the Rust standard library's `BTreeMap`, including `insert`, `get`, and `iter`. The important difference is that mutating methods such as `insert` require only an immutable reference to the skiplist, rather than a mutable one. Your memtable implementation therefore does not need an additional mutex.
 
-You will also notice that the `MemTable` structure does not have a `delete` interface. In the mini-lsm implementation, deletion is represented as a key corresponding to an empty value.
+You will also notice that `MemTable` does not have a `delete` method. In Mini-LSM, a key associated with an empty value represents a deletion.
 
-In this task, you will need to implement `MemTable::get` and `MemTable::put` to enable modifications of the memtable. Note that `put` should always overwrite a key if it already exists. You won't have multiple entries of the same key in a single memtable.
+In this task, implement `MemTable::get` and `MemTable::put`. The `put` method should overwrite an existing entry with the same key, so a single memtable never contains multiple entries for one key.
 
-We use the `bytes` crate for storing the data in the memtable. `bytes::Byte` is similar to `Arc<[u8]>`. When you clone the `Bytes`, or get a slice of `Bytes`, the underlying data will not be copied, and therefore cloning it is cheap. Instead, it simply creates a new reference to the storage area and the storage area will be freed when there are no reference to that area.
+We use the `bytes` crate to store data in the memtable. `bytes::Bytes` is similar to `Arc<[u8]>`: cloning or slicing a `Bytes` value does not copy its underlying data, so both operations are inexpensive. Instead, each operation creates another reference to the same storage, which is freed when no references remain.
 
 ## Task 2: A Single Memtable in the Engine
 
@@ -45,17 +45,17 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 ```
 
-Now, we will add our first data structure, the memtable, to the LSM state. In `LsmStorageState::create`, you will find that when a LSM structure is created, we will initialize a memtable of id 0. This is the **mutable memtable** in the initial state. At any point of the time, the engine will have only one single mutable memtable. A memtable usually has a size limit (i.e., 256MB), and it will be frozen to an immutable memtable when it reaches the size limit.
+Now, add the memtable to the LSM state. `LsmStorageState::create` initializes memtable 0, which is the initial **mutable memtable**. At any point in time, the engine has exactly one mutable memtable. A memtable usually has a size limit—for example, 256 MB—and is frozen into an immutable memtable when it reaches that limit.
 
-Taking a look at `lsm_storage.rs`, you will find there are two structures that represents a storage engine: `MiniLSM` and `LsmStorageInner`. `MiniLSM` is a thin wrapper for `LsmStorageInner`. You will implement most of the functionalities in `LsmStorageInner`, until week 2 compaction.
+In `lsm_storage.rs`, two structs represent the storage engine: `MiniLsm` and `LsmStorageInner`. `MiniLsm` is a thin wrapper around `LsmStorageInner`. Until you begin implementing compaction in Week 2, you will add most functionality to `LsmStorageInner`.
 
-`LsmStorageState` stores the current structure of the LSM storage engine. For now, we will only use the `memtable` field, which stores the current mutable memtable. In this task, you will need to implement `LsmStorageInner::get`, `LsmStorageInner::put`, and `LsmStorageInner::delete`. All of them should directly dispatch the request to the current memtable.
+`LsmStorageState` describes the current structure of the LSM storage engine. For now, you will use only its `memtable` field, which stores the current mutable memtable. Implement `LsmStorageInner::get`, `LsmStorageInner::put`, and `LsmStorageInner::delete`, dispatching each request directly to that memtable.
 
 ![one memtable LSM](./lsm-tutorial/week1-01-single.svg)
 
-Your `delete` implementation should simply put an empty slice for that key, and we call it a *delete tombstone*. Your `get` implementation should handle this case correspondingly.
+Your `delete` implementation should store an empty slice for the key. This entry is called a *deletion tombstone*. Your `get` implementation should recognize the tombstone and report that the key does not exist.
 
-To access the memtable, you will need to take the `state` lock. As our memtable implementation only requires an immutable reference for `put`, you ONLY need to take the read lock on `state` in order to modify the memtable. This allows concurrent access to the memtable from multiple threads.
+To access the memtable, acquire the `state` lock. Because `MemTable::put` requires only an immutable reference, you need only a read lock on `state`, even when writing to the memtable. This design allows multiple threads to access the memtable concurrently.
 
 ## Task 3: Write Path - Freezing a Memtable
 
@@ -68,98 +68,109 @@ src/mem_table.rs
 
 ![one memtable LSM](./lsm-tutorial/week1-01-frozen.svg)
 
-A memtable cannot continuously grow in size, and we will need to freeze them (and later flush to the disk) when it reaches the size limit. You may find the memtable size limit, which is **equal to the SST size limit** (not `num_memtables_limit`), in the `LsmStorageOptions`. This is not a hard limit and you should freeze the memtable at best effort.
+A memtable cannot grow indefinitely, so you must freeze it—and later flush it to disk—when it reaches its size limit. `LsmStorageOptions::target_sst_size` serves as both the target SST size and the approximate memtable capacity. Do not confuse it with `num_memtable_limit`. This capacity is a soft limit, so freezing is a best-effort operation.
 
-In this task, you will need to compute the approximate memtable size when put/delete a key in the memtable. This can be computed by simply adding the total number of bytes of keys and values when `put` is called. If a key is put twice, though the skiplist only contains the latest value, you may count it twice in the approximate memtable size. Once a memtable reaches the limit, you should call `force_freeze_memtable` to freeze the memtable and create a new one.
+In this task, track the approximate memtable size whenever you put or delete a key. You can estimate it by adding the key and value lengths on every call to `put`. If a key is written twice, you may count both writes even though the skiplist retains only the latest value. Once the memtable reaches the limit, call `force_freeze_memtable` to freeze it and create a new mutable memtable.
 
-The `state: Arc<RwLock<Arc<LsmStorageState>>>` field in `LsmStorageInner` is structured this way to manage the LSM tree's overall state concurrently and safely, primarily using a Copy-on-Write (CoW) strategy:
+The `state: Arc<RwLock<Arc<LsmStorageState>>>` field in `LsmStorageInner` uses a copy-on-write (CoW) strategy to manage the LSM tree's structural state safely and concurrently:
 
-1. Inner `Arc<LsmStorageState>`: This holds an **immutable snapshot** of the actual `LsmStorageState` (which contains memtable lists, SST references, etc.). Cloning this `Arc` is very cheap (just an atomic reference count increment) and gives any reader a consistent, unchanging view of the state for the duration of their operation.
+1. Inner `Arc<LsmStorageState>`: This holds a structurally **immutable snapshot** of `LsmStorageState`, including the memtable lists and SST references. Cloning the `Arc` is inexpensive—it only increments an atomic reference count—and gives a reader a consistent view of the structure for the duration of an operation.
 
-2. `RwLock<Arc<LsmStorageState>>`: This read-write lock protects the *pointer* to the current `Arc<LsmStorageState>` (the active snapshot).
-    * **Readers** acquire a read lock, clone the `Arc<LsmStorageState>` (getting their own reference to the current snapshot), and then quickly release the read lock. They can then work with their snapshot without further locking.
-    * **Writers** (when modifying the state, e.g., freezing a memtable) will:
-        * Create a *new* `LsmStorageState` instance, often by cloning the data from the current snapshot and then applying modifications.
-        * Wrap this new state in a new `Arc<LsmStorageState>`.
-        * Acquire the write lock on the `RwLock`.
-        * Replace the old `Arc<LsmStorageState>` with the new one.
-        * Release the write lock.
+2. `RwLock<Arc<LsmStorageState>>`: This read-write lock protects the pointer to the active snapshot.
+    * **Readers** acquire a read lock, clone the `Arc<LsmStorageState>`, and promptly release the lock. They can then work from their snapshot without holding the global state lock.
+    * **Writers** acquire the write lock, clone the underlying `LsmStorageState`, apply structural changes to the clone, wrap it in a new `Arc`, and replace the active snapshot.
 
-3. Outer `Arc<RwLock<...>>`: This allows the `RwLock` itself (and thus the mechanism for accessing and updating the state) to be shared safely across multiple threads or parts of your application that might need to interact with `LsmStorageInner`.
+3. Outer `Arc<RwLock<...>>`: This lets multiple threads safely share the lock and, through it, access and update the active snapshot.
 
-This CoW approach ensures that readers always see a valid, consistent state snapshot and experience minimal blocking. Writers update the state atomically by swapping out the entire state snapshot, reducing the time critical locks are held and thus improving concurrency.
+This CoW approach gives readers a valid, consistent snapshot with minimal blocking. Writers atomically replace the entire structural snapshot, which keeps critical sections short and improves concurrency.
 
-Because there could be multiple threads getting data into the storage engine, `force_freeze_memtable` might be called concurrently from multiple threads. You will need to think about how to avoid race conditions in this case.
+Because multiple threads can write to the storage engine, they might call `force_freeze_memtable` concurrently. You must prevent races between those calls.
 
-There are multiple places where you may want to modify the LSM state: freeze a mutable memtable, flush memtable to SST, and GC/compaction. During all of these modifications, there could be I/O operations. An intuitive way to structure the locking strategy is to:
+Several operations modify the LSM state: freezing a mutable memtable, flushing a memtable to an SST, and performing garbage collection or compaction. These operations can involve I/O. One intuitive locking strategy is to perform the entire state change under the write lock:
 
 ```rust,no_run
 fn freeze_memtable(&self) {
-    let state = self.state.write();
-    state.immutable_memtable.push(/* something */);
-    state.memtable = MemTable::create();
+    let mut guard = self.state.write();
+    let mut snapshot = guard.as_ref().clone();
+    let old_memtable = std::mem::replace(
+        &mut snapshot.memtable,
+        Arc::new(MemTable::create(self.next_sst_id())),
+    );
+    snapshot.imm_memtables.insert(0, old_memtable);
+    *guard = Arc::new(snapshot);
 }
 ```
 
-...that you modify everything in LSM state's write lock.
-
-This works fine for now. However, consider the case where you want to create a write-ahead log file for every memtables you have created.
+This approach works for now. However, consider creating a write-ahead log file for every memtable:
 
 ```rust,no_run
-fn freeze_memtable(&self) {
-    let state = self.state.write();
-    state.immutable_memtable.push(/* something */);
-    state.memtable = MemTable::create_with_wal()?; // <- could take several milliseconds
+fn freeze_memtable(&self) -> Result<()> {
+    let mut guard = self.state.write();
+    let id = self.next_sst_id();
+    let memtable = Arc::new(MemTable::create_with_wal(
+        id,
+        self.path_of_wal(id),
+    )?); // <- Could take several milliseconds.
+    // Clone and update the structural snapshot here.
+    // ...
+    Ok(())
 }
 ```
 
-Now when we freeze the memtable, no other threads could have access to the LSM state for several milliseconds, which creates a spike of latency.
+While the memtable is being frozen, no other thread can access the LSM state for several milliseconds, creating a latency spike.
 
-To solve this problem, we can put I/O operations outside of the lock region.
+To avoid this problem, perform I/O outside the critical section:
 
 ```rust,no_run
-fn freeze_memtable(&self) {
-    let memtable = MemTable::create_with_wal()?; // <- could take several milliseconds
+fn freeze_memtable(&self) -> Result<()> {
+    let id = self.next_sst_id();
+    let memtable = Arc::new(MemTable::create_with_wal(
+        id,
+        self.path_of_wal(id),
+    )?); // <- Could take several milliseconds.
     {
-        let state = self.state.write();
-        state.immutable_memtable.push(/* something */);
-        state.memtable = memtable;
+        let mut guard = self.state.write();
+        let mut snapshot = guard.as_ref().clone();
+        let old_memtable = std::mem::replace(&mut snapshot.memtable, memtable);
+        snapshot.imm_memtables.insert(0, old_memtable);
+        *guard = Arc::new(snapshot);
     }
+    Ok(())
 }
 ```
 
-Then, we do not have costly operations within the state write lock region. Now, consider the case that the memtable is about to reach the capacity limit and two threads successfully put two keys into the memtable, both of them discovering the memtable reaches capacity limit after putting the two keys. They will both do a size check on the memtable and decide to freeze it. In this case, we might create one empty memtable which is then immediately frozen.
+The state write lock now contains no expensive operations. Next, suppose that a memtable is about to reach its capacity and two threads each add a key. Both threads observe that the memtable has reached its capacity and decide to freeze it. Without additional synchronization, one of them might freeze the newly created empty memtable immediately after the other thread installs it.
 
-To solve the problem, all state modification should be synchronized through the state lock.
+To prevent this race, serialize all state modifications with `state_lock` and recheck the condition after acquiring it:
 
 ```rust,no_run
 fn put(&self, key: &[u8], value: &[u8]) {
-    // put things into the memtable, checks capacity, and drop the read lock on LSM state
+    // Write to the memtable, check its capacity, and release the state read lock.
     if memtable_reaches_capacity_on_put {
         let state_lock = self.state_lock.lock();
-        if /* check again current memtable reaches capacity */ {
+        if /* the current memtable still exceeds its capacity */ {
             self.freeze_memtable(&state_lock)?;
         }
     }
 }
 ```
 
-You will notice this kind of pattern very often in future chapters. For example, for L0 flush,
+You will see this pattern often in later chapters. For example, an L0 flush follows this outline:
 
 ```rust,no_run
 fn force_flush_next_imm_memtable(&self) {
     let state_lock = self.state_lock.lock();
-    // get the oldest memtable and drop the read lock on LSM state
-    // write the contents to the disk
-    // get the write lock on LSM state and update the state
+    // Get the oldest memtable, then release the state read lock.
+    // Write the contents to disk.
+    // Acquire the state write lock and install the updated snapshot.
 }
 ```
 
-This ensures only one thread will be able to modify the LSM state while still allowing concurrent access to the LSM storage.
+This approach ensures that only one thread modifies the LSM state at a time while still allowing concurrent access to the storage engine.
 
-In this task, you will need to modify `put` and `delete` to respect the soft capacity limit on the memtable. When it reaches the limit, call `force_freeze_memtable` to freeze the memtable. Note that we do not have test cases over this concurrent scenario, and you will need to think about all possible race conditions on your own. Also, remember to check lock regions to ensure the critical sections are the minimum required.
+Modify `put` and `delete` to respect the memtable's soft capacity limit. When the memtable reaches that limit, call `force_freeze_memtable`. The test suite does not cover this concurrent scenario, so consider the possible races carefully. Keep each critical section as small as possible.
 
-You can simply assign the next memtable id as `self.next_sst_id()`. Note that the `imm_memtables` stores the memtables from the latest one to the earliest one. That is to say, `imm_memtables.first()` should be the last frozen memtable.
+Assign the next memtable ID with `self.next_sst_id()`. The `imm_memtables` vector stores memtables from newest to oldest, so `imm_memtables.first()` is the most recently frozen memtable.
 
 ## Task 4: Read Path - Get
 
@@ -169,24 +180,24 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 ```
 
-Now that you have multiple memtables, you may modify your read path `get` function to get the latest version of a key. Ensure that you probe the memtables from the latest one to the earliest one.
+Now that you have multiple memtables, update the read-path `get` method to retrieve the latest version of a key. Probe the memtables from newest to oldest.
 
 ## Test Your Understanding
 
 * Why doesn't the memtable provide a `delete` API?
-* Does it make sense for the memtable to store all write operations instead of only the latest version of a key? For example, the user puts a->1, a->2, and a->3 into the same memtable.
-* Is it possible to use other data structures as the memtable in LSM? What are the pros/cons of using the skiplist?
+* Does it make sense for a memtable to store every write instead of only the latest version of a key? For example, suppose a user writes `a -> 1`, `a -> 2`, and `a -> 3` to the same memtable.
+* Could an LSM tree use other data structures for its memtable? What are the advantages and disadvantages of a skiplist?
 * Why do we need a combination of `state` and `state_lock`? Can we only use `state.read()` and `state.write()`?
-* Why does the order to store and to probe the memtables matter? If a key appears in multiple memtables, which version should you return to the user?
-* Is the memory layout of the memtable efficient / does it have good data locality? (Think of how `Byte` is implemented and stored in the skiplist...) What are the possible optimizations to make the memtable more efficient?
-* So we are using `parking_lot` locks in this course. Is its read-write lock a fair lock? What might happen to the readers trying to acquire the lock if there is one writer waiting for existing readers to stop?
-* After freezing the memtable, is it possible that some threads still hold the old LSM state and wrote into these immutable memtables? How does your solution prevent it from happening?
-* There are several places that you might first acquire a read lock on state, then drop it and acquire a write lock (these two operations might be in different functions but they happened sequentially due to one function calls the other). How does it differ from directly upgrading the read lock to a write lock? Is it necessary to upgrade instead of acquiring and dropping and what is the cost of doing the upgrade?
+* Why does the order in which you store and probe memtables matter? If a key appears in multiple memtables, which version should you return?
+* Is the memtable's memory layout efficient? Does it have good data locality? Consider how `Bytes` is implemented and stored in the skiplist. How could you optimize the memtable's layout?
+* This course uses `parking_lot` locks. Is its read-write lock fair? What might happen to readers waiting to acquire the lock when a writer is already waiting for the current readers to release it?
+* After a memtable is frozen, could a thread that still holds an old LSM-state snapshot write to that now-immutable memtable? How does your solution prevent this?
+* In several places, you might acquire a state read lock, release it, and then acquire a write lock. The two operations may occur in different functions that call one another. How does this differ from directly upgrading a read lock to a write lock? Is an upgrade necessary, and what does it cost?
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 
-* **More Memtable Formats.** You may implement other memtable formats. For example, BTree memtable, vector memtable, and ART memtable.
+* **More Memtable Formats.** Implement other memtable formats, such as B-tree, vector, or adaptive radix tree (ART) memtables.
 
 {{#include copyright.md}}

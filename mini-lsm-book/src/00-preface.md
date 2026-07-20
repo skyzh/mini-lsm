@@ -6,65 +6,67 @@
 
 ![Banner](./mini-lsm-logo.png)
 
-This course teaches you how to build a simple LSM-Tree storage engine in Rust.
+This course teaches you how to build a simple LSM-tree storage engine in Rust.
 
-## What is LSM, and Why LSM?
+## What Is an LSM Tree, and Why Use One?
 
-Log-structured merge trees are data structures that maintain key-value pairs. This data structure is widely used in
-distributed database systems like [TiDB](https://www.pingcap.com) and [CockroachDB](https://www.cockroachlabs.com) as
-their underlying storage engine. [RocksDB](http://rocksdb.org), based on [LevelDB](https://github.com/google/leveldb),
-is an implementation of LSM-Tree storage engines. It provides many key-value access functionalities and is
-used in many production systems.
+Log-structured merge trees are data structures for maintaining key-value pairs. They are widely used as the underlying
+storage engines in distributed database systems such as [TiDB](https://www.pingcap.com) and
+[CockroachDB](https://www.cockroachlabs.com). [RocksDB](http://rocksdb.org), which is based on
+[LevelDB](https://github.com/google/leveldb), is an LSM-tree storage engine that provides a rich key-value interface and
+is used in many production systems.
 
-Generally speaking, LSM Tree is an append-friendly data structure. It is more intuitive to compare LSM to other
-key-value data structures like RB-Tree and B-Tree. For RB-Tree and B-Tree, all data operations are in place. That is to
-say, when you want to update the value corresponding to the key, the engine will overwrite its original memory or disk
-space with the new value. But in an LSM Tree, all write operations, i.e., insertions, updates, deletions, are lazily applied to the storage.
-The engine batches these operations into SST (sorted string table) files and writes them to the disk. Once written to the
-disk, the engine will not directly modify them. In a particular background task called compaction, the engine will merge these files to apply the updates and deletions.
+Generally speaking, an LSM tree is an append-friendly data structure. It is easiest to understand by comparing it with
+other key-value data structures, such as red-black trees and B-trees. In those structures, updates happen in place: when
+you update the value associated with a key, the engine overwrites the value in its original memory or disk location. In
+an LSM tree, however, writes—including insertions, updates, and deletions—are applied to persistent storage lazily. The
+engine batches these operations into sorted-string table (SST) files and writes them to disk. Once written, SST files are
+immutable. A background process called compaction merges these files and applies their updates and deletions.
 
 This architectural design makes LSM trees easy to work with.
 
-1. Data are immutable on persistent storage. Concurrency control is more straightforward. Offloading the background tasks (compaction) to remote servers is possible. Storing and serving data directly from cloud-native storage systems like S3 is also feasible.
-2. Changing the compaction algorithm allows the storage engine to balance between read, write, and space amplification. The data structure is versatile, and by adjusting the compaction parameters, we can optimize the LSM structure for different workloads.
+1. Data on persistent storage is immutable, which makes concurrency control more straightforward. Compaction can be offloaded to remote servers, and data can be stored and served directly from cloud-native storage systems such as S3.
+2. Changing the compaction algorithm lets the storage engine balance read, write, and space amplification. By tuning compaction parameters, we can optimize the LSM tree for different workloads.
 
 This course will teach you how to build an LSM-tree-based storage engine in the Rust programming language.
 
 ## Prerequisites
 
-* You should know the basics of the Rust programming language. Reading [the Rust book](https://doc.rust-lang.org/book/) is enough.
-* You should know the basic concepts of key-value storage engines, i.e., why we need a complex design to achieve persistence. If you have no experience with database systems and storage systems before, you can implement Bitcask in [PingCAP Talent Plan](https://github.com/pingcap/talent-plan/tree/master/courses/rust/projects/project-2).
-* Knowing the basics of an LSM tree is not a requirement, but we recommend you read something about it, e.g., the overall idea of LevelDB. Knowing them beforehand would familiarize you with concepts like mutable and immutable mem-tables, SST, compaction, WAL, etc.
+* You should know the basics of the Rust programming language. Reading [The Rust Programming Language](https://doc.rust-lang.org/book/) is sufficient.
+* You should understand the basic concepts behind key-value storage engines, including why persistence requires a more complex design. If you have no prior experience with database or storage systems, consider implementing Bitcask through the [PingCAP Talent Plan](https://github.com/pingcap/talent-plan/tree/master/courses/rust/projects/project-2).
+* You do not need to know how an LSM tree works, but we recommend reading an introduction, such as an overview of LevelDB. This background will familiarize you with concepts such as mutable and immutable memtables, SSTs, compaction, and write-ahead logs (WALs).
 
-## What should you expect from this course
+## What Should You Expect from This Course?
 
-After taking this course, you should deeply understand how an LSM-based storage system works, gain hands-on experience in designing such systems, and apply what you have learned in your study and career. You will understand the design tradeoffs in such storage systems and find optimal ways to design an LSM-based storage system to meet your workload requirements/goals. This very in-depth course covers all the essential implementation details and design choices of modern storage systems (i.e., RocksDB) based on the author's experience in several LSM-like storage systems, and you will be able to directly apply what you have learned in both industry and academia.
+After completing this course, you should have a deep understanding of how an LSM-based storage system works and hands-on experience designing one. You will learn the tradeoffs involved and how to choose a design that meets the requirements of a particular workload. Drawing on the author's experience with several LSM-based systems, the course covers the essential implementation details and design choices found in modern storage systems such as RocksDB. You can apply what you learn in both industry and academia.
 
 ### Structure
 
-The course is an extensive course with several parts (weeks). Each week has seven chapters; you can finish each within 2 to 3 hours. The first six chapters of each part will instruct you to build a working system, and the last chapter of each week will be a *snack time* chapter that implements some easy things over what you have built in the previous six days. Each chapter will have required tasks, *check your understanding* questions, and bonus tasks.
+The course consists of several parts, or weeks. Each week has seven chapters, and you can complete each chapter in two to three hours. The first six chapters of each week guide you through building a working system. The final chapter is a *snack time* chapter in which you implement a few approachable improvements to what you built over the previous six days. Each chapter includes required tasks, *Test Your Understanding* questions, and bonus tasks.
 
 ### Testing
 
-We provide a full test suite and some CLI tools for you to validate if your solution is correct. Note that the test suite is not exhaustive, and your solution might not be 100% correct after passing all test cases. You might need to fix earlier bugs when implementing later parts of the system. We recommend you think thoroughly about your implementation, especially when there are multi-thread operations and race conditions.
+We provide a comprehensive test suite and several command-line tools to help you validate your solution. The test suite is not exhaustive, so passing every test does not guarantee that your solution is completely correct. You might need to fix earlier bugs while implementing later parts of the system. Think carefully about your implementation, especially when it involves multithreaded operations and potential race conditions.
 
 ### Solution
 
-We have a solution that implements all the functionalities as required in the course in the mini-lsm main repo. At the same time, we also have a mini-lsm solution checkpoint repo where each commit corresponds to a chapter in the course. 
+The main Mini-LSM repository contains a reference solution that implements all functionality required by the course. We also maintain a solution-checkpoint repository in which each commit corresponds to a chapter.
 
-Keeping such a checkpoint repo up-to-date with the mini-lsm course is challenging because each bug fix or new feature must go through all commits (or checkpoints). Therefore, this repo might not use the latest starter code or incorporate the latest features from the mini-lsm course.
+Keeping the checkpoint repository synchronized with the Mini-LSM course is challenging because every bug fix or new feature must be applied to every relevant commit. Consequently, this repository might not use the latest starter code or include the course's latest features.
 
-**TL;DR: We do not guarantee the solution checkpoint repo contains a correct solution, passes all tests, or has the correct doc comments.** For a correct implementation and the solution after implementing everything, please look at the solution in the main repo instead. [https://github.com/skyzh/mini-lsm/tree/main/mini-lsm](https://github.com/skyzh/mini-lsm/tree/main/mini-lsm).
+**TL;DR: We do not guarantee that the solution-checkpoint repository contains a correct solution, passes every test, or has accurate documentation comments.** For the complete reference implementation, see the [`mini-lsm` crate in the main repository](https://github.com/skyzh/mini-lsm/tree/main/mini-lsm).
 
-If you are stuck at some part of the course or need help determining where to implement functionality, you can refer to this repo for help. You may compare the diff between commits to know what has been changed. You might need to modify some functions in the mini-lsm course multiple times throughout the chapters, and you can understand what exactly is expected to be implemented for each chapter in this repo.
+If you get stuck or need help determining where to implement functionality, you can consult the checkpoint repository. Compare adjacent commits to see what changed in each chapter. Because you will modify some functions several times during the course, these diffs can clarify exactly what each chapter expects you to implement.
 
 You may access the solution checkpoint repo at [https://github.com/skyzh/mini-lsm-solution-checkpoint](https://github.com/skyzh/mini-lsm-solution-checkpoint).
 
-### Feedbacks
+### Feedback
 
-Your feedback is greatly appreciated. We have rewritten the whole course from scratch in 2024 based on the feedback from the students. Please share your learning experience and help us continuously improve the course. Welcome to the [Discord community](https://skyzh.dev/join/discord) and share your experience.
+Your feedback is greatly appreciated. In 2024, we rewrote the entire course from scratch in response to student feedback. Please share your learning experience and help us continue improving the course in the [Discord community](https://skyzh.dev/join/discord).
 
-The long story of why we rewrote it: The course was originally planned as a general guidance that students start from an empty directory and implement whatever they want based on the specifications we had. We had minimal tests that checked if the behavior was correct. However, the original course was too open-ended, which caused huge obstacles to the learning experience. As students do not have an overview of the whole system beforehand and the instructions are vague, sometimes it is hard for them to know why a design decision is made and what they need to achieve a goal. Some parts of the course were so compact that delivering the expected contents within just one chapter was impossible. Therefore, we completely redesigned the course for an easier learning curve and clearer learning goals. The original one-week course is now split into two weeks (the first week on storage format and the second week on deep-dive compaction), with an extra part on MVCC. We hope you find this course interesting and helpful in your study and career. We want to thank everyone who commented in [Feedback after coding day 1](https://github.com/skyzh/mini-lsm/issues/11) and [Hello, when is the next update plan for the course?](https://github.com/skyzh/mini-lsm/issues/7) -- Your feedback greatly helped us improve the course.
+Here is the longer story behind the rewrite. The original course offered general guidance: students started with an empty directory and implemented their own designs from our specifications. A minimal test suite checked the resulting behavior. This approach proved too open-ended and created significant obstacles to learning. Without an overview of the complete system—and with instructions that were sometimes vague—students found it difficult to understand why a design decision was made or what they needed to accomplish. Some sections were also too dense to fit comfortably into a single chapter.
+
+We therefore redesigned the course to provide a gentler learning curve and clearer goals. The original one-week course is now split into two weeks: the first covers storage formats, and the second takes a deep dive into compaction. A third part covers MVCC. We hope you find the course interesting and useful in your studies and career. We thank everyone who commented on [Feedback after coding day 1](https://github.com/skyzh/mini-lsm/issues/11) and [Hello, when is the next update plan for the course?](https://github.com/skyzh/mini-lsm/issues/7)—your feedback greatly helped us improve the course.
 
 ### License
 
@@ -72,7 +74,7 @@ The source code of this course is licensed under Apache 2.0, while the book is l
 
 ### Will this course be free forever?
 
-Yes! Everything publicly available now will be free forever and receive lifetime updates and bug fixes. Meanwhile, we might provide paid code review and office hour services. For the DLC part (*rest of your life* chapters), we do not have plans to finish them as of 2024 and have yet to decide whether they will be publicly available.
+Yes! Everything that is publicly available now will remain free and receive ongoing updates and bug fixes. We might also provide paid code-review and office-hours services. As of 2024, we had no plans to finish the downloadable-content portion (the *rest of your life* chapters) and had not decided whether it would be publicly available.
 
 ## Community
 
@@ -82,11 +84,11 @@ You may join skyzh's Discord server and study with the mini-lsm community.
 
 ## Get Started
 
-Now, you can get an overview of the LSM structure in [Mini-LSM Course Overview](./00-overview.md).
+Next, read the [Mini-LSM Course Overview](./00-overview.md) for an introduction to the LSM structure.
 
 ## About the Author
 
-As of writing (at the beginning of 2024), Chi obtained his master's degree in Computer Science from Carnegie Mellon University and his bachelor's degree from Shanghai Jiao Tong University. He has been working on a variety of database systems, including [TiKV][db1], [AgateDB][db2], [TerarkDB][db3], [RisingWave][db4], and [Neon][db5]. Since 2022, he has worked as a teaching assistant for [CMU's Database Systems course](https://15445.courses.cs.cmu) for three semesters on the BusTub educational system, where he added a lot of new features and more challenges to the course (check out the redesigned [query execution](https://15445.courses.cs.cmu.edu/fall2022/project3/) project and the super challenging [multi-version concurrency control](https://15445.courses.cs.cmu.edu/fall2023/project4/) project). Besides working on the BusTub educational system, he also maintains the [RisingLight](https://github.com/risinglightdb/risinglight) educational database system. Chi is interested in exploring how the Rust programming language can fit into the database world. Check out his previous course on building a vectorized expression framework [type-exercise-in-rust](https://github.com/skyzh/type-exercise-in-rust) and on building a vector database [write-you-a-vector-db](https://github.com/skyzh/write-you-a-vector-db) if you are also interested in that topic.
+At the time of writing in early 2024, Chi held a master's degree in computer science from Carnegie Mellon University and a bachelor's degree from Shanghai Jiao Tong University. He had worked on several database systems, including [TiKV][db1], [AgateDB][db2], [TerarkDB][db3], [RisingWave][db4], and [Neon][db5]. Beginning in 2022, he served for three semesters as a teaching assistant for [CMU's Database Systems course](https://15445.courses.cs.cmu), working on the BusTub educational system. There, he added new features and challenges to the course, including the redesigned [query execution](https://15445.courses.cs.cmu.edu/fall2022/project3/) project and the demanding [multi-version concurrency control](https://15445.courses.cs.cmu.edu/fall2023/project4/) project. He also maintains the [RisingLight](https://github.com/risinglightdb/risinglight) educational database system. Chi is interested in exploring Rust's role in the database world. If you share that interest, see his earlier courses on building a vectorized expression framework, [type-exercise-in-rust](https://github.com/skyzh/type-exercise-in-rust), and a vector database, [write-you-a-vector-db](https://github.com/skyzh/write-you-a-vector-db).
 
 [db1]: https://github.com/tikv/tikv
 [db2]: https://github.com/tikv/agatedb

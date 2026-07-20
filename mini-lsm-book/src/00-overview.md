@@ -8,57 +8,57 @@
 
 ![Course Overview](lsm-tutorial/00-full-overview.svg)
 
-We have three parts (weeks) for this course. In the first week, we will focus on the storage structure and the storage format of an LSM storage engine. In the second week, we will deeply dive into compactions and implement persistence support for the storage engine. In the third week, we will implement multi-version concurrency control.
+This course has three parts, or weeks. In the first week, you will focus on the structure and storage format of an LSM storage engine. In the second week, you will explore compaction in depth and add persistence to the storage engine. In the third week, you will implement multiversion concurrency control (MVCC).
 
 * [The First Week: Mini-LSM](./week1-overview.md)
 * [The Second Week: Compaction and Persistence](./week2-overview.md)
 * [The Third Week: Multi-Version Concurrency Control](./week3-overview.md)
 
-Please look at [Environment Setup](./00-get-started.md) to set up the environment.
+Follow [Environment Setup](./00-get-started.md) to prepare your development environment.
 
 ## Overview of LSM
 
-An LSM storage engine generally contains three parts:
+An LSM storage engine generally has three components:
 
-1. Write-ahead log to persist temporary data for recovery.
-2. SSTs on the disk to maintain an LSM-tree structure.
-3. Mem-tables in memory for batching small writes.
+1. A write-ahead log that persists recent data for recovery.
+2. SSTs on disk that form the LSM-tree structure.
+3. Memtables in memory that batch small writes.
 
 The storage engine generally provides the following interfaces:
 
-* `Put(key, value)`: store a key-value pair in the LSM tree.
-* `Delete(key)`: remove a key and its corresponding value.
-* `Get(key)`: get the value corresponding to a key.
-* `Scan(range)`: get a range of key-value pairs.
+* `Put(key, value)`: Stores a key-value pair in the LSM tree.
+* `Delete(key)`: Removes a key and its corresponding value.
+* `Get(key)`: Retrieves the value associated with a key.
+* `Scan(range)`: Retrieves a range of key-value pairs.
 
-To ensure persistence,
+It may also provide an operation that establishes a persistence boundary:
 
-* `Sync()`: ensure all the operations before `sync` are persisted to the disk.
+* `Sync()`: Ensures that all preceding operations have been persisted to disk.
 
-Some engines choose to combine `Put` and `Delete` into a single operation called `WriteBatch`, which accepts a batch of key-value pairs.
+Some engines combine `Put` and `Delete` into a single operation called `WriteBatch`, which accepts a batch of updates.
 
-In this course, we assume the LSM tree is using a leveled compaction algorithm, which is commonly used in real-world systems.
+The overview diagrams assume a leveled compaction layout, which is common in production systems. In Week 2, you will implement and compare several compaction strategies.
 
 ### Write Path
 
 ![Write Path](lsm-tutorial/00-lsm-write-flow.svg)
 
-The write path of LSM contains four steps:
+The LSM write path has four steps:
 
-1. Write the key-value pair to the write-ahead log so that it can be recovered after the storage engine crashes.
-2. Write the key-value pair to memtable. After (1) and (2) are completed, we can notify the user that the write operation is completed.
-3. (In the background) When a mem-table is full, we will freeze them into immutable mem-tables and flush them to the disk as SST files in the background.
-4. (In the background) The engine will compact some files in some levels into lower levels to maintain a good shape for the LSM tree so that the read amplification is low.
+1. Write the key-value pair to the write-ahead log so that it can be recovered after a crash.
+2. Write the key-value pair to the mutable memtable. After steps 1 and 2 are complete, the engine can report that the write has completed.
+3. In the background, freeze a full mutable memtable, making it immutable, and flush it to disk as an SST file.
+4. Also in the background, compact files from one or more levels into lower levels. This maintains the shape of the LSM tree and limits read amplification.
 
 ### Read Path
 
 ![Read Path](lsm-tutorial/00-lsm-read-flow.svg)
 
-When we want to read a key,
+To read a key, the engine:
 
-1. We will first probe all the mem-tables from the latest to the oldest.
-2. If the key is not found, we will then search the entire LSM tree containing SSTs to find the data.
+1. Probes the memtables from newest to oldest.
+2. If the memtables do not determine the result, searches the SSTs in the LSM tree.
 
-There are two types of read: lookup and scan. Lookup finds one key in the LSM tree, while scan iterates all keys within a range in the storage engine. We will cover both of them throughout the course.
+There are two types of reads: lookups and scans. A lookup finds one key in the LSM tree, whereas a scan iterates over all keys within a range. The course covers both.
 
 {{#include copyright.md}}
