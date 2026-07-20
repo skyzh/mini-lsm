@@ -133,6 +133,7 @@ impl LsmStorageInner {
         compact_to_bottom_level: bool,
     ) -> Result<Vec<Arc<SsTable>>> {
         let mut builder = None;
+        let mut entries_in_builder: usize = 0;
         let mut new_sst = Vec::new();
 
         while iter.is_valid() {
@@ -143,13 +144,17 @@ impl LsmStorageInner {
             if compact_to_bottom_level {
                 if !iter.value().is_empty() {
                     builder_inner.add(iter.key(), iter.value());
+                    entries_in_builder += 1;
                 }
             } else {
                 builder_inner.add(iter.key(), iter.value());
+                entries_in_builder += 1;
             }
             iter.next()?;
 
-            if builder_inner.estimated_size() >= self.options.target_sst_size {
+            if builder_inner.estimated_size() >= self.options.target_sst_size
+                && entries_in_builder > 0
+            {
                 let sst_id = self.next_sst_id();
                 let builder = builder.take().unwrap();
                 let sst = Arc::new(builder.build(
@@ -158,16 +163,19 @@ impl LsmStorageInner {
                     self.path_of_sst(sst_id),
                 )?);
                 new_sst.push(sst);
+                entries_in_builder = 0;
             }
         }
         if let Some(builder) = builder {
-            let sst_id = self.next_sst_id(); // lock dropped here
-            let sst = Arc::new(builder.build(
-                sst_id,
-                Some(self.block_cache.clone()),
-                self.path_of_sst(sst_id),
-            )?);
-            new_sst.push(sst);
+            if entries_in_builder > 0 {
+                let sst_id = self.next_sst_id(); // lock dropped here
+                let sst = Arc::new(builder.build(
+                    sst_id,
+                    Some(self.block_cache.clone()),
+                    self.path_of_sst(sst_id),
+                )?);
+                new_sst.push(sst);
+            }
         }
         Ok(new_sst)
     }
