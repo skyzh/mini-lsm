@@ -2,6 +2,7 @@
 name = "mini-lsm"
 version = { workspace = true }
 edition = { workspace = true }
+rust-version = { workspace = true }
 homepage = { workspace = true }
 keywords = { workspace = true }
 license = { workspace = true }
@@ -26,7 +27,7 @@ serde = { version = "1", features = ["derive"] }
 farmhash = "1"
 crc32fast = "1"
 nom = "8"
-rustyline = "17"
+rustyline = "18"
 
 [dev-dependencies]
 tempfile = "3"
