@@ -6,11 +6,12 @@
 
 ![Chapter Overview](./lsm-tutorial/week1-01-overview.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement memtables based on skiplists.
 * Implement the logic for freezing memtables.
 * Implement the memtable portion of the LSM `get` read path.
+* Explain how snapshot ordering, tombstones, and the two state locks preserve correct point reads during concurrent writes.
 
 To copy the test cases into the starter code and run them:
 
@@ -18,6 +19,19 @@ To copy the test cases into the starter code and run them:
 cargo x copy-test --week 1 --day 1
 cargo x scheck
 ```
+
+## Before You Begin
+
+The starter engine exposes `get`, `put`, and `delete`, but it does not yet have a functioning storage structure. This chapter introduces its first source of truth: one mutable memtable, followed by zero or more immutable memtables awaiting a flush.
+
+Keep these invariants in mind while implementing the tasks:
+
+1. The engine has exactly one current mutable memtable.
+2. `imm_memtables` is ordered from newest to oldest.
+3. The first version of a key found while probing from newest to oldest determines the result. An empty value is a tombstone and therefore determines that the key is absent; the search must not continue to an older value.
+4. Structural changes such as replacing the mutable memtable are serialized, even though reads and writes within a memtable can proceed concurrently.
+
+> **Predict before coding:** Suppose the mutable memtable contains `a -> delete`, the newest immutable memtable contains `a -> 2`, and the oldest contains `a -> 1`. What should `get(a)` return? Which result would you get if you probed the memtables in the opposite order?
 
 ## Task 1: SkipList Memtable
 
@@ -182,17 +196,30 @@ src/lsm_storage.rs
 
 Now that you have multiple memtables, update the read-path `get` method to retrieve the latest version of a key. Probe the memtables from newest to oldest.
 
+## Chapter Checkpoint
+
+Your engine should now support `put`, `delete`, and `get` across one mutable and several immutable memtables. It should freeze a full memtable without blocking unrelated state access during expensive work or immediately freezing the replacement memtable.
+
+In addition to passing the tests, verify that you can locate the code responsible for each invariant from the beginning of the chapter. Construct a two-memtable example for an overwritten key and another for a tombstone, then confirm that reversing the probe order would produce the wrong result.
+
 ## Test Your Understanding
+
+Answer the correctness questions with reference to your implementation. For questions about a possible race or wrong result, give a concrete execution or input rather than only a general explanation.
+
+### Correctness and Concurrency
 
 * Why doesn't the memtable provide a `delete` API?
 * Does it make sense for a memtable to store every write instead of only the latest version of a key? For example, suppose a user writes `a -> 1`, `a -> 2`, and `a -> 3` to the same memtable.
-* Could an LSM tree use other data structures for its memtable? What are the advantages and disadvantages of a skiplist?
 * Why do we need a combination of `state` and `state_lock`? Can we only use `state.read()` and `state.write()`?
-* Why does the order in which you store and probe memtables matter? If a key appears in multiple memtables, which version should you return?
-* Is the memtable's memory layout efficient? Does it have good data locality? Consider how `Bytes` is implemented and stored in the skiplist. How could you optimize the memtable's layout?
-* This course uses `parking_lot` locks. Is its read-write lock fair? What might happen to readers waiting to acquire the lock when a writer is already waiting for the current readers to release it?
+* Construct the smallest example in which probing memtables in the wrong order returns a stale value. Then construct one in which it resurrects a deleted value.
 * After a memtable is frozen, could a thread that still holds an old LSM-state snapshot write to that now-immutable memtable? How does your solution prevent this?
 * In several places, you might acquire a state read lock, release it, and then acquire a write lock. The two operations may occur in different functions that call one another. How does this differ from directly upgrading a read lock to a write lock? Is an upgrade necessary, and what does it cost?
+
+### Performance and Design
+
+* Could an LSM tree use other data structures for its memtable? What are the advantages and disadvantages of a skiplist?
+* Is the memtable's memory layout efficient? Does it have good data locality? Consider how `Bytes` is implemented and stored in the skiplist. How could you optimize the memtable's layout?
+* This course uses `parking_lot` locks. Is its read-write lock fair? What might happen to readers waiting to acquire the lock when a writer is already waiting for the current readers to release it?
 
 We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 

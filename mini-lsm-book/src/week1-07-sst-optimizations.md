@@ -8,10 +8,11 @@
 
 In the previous chapter, you completed a storage engine that supports `get`, `scan`, and `put`. To finish the week, you will implement two approachable but important SST-format optimizations. Welcome to Week 1's snack-time chapter!
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement Bloom filters for SSTs and integrate them into the `get` path.
 * Implement key-prefix compression in the SST block format.
+* Explain why both optimizations preserve correctness despite discarding lookup work or repeated bytes.
 
 
 To copy the test cases into the starter code and run them:
@@ -20,6 +21,20 @@ To copy the test cases into the starter code and run them:
 cargo x copy-test --week 1 --day 7
 cargo x scheck
 ```
+
+## Before You Begin
+
+The engine completed in Day 6 is functionally correct. Today's changes must preserve its results while reducing I/O and storage space.
+
+Keep these invariants in mind:
+
+1. A Bloom-filter negative result must be definitive: an SST skipped after a negative probe cannot contain the key. Positive results may be false and therefore still require a lookup.
+2. The builder and reader hash exactly the same key bytes with the same function.
+3. Prefix encoding followed by decoding reconstructs every original key exactly.
+4. Each compressed key is defined relative to the first key in its block, so it can be decoded without decoding every preceding entry.
+5. These optimizations may change I/O counts and encoded sizes, but never the key-value pairs returned by `get` or `scan`.
+
+> **Predict before coding:** A Bloom filter returns “may contain” for a key that is absent from an SST. What extra work occurs, and why is the final result still correct? Now consider a filter that incorrectly returns “definitely absent” for a present key. Which storage-engine guarantee is violated?
 
 ## Task 1: Bloom Filters
 
@@ -131,12 +146,25 @@ key_overlap_len (u16) | rest_key_len (u16) | key (rest_key_len)
 
 After implementing the encoding, update the block iterator to reconstruct keys while decoding. Add fields to the provided structures as needed.
 
+## Chapter Checkpoint
+
+Your Week 1 engine should now avoid many unnecessary SST reads on point lookups and avoid storing shared key-prefix bytes repeatedly. All tests from earlier chapters should continue to pass because neither optimization changes logical behavior.
+
+Measure or inspect three things: the encoded size of a block containing keys with a long shared prefix, the number of SST iterators created by a point lookup rejected by several Bloom filters, and the result of probing known-present and known-absent keys. Explain why each observation follows from the invariants above.
+
 ## Test Your Understanding
+
+### Correctness
 
 * How does a Bloom filter help filter SSTs? Which claims can it make about a key: may not exist, may exist, must exist, or must not exist?
 * If we need a backward iterator, how does this key compression affect it?
 * Can Bloom filters help with scans?
+
+### Format and Design
+
 * What are the advantages and disadvantages of prefix-encoding each key relative to the previous key rather than the first key in the block?
+* Why must the first key in a block have an overlap length of zero? What malformed or circular representation could result otherwise?
+* Compare the encoded sizes of keys that share a long prefix, keys that share no prefix, and one key larger than the target block size. When does prefix encoding provide little or no benefit?
 
 We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
 

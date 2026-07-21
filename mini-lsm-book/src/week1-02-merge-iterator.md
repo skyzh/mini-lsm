@@ -6,11 +6,12 @@
 
 ![Chapter Overview](./lsm-tutorial/week1-02-overview.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement a memtable iterator.
 * Implement a merge iterator.
 * Implement the memtable portion of the LSM `scan` read path.
+* Explain how cursor validity, source precedence, and tombstone filtering combine to produce one logical sorted view.
 
 To copy the test cases into the starter code and run them:
 
@@ -18,6 +19,21 @@ To copy the test cases into the starter code and run them:
 cargo x copy-test --week 1 --day 2
 cargo x scheck
 ```
+
+## Before You Begin
+
+The engine can now resolve a point lookup across multiple memtables, but it cannot return a range of keys. A scan must combine several independently sorted sources without materializing their full contents.
+
+The iterator stack divides that responsibility across layers:
+
+- `MemTableIterator` exposes one sorted memtable.
+- `MergeIterator` combines sources of the same type, removes duplicate versions, and gives lower-indexed—that is, newer—sources precedence.
+- `LsmIterator` removes tombstones from the user-visible stream.
+- `FusedIterator` makes invalid and errored states safe for callers.
+
+The core invariant is: **the output is sorted, and each user key appears at most once with the value from the newest input containing that key.** Tombstones participate in precedence before `LsmIterator` hides them.
+
+> **Predict before coding:** Merge `iter1 = [b->delete, c->4]` with `iter2 = [a->1, b->2, c->3]`, where `iter1` is newer. Write the internal merged stream first, including tombstones, and then the user-visible stream. What breaks if tombstones are removed before duplicate versions are resolved?
 
 ## Task 1: Memtable Iterator
 
@@ -165,19 +181,34 @@ src/lsm_storage.rs
 
 With these iterators in place, you can implement the LSM engine's `scan` interface. Construct an `LsmIterator` from the memtable iterators, placing the newest memtable first in the merge iterator. The storage engine will then be able to serve scan requests.
 
+## Chapter Checkpoint
+
+The engine should now scan any requested range across its mutable and immutable memtables. A scan returns sorted, unique, live keys and respects the same newest-first precedence as `get`.
+
+After the tests pass, trace one key that appears in three memtables through every iterator layer. Identify exactly where its older versions are discarded and where its tombstone, if present, becomes invisible to the caller. Also confirm that `next()` returning `Ok(())` does not imply that the iterator remains valid.
+
 ## Test Your Understanding
 
-* What is the time/space complexity of using your merge iterator?
-* Why do we need a self-referential struct for the memtable iterator?
+### Correctness
+
 * If a key is removed (there is a delete tombstone), do you need to return it to the user? Where did you handle this logic?
 * If a key has multiple versions, will the user see all of them? Where did you handle this logic?
-* If we replace the self-referential struct with a lifetime on the memtable iterator—for example, `MemTableIterator<'a>`, where `'a` is tied to a memtable or `LsmStorageInner`—can we still implement `scan`?
-* Suppose that (1) you create an iterator over the skiplist memtable and (2) another thread inserts keys into that memtable. Will the iterator see the new keys?
 * What happens if your key comparator cannot give the binary heap implementation a stable order?
 * Why must the merge iterator resolve duplicate keys according to iterator construction order?
+* Construct a minimal input that produces a duplicate key if `MergeIterator::next` advances only the currently visible child and not every child positioned at that key.
+
+### Rust and API Design
+
+* Why do we need a self-referential struct for the memtable iterator?
+* If we replace the self-referential struct with a lifetime on the memtable iterator—for example, `MemTableIterator<'a>`, where `'a` is tied to a memtable or `LsmStorageInner`—can we still implement `scan`?
 * Could you implement a Rust-style iterator—for example, one with `next(&mut self) -> Option<(Key, Value)>`—for LSM iterators? What are the advantages and disadvantages?
 * The scan interface resembles `fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>)`. How could you make it accept Rust range syntax such as `key_a..key_b`? If you implement this API, try passing the full range `..` and observe what happens.
 * The starter code provides the merge iterator interface to store `Box<I>` instead of `I`. What might be the reason behind that?
+
+### Performance and Concurrent Behavior
+
+* What are the time and space complexities of building and advancing your merge iterator in terms of the number of input iterators?
+* Suppose that (1) you create an iterator over the skiplist memtable and (2) another thread inserts keys into that memtable. Will the iterator see the new keys? Design a small experiment rather than relying only on the type signature.
 
 We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 

@@ -6,10 +6,12 @@
 
 ![Chapter Overview](./lsm-tutorial/week1-05-overview.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement the LSM write path with L0 flush.
 * Implement the logic to correctly update the LSM state.
+* Explain the state transition that makes a flushed SST visible without losing or duplicating an immutable memtable.
+* Use key-range metadata to skip SSTs without changing read results.
 
 
 To copy the test cases into the starter code and run them:
@@ -18,6 +20,20 @@ To copy the test cases into the starter code and run them:
 cargo x copy-test --week 1 --day 6
 cargo x scheck
 ```
+
+## Before You Begin
+
+The read path can consume SSTs, but the Day 5 tests created those SSTs directly. This chapter completes the write path: the engine itself will turn the oldest immutable memtable into an SST and atomically install it in L0.
+
+The important invariants are:
+
+1. Only the oldest immutable memtable is selected for the next flush.
+2. `state_lock` serializes the flush with other structural changes.
+3. Building and writing the SST occurs outside the `state` read-write lock.
+4. Installing the SST removes exactly the memtable that was flushed, inserts the `SsTable` into `sstables`, and inserts its ID at the front—the newest side—of `l0_sstables` in one snapshot update.
+5. SST filtering may exclude a file only when its key range cannot contribute to the request. An optimization must not change query results.
+
+> **Predict before coding:** Suppose `imm_memtables` contains IDs `[7, 6, 5]` from newest to oldest and `l0_sstables` contains `[4, 3]`. Write both vectors after one correct flush. Which assertions would detect flushing the wrong memtable or installing the wrong SST ID?
 
 ## Task 1: Flush Memtable to SST
 
@@ -124,10 +140,27 @@ Update the read path to skip SSTs that cannot contain the requested key or overl
 
 You can implement helper functions like `range_overlap` and `key_within` to simplify your code.
 
+## Chapter Checkpoint
+
+Mini-LSM should now create its own SSTs, flush automatically when the immutable-memtable limit is reached, shut down its background threads cleanly, and avoid opening SSTs whose key ranges cannot affect a read.
+
+After the tests pass, record the state before and after a manual flush: the mutable memtable ID, immutable-memtable IDs, L0 IDs, and keys in the `sstables` map. Confirm that one logical copy of every key remains visible throughout the transition. Then run the same reads with SST filtering disabled and confirm that only the iterator count—not the results—changes.
+
 ## Test Your Understanding
 
+### Correctness and State Transitions
+
 * What happens if a user requests to delete a key twice?
-* How much memory (or number of blocks) will be loaded into memory at the same time when the iterator is initialized?
+* Why must the state update verify that the memtable removed from `imm_memtables` has the ID used to build the SST?
+* Construct an interleaving that would corrupt the state if two flushes selected the same oldest memtable without `state_lock`.
+* For each combination of included, excluded, and unbounded scan bounds, state the condition under which an SST range can be safely excluded.
+
+### Memory and Performance
+
+* How much memory, or how many blocks, are loaded at the same time when an iterator is initialized? Measure `num_active_iterators` during a scan and explain why it changes.
+
+### Production Design
+
 * Suppose users want to *fork* an LSM tree: after ingesting data, they create two identical datasets and modify them independently. A simple but inefficient implementation copies every SST and in-memory structure to a new directory. Because on-disk SSTs are immutable, the fork can instead reuse its parent's files. How could you implement this efficiently without copying data? See [Neon Branching](https://neon.tech/docs/introduction/branching).
 * Imagine a multitenant LSM system hosting 10,000 databases on one machine with 128 GB of memory. If each memtable has a 256 MB size limit, how much memory would all memtables require?
   * You clearly do not have enough memory for all of them to reach that limit simultaneously. If each tenant still has a separate memtable, how could you design the flush policy to fit within the global memory budget? Would sharing one memtable among tenants—for example, by encoding a tenant ID in each key prefix—make sense?
