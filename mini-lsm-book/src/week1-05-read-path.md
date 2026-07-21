@@ -12,7 +12,7 @@ In this chapter, you will:
 * Implement LSM read path `get` with SSTs.
 * Implement LSM read path `scan` with SSTs.
 
-To copy the test cases into the starter code and run them,
+To copy the test cases into the starter code and run them:
 
 ```
 cargo x copy-test --week 1 --day 5
@@ -27,9 +27,9 @@ In this task, you will need to modify:
 src/iterators/two_merge_iterator.rs
 ```
 
-You have already implemented a merge iterator that merges iterators of the same type (i.e., memtable iterators). Now that we have implemented the SST formats, we have both on-disk SST structures and in-memory memtables. When we scan from the storage engine, we will need to merge data from both memtable iterators and SST iterators into a single one. In this case, we need a `TwoMergeIterator<X, Y>` that merges two different types of iterators.
+You have already implemented a merge iterator for iterators of the same type, such as memtable iterators. Now that the SST format is implemented, the engine has both in-memory memtables and on-disk SSTs. A scan must merge memtable and SST iterators into a single stream. For this purpose, implement `TwoMergeIterator<X, Y>`, which can merge two different iterator types.
 
-You can implement `TwoMergeIterator` in `two_merge_iterator.rs`. As we only have two iterators here, we do not need to maintain a binary heap. Instead, we can simply use a flag to indicate which iterator to read. Similar to `MergeIterator`, if the same key is found in both of the iterator, the first iterator takes the precedence.
+Because there are only two iterators, `TwoMergeIterator` does not need a binary heap. A flag can indicate which iterator currently has precedence. As in `MergeIterator`, when both iterators contain the same key, the first iterator takes precedence.
 
 ## Task 2: Read Path - Scan
 
@@ -47,19 +47,19 @@ type LsmIteratorInner =
     TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>;
 ```
 
-So that our internal iterator of the LSM storage engine will be an iterator combining both data from the memtables and the SSTs.
+This type combines data from memtables and SSTs into the storage engine's internal iterator.
 
-Currently, our SST iterator doesn't support an end bound for scans. To address this, you'll need to implement this boundary check within the `LsmIterator` itself. This involves updating the `LsmIterator::new` constructor to accept an `end_bound` parameter:
+The SST iterator does not support an end bound for scans. Enforce that bound in `LsmIterator` by updating its constructor to accept an `end_bound`:
 
 ```rust,no_run
 pub(crate) fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {}
 ```
 
-You will then need to modify the `LsmIterator`'s iteration logic to ensure it stops when the keys from the inner iterator reach or exceed this specified `end_bound`.
+Then update the iteration logic to stop according to the bound's semantics: before an excluded end key, or after an included end key.
 
-Our test cases will generate some memtables and SSTs in `l0_sstables`, and you will need to scan all of these data out correctly in this task. You do not need to flush SSTs until next chapter. Therefore, you can go ahead and modify your `LsmStorageInner::scan` interface to create a merge iterator over all memtables and SSTs, so as to finish the read path of your storage engine.
+The tests create memtables and SSTs referenced by `l0_sstables`; your scan must return their combined contents correctly. You do not need to implement flushing until the next chapter. For now, update `LsmStorageInner::scan` to create a merge iterator over all memtables and L0 SSTs, completing the engine's scan path.
 
-Because `SsTableIterator::create` involves I/O operations and might be slow, we do not want to do this in the `state` critical section. Therefore, you should firstly take read the `state` and clone the `Arc` of the LSM state snapshot. Then, you should drop the lock. After that, you can go through all L0 SSTs and create iterators for each of them, then create a merge iterator to retrieve the data.
+Creating and initially seeking an `SsTableIterator` may perform I/O, so do not do it while holding the `state` lock. First acquire the read lock and clone the `Arc` containing the state snapshot. Release the lock, then create an iterator for each L0 SST and merge the resulting streams.
 
 ```rust,no_run
 fn scan(&self) {
@@ -71,7 +71,7 @@ fn scan(&self) {
 }
 ```
 
-In the LSM storage state, we only store the SST ids in the `l0_sstables` vector. You will need to retrieve the actual SST object from the `sstables` hash map.
+The `l0_sstables` vector stores only SST IDs. Retrieve the corresponding `SsTable` objects from the `sstables` map.
 
 ## Task 3: Read Path - Get
 
@@ -81,18 +81,18 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 ```
 
-For get requests, it will be processed as lookups in the memtables, and then scans on the SSTs. You can create a merge iterator over all SSTs after probing all memtables. You can seek to the key that the user wants to lookup. There are two possibilities of the seek: the key is the same as what the user probes, and the key is not the same / does not exist. You should only return the value to the user when the key exists and is the same as probed. You should also reduce the critical section of the state lock as in the previous section. Also remember to handle deleted keys.
+Process a `get` as direct lookups in the memtables followed, if necessary, by a seek over a merge iterator of the SSTs. A seek may land on the requested key or on the next greater key, so return a value only if the iterator's key exactly matches the requested key. As in the scan path, minimize the `state` lock's critical section. Preserve newest-to-oldest precedence, and treat an empty value as a tombstone rather than continuing to older data.
 
 ## Test Your Understanding
 
-* Consider the case that a user has an iterator that iterates the whole storage engine, and the storage engine is 1TB large, so that it takes ~1 hour to scan all the data. What would be the problems if the user does so? (This is a good question and we will ask it several times at different points of the course...)
-* Another popular interface provided by some LSM-tree storage engines is multi-get (or vectored get). The user can pass a list of keys that they want to retrieve. The interface returns the value of each of the key. For example, `multi_get(vec!["a", "b", "c", "d"]) -> a=1,b=2,c=3,d=4`. Obviously, an easy implementation is to simply doing a single get for each of the key. How will you implement the multi-get interface, and what optimizations you can do to make it more efficient? (Hint: some operations during the get process will only need to be done once for all keys, and besides that, you can think of an improved disk I/O interface to better support this multi-get interface).
+* Suppose a user creates an iterator over the entire 1 TB storage engine, and the scan takes about an hour. What problems could this cause? We will revisit this question at several points in the course.
+* Some LSM-tree storage engines provide a multi-get, or vectored-get, interface. The caller supplies a list of keys and receives a value for each one; for example, `multi_get(vec!["a", "b", "c", "d"]) -> a=1,b=2,c=3,d=4`. The simplest implementation performs one `get` per key. How would you implement multi-get, and what could you optimize? Hint: some work in the get path needs to be performed only once for the entire batch. You can also consider an improved disk-I/O interface designed for multi-get.
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 
 * **The Cost of Dynamic Dispatch.** Implement a `Box<dyn StorageIterator>` version of merge iterators and benchmark to see the performance differences.
-* **Parallel Seek.** Creating a merge iterator requires loading the first block of all underlying SSTs (when you create `SSTIterator`). You may parallelize the process of creating iterators.
+* **Parallel Seek.** Creating a merge iterator requires loading the first relevant block from every underlying SST when you create each `SsTableIterator`. Consider creating these iterators in parallel.
 
 {{#include copyright.md}}
