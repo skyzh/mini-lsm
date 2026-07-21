@@ -6,10 +6,11 @@
 
 ![Chapter Overview](./lsm-tutorial/week1-04-overview.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement SST encoding and metadata encoding.
 * Implement SST decoding and an SST iterator.
+* Explain how block metadata, lazy loading, and caching support lower-bound seeks without loading an entire SST.
   
 To copy the test cases into the starter code and run them:
 
@@ -17,6 +18,20 @@ To copy the test cases into the starter code and run them:
 cargo x copy-test --week 1 --day 4
 cargo x scheck
 ```
+
+## Before You Begin
+
+A block provides sorted storage and seeks within a small byte range. An SST composes many blocks into an immutable file and adds enough metadata to locate the block that may contain a requested key.
+
+The main invariants are:
+
+1. Blocks and their metadata appear in the same key order.
+2. Each `BlockMeta` records the encoded block's offset and its actual first and last keys.
+3. An iterator directly retains only the block it currently needs and advances to the next block when a seek lands beyond the current one. The cache may retain other blocks independently.
+4. A lower-bound seek never skips a key greater than or equal to the target.
+5. The block cache identifies a block by both its SST ID and block index; blocks from different SSTs must never collide.
+
+> **Predict before coding:** An SST contains block 1 with `[a, b, c]` and block 2 with `[e, f, g]`. If block selection uses only first-key metadata, which block is initially selected by `seek(d)`? What must the iterator do next to satisfy lower-bound seek semantics?
 
 ## Task 1: SST Builder
 
@@ -87,14 +102,28 @@ We use [`moka-rs`](https://docs.rs/moka/latest/moka/) for the block cache, with 
 
 Update the table iterator to call `read_block_cached` instead of `read_block`.
 
+## Chapter Checkpoint
+
+You should now be able to build and reopen a multi-block SST, seek across block boundaries, and iterate without keeping every data block in memory. Run seeks for the first and last key of each block, for a key between two blocks, and for a key greater than the SST's last key.
+
+Inspect the block-reading path after the tests pass. Explain when a disk read occurs, what remains resident because of the iterator, and what remains reachable through the cache. These lifetimes are related but not identical.
+
 ## Test Your Understanding
+
+### Correctness and Format
 
 * What is the time complexity of seeking a key in the SST?
 * Where does the cursor stop when you seek a non-existent key in your implementation?
 * Is it possible (or necessary) to do in-place updates of SST files?
+
+### Caching and Memory
+
 * An SST is usually large—for example, 256 MB—so repeatedly copying or growing its `Vec` can be expensive. Does your implementation reserve enough space for the SST builder in advance? How?
 * Looking at the `moka` block cache, why does it return `Arc<Error>` instead of the original `Error`?
-* Does the usage of a block cache guarantee that there will be at most a fixed number of blocks in memory? For example, if you have a `moka` block cache of 4GB and block size of 4KB, will there be more than 4GB/4KB number of blocks in memory at the same time?
+* Does using a block cache guarantee that at most a fixed number of blocks exist in memory? For example, with a 4 GB `moka` cache and 4 KiB blocks, can more than `4 GB / 4 KiB` blocks be alive at once? Account for references held outside the cache.
+
+### Storage Design
+
 * Can an LSM engine store columnar data, such as a table with 100 integer columns? Would the current SST format still be a good choice?
 * Suppose the LSM engine uses an object-storage service such as S3. How would you adapt the SST format, its parameters, and the block cache to suit that environment?
 * For now, we load the metadata for every SST into memory. If 16 GB of memory is reserved for this metadata, can you estimate the maximum database size the LSM system could support? This limitation motivates an index cache.
