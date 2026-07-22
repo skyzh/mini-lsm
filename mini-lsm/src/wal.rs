@@ -56,12 +56,12 @@ impl Wal {
         while rbuf.has_remaining() {
             let mut hasher = crc32fast::Hasher::new();
             let key_len = rbuf.get_u16() as usize;
-            hasher.write_u16(key_len as u16);
+            hasher.write(&(key_len as u16).to_be_bytes());
             let key = Bytes::copy_from_slice(&rbuf[..key_len]);
             hasher.write(&key);
             rbuf.advance(key_len);
             let value_len = rbuf.get_u16() as usize;
-            hasher.write_u16(value_len as u16);
+            hasher.write(&(value_len as u16).to_be_bytes());
             let value = Bytes::copy_from_slice(&rbuf[..value_len]);
             hasher.write(&value);
             rbuf.advance(value_len);
@@ -78,14 +78,15 @@ impl Wal {
 
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         let mut file = self.file.lock();
-        let mut buf: Vec<u8> =
-            Vec::with_capacity(key.len() + value.len() + std::mem::size_of::<u16>());
+        let mut buf: Vec<u8> = Vec::with_capacity(
+            key.len() + value.len() + std::mem::size_of::<u16>() * 2 + std::mem::size_of::<u32>(),
+        );
         let mut hasher = crc32fast::Hasher::new();
-        hasher.write_u16(key.len() as u16);
+        hasher.write(&(key.len() as u16).to_be_bytes());
         buf.put_u16(key.len() as u16);
         hasher.write(key);
         buf.put_slice(key);
-        hasher.write_u16(value.len() as u16);
+        hasher.write(&(value.len() as u16).to_be_bytes());
         buf.put_u16(value.len() as u16);
         buf.put_slice(value);
         hasher.write(value);
@@ -105,5 +106,27 @@ impl Wal {
         file.flush()?;
         file.get_mut().sync_all()?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bytes::Buf;
+    use tempfile::tempdir;
+
+    use super::Wal;
+
+    #[test]
+    fn test_checksum_covers_encoded_record() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("test.wal");
+        let wal = Wal::create(&path).unwrap();
+        wal.put(b"key", b"value").unwrap();
+        wal.sync().unwrap();
+
+        let data = std::fs::read(path).unwrap();
+        let checksum_offset = data.len() - std::mem::size_of::<u32>();
+        let expected = (&data[checksum_offset..]).get_u32();
+        assert_eq!(crc32fast::hash(&data[..checksum_offset]), expected);
     }
 }

@@ -6,23 +6,39 @@
 
 ![Chapter Overview](./lsm-tutorial/week2-05-overview.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
-* Implement encoding and decoding of the manifest file.
-* Recover from the manifest when the system restarts.
+* Encode and append structural changes to the manifest.
+* Order SST, directory, and manifest synchronization so recovery never references an SST that was not made durable.
+* Replay manifest records, open the live SSTs, and restore the next unused file ID.
+* Flush all memtables during a clean close when WALs are disabled.
 
-To copy the test cases into the starter code and run them,
+To copy the test cases into the starter code and run them:
 
 ```
 cargo x copy-test --week 2 --day 5
 cargo x scheck
 ```
 
+## Before You Begin
+
+Until this chapter, `LsmStorageState` is authoritative only while the process is running. The SST files survive a restart, but filenames alone do not say which files are live, which level or tier owns them, or which compaction replaced them.
+
+Keep these invariants in mind:
+
+1. The manifest is an ordered, append-only log of structural state changes. Replaying every record from an empty state must reconstruct the same live file layout.
+2. An SST file and its directory entry must be durable before a manifest record is allowed to reference it.
+3. A file made obsolete by a durable manifest record may be deleted afterward. Recovery must tolerate the old file still being present because it is no longer part of the logical state.
+4. Manifest replay determines the live SST IDs before the engine opens SST metadata. Leveled SSTs are sorted by first key only after all live files have been opened.
+5. `next_sst_id` must be greater than every ID observed in recovered SSTs and, after Day 6, memtables.
+
+> **Predict before coding:** The engine has written and synced a new SST but crashes before appending its flush record. What state should recovery produce, and what kind of file is left behind? Now reverse the unsafe order: the manifest is synced before the new SST's directory entry. What can recovery attempt to open after a power loss?
+
 ## Task 1: Manifest Encoding
 
-The system uses a manifest file to record all operations happened in the engine. Currently, there are only two types of them: compaction and SST flush. When the engine restarts, it will read the manifest file, reconstruct the state, and load the SST files on the disk.
+The system uses a manifest to record structural operations in the engine. For now, there are two record types: compaction and SST flush. On restart, the engine reads the manifest, reconstructs the logical state, and opens the referenced SST files.
 
-There are many approaches to storing the LSM state. One of the easiest way is to simply store the full state into a JSON file. Every time we do a compaction or flush a new SST, we can serialize the entire LSM state into a file. The problem with this approach is that when the database gets super large (i.e., 10k SSTs), writing the manifest to the disk would be super slow. Therefore, we designed the manifest to be a append-only file.
+One simple design would rewrite the complete state as JSON after every flush or compaction. That approach becomes expensive when the database contains thousands of SSTs, so Mini-LSM uses an append-only manifest instead.
 
 In this task, you will need to modify:
 
@@ -30,7 +46,7 @@ In this task, you will need to modify:
 src/manifest.rs
 ```
 
-We encode the manifest records using JSON. You may use `serde_json::to_vec` to encode a manifest record to a json, write it to the manifest file, and do a fsync. When you read from the manifest file, you may use `serde_json::Deserializer::from_slice` and it will return a stream of records. You do not need to store the record length or so, as `serde_json` can automatically find the split of the records.
+Encode each record as JSON with `serde_json::to_vec`, append it, and synchronize the manifest. During recovery, `serde_json::Deserializer::from_slice` can stream adjacent JSON values without an explicit record length.
 
 
 The manifest format is like:
@@ -39,25 +55,25 @@ The manifest format is like:
 | JSON record | JSON record | JSON record | JSON record |
 ```
 
-Again, note that we do not record the information of how many bytes each record has.
+At this stage, the format does not store each record's byte length. Day 7 will add explicit framing and checksums.
 
-After the engine runs for several hours, the manifest file might get very large. At that time, you may periodically compact the manifest file to store the current snapshot and truncate the logs. This is an optimization you may implement as part of bonus tasks.
+Over time, the manifest can become large. A production engine can periodically replace it with a snapshot of the current state followed by a fresh log; this is a bonus task.
 
 
 ## Task 2: Write Manifests
 
-You can now go ahead and modify your LSM engine to write manifests when necessary. In this task, you will need to modify:
+Now append manifest records whenever the LSM structure changes. You will need to modify:
 
 ```
 src/lsm_storage.rs
 src/compact.rs
 ```
 
-For now, we only use two types of the manifest records: SST flush and compaction. SST flush record stores the SST id that gets flushed to the disk. Compaction record stores the compaction task and the produced SST ids. Every time you write some new files to the disk, first sync the files and the storage directory, and then write to the manifest and sync the manifest. The manifest file should be written to `<path>/MANIFEST`.
+For now, the manifest has two record types: SST flush and compaction. An SST flush record stores the ID written to disk. A compaction record stores the task and its output SST IDs. Whenever an operation creates files, first sync those files and the storage directory. Only then append the corresponding manifest record and sync the manifest. Delete obsolete input files after that record is durable, then sync the directory again. The manifest file should be written to `<path>/MANIFEST`.
 
-To sync the directory, you may implement the `sync_dir` function, where you can use `File::open(dir).sync_all()?` to sync it. On Linux, directory is a file that contains the list of files in the directory. By doing fsync on the directory, you will ensure that the newly-written (or removed) files can be visible to the user if the power goes off.
+Implement `sync_dir` with `File::open(dir).sync_all()?`. Synchronizing a file persists its contents; synchronizing the directory persists additions and removals of filenames.
 
-Remember to write a compaction manifest record for both the background compaction trigger (leveled/simple/universal) and when the user requests to do a force compaction.
+Append a compaction record for both background compaction and a user-requested full compaction.
 
 ## Task 3: Flush on Close
 
@@ -67,7 +83,7 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 ```
 
-You will need to implement the `close` function. If `self.options.enable_wal = false` (we will cover WAL in the next chapter), you should flush all memtables to the disk before stopping the storage engine, so that all user changes will be persisted.
+Implement `close`. When `self.options.enable_wal` is false, flush every non-empty memtable before stopping the engine so a clean shutdown preserves all writes.
 
 ## Task 4: Recover from the State
 
@@ -77,11 +93,11 @@ In this task, you will need to modify:
 src/lsm_storage.rs
 ```
 
-Now, you may modify the `open` function to recover the engine state from the manifest file. To recover it, you will need to first generate the list of SSTs you will need to load. You can do this by calling `apply_compaction_result` and recover SST ids in the LSM state. After that, you may iterate the state and load all SSTs (update the sstables hash map). During the process, you will need to compute the maximum SST id and update the `next_sst_id` field. After that, you may create a new memtable using that id and increment the id by one.
+Modify `open` to replay the manifest into an initially empty LSM state. Apply flush and compaction records to recover the live SST IDs, then open those files and populate the `sstables` map. Track the maximum ID, create a new memtable with the next ID, and advance `next_sst_id` again.
 
-If you have implemented leveled compaction, you might have sorted the SSTs every time you apply the compaction result. However, with manifest recover, your sorting logic will be broken, because during the recovery process, you cannot know the start key and the end key of each of the SST. To resolve this, you will need to read the `in_recovery` flag of the `apply_compaction_result` function. During the recovery process, you should not attempt to retrieve the first key of the SST. After the LSM state is recovered and all SSTs are opened, you can do a sorting at the end of the recovery process.
+Leveled compaction normally sorts result IDs by first key. During manifest replay, however, the SST objects and their key ranges are not loaded yet. Honor `apply_compaction_result`'s `in_recovery` flag and defer sorting. Once every live SST is open, sort each leveled run by first key.
 
-Optionally, you may include the start key and the end key of each of the SSTs in the manifest. This strategy is used in RocksDB/BadgerDB, so that you do not need to distinguish the recovery mode and the normal mode during the compaction apply process.
+Alternatively, store each SST's key range in the manifest, as systems such as RocksDB and BadgerDB do. Result application could then use the same ordering logic during recovery and normal execution.
 
 You may use the mini-lsm-cli to test your implementation.
 
@@ -93,10 +109,25 @@ cargo run --bin mini-lsm-cli
 get 1500
 ```
 
+## Chapter Checkpoint
+
+After a clean close without WALs, the engine should have no non-empty memtables. Reopening it should replay the manifest, open exactly the referenced SSTs, restore leveled ordering after metadata becomes available, and allocate an ID greater than every recovered file ID.
+
+Write down the durable events for one flush and one compaction. Insert a hypothetical crash after each event and determine whether recovery sees the old state or the new state. Both outcomes can be valid at some boundaries; a manifest state that references a missing file is not.
+
 ## Test Your Understanding
+
+### Recovery and Durability
 
 * When do you need to call `fsync`? Why do you need to fsync the directory?
 * What are the places you will need to write to the manifest?
+* Why must newly created SSTs and their directory entries be synced before the manifest record that references them?
+* Why is it safe for an obsolete SST to remain on disk after the compaction record is durable? Is it safe to delete the SST before that point?
+* During recovery, why can leveled compaction results not be sorted by first key while manifest records are being replayed?
+* Construct a record sequence containing flushes and compactions, replay it by hand, and compute the next unused SST ID.
+
+### Alternative Designs
+
 * Consider an alternative implementation of an LSM engine that does not use a manifest file. Instead, it records the level/tier information in the header of each file, scans the storage directory every time it restarts, and recover the LSM state solely from the files present in the directory. Is it possible to correctly maintain the LSM state in this implementation and what might be the problems/challenges with that?
 * Currently, we create all SST/concat iterators before creating the merge iterator, which means that we have to load the first block of the first SST in all levels into memory before starting the scanning process. We have start/end key in the manifest, and is it possible to leverage this information to delay the loading of the data blocks and make the time to return the first key-value pair faster?
 * Is it possible not to store the tier/level information in the manifest? i.e., we only store the list of SSTs we have in the manifest without the level information, and rebuild the tier/level using the key range and timestamp information (SST metadata).
