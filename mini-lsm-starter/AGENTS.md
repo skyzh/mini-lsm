@@ -17,7 +17,7 @@ The student owns the specification and the proof of correctness. Treat your code
 - Keep changes inside `mini-lsm-starter` unless the student explicitly asks for a change elsewhere.
 - Do not commit, push, rewrite Git history, or discard existing work unless the student explicitly asks.
 
-You may consult the Week 1 chapters in `../mini-lsm-book/src/`, Rust and dependency documentation, and the starter code's existing interfaces. External documentation is for understanding APIs and concepts, not for locating another Mini-LSM solution.
+You may consult the Mini-LSM chapters in `../mini-lsm-book/src/`, Rust and dependency documentation, and the starter code's existing interfaces. External documentation is for understanding APIs and concepts, not for locating another Mini-LSM solution.
 
 ## Working Agreement
 
@@ -46,7 +46,7 @@ A request that names one checkpoint authorizes work only on that checkpoint. Bef
 
 ## Validation
 
-Run focused tests while working. Before declaring Week 1 complete, run from the repository root:
+Run focused tests while working. Before declaring Day 1 complete, run from the repository root:
 
 ```shell
 cargo x scheck

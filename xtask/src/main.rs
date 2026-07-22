@@ -23,8 +23,9 @@ use duct::cmd;
 struct CopyTestAction {
     #[arg(long)]
     week: usize,
+    /// Copy one day; omit to copy all seven days.
     #[arg(long)]
-    day: usize,
+    day: Option<usize>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -72,6 +73,13 @@ fn switch_to_starter_root() -> Result<()> {
             .join("mini-lsm-starter"),
     )?;
     Ok(())
+}
+
+fn days_to_copy(day: Option<usize>) -> Vec<usize> {
+    match day {
+        Some(day) => vec![day],
+        None => (1..=7).collect(),
+    }
 }
 
 fn fmt() -> Result<()> {
@@ -154,10 +162,12 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
     if !Path::new(target_dir).exists() {
         std::fs::create_dir(target_dir)?;
     }
-    let test_filename = format!("week{}_day{}.rs", test.week, test.day);
-    let src = format!("{}/{}", src_dir, test_filename);
-    let target = format!("{}/{}", target_dir, test_filename);
-    cmd!("cp", src, target).run()?;
+    for day in days_to_copy(test.day) {
+        let test_filename = format!("week{}_day{}.rs", test.week, day);
+        let src = format!("{}/{}", src_dir, test_filename);
+        let target = format!("{}/{}", target_dir, test_filename);
+        cmd!("cp", src, target).run()?;
+    }
     let test_filename = "harness.rs";
     let src = format!("{}/{}", src_dir, test_filename);
     let target = format!("{}/{}", target_dir, test_filename);
@@ -242,4 +252,19 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::days_to_copy;
+
+    #[test]
+    fn copy_all_days_when_day_is_omitted() {
+        assert_eq!(days_to_copy(None), (1..=7).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn copy_only_the_selected_day() {
+        assert_eq!(days_to_copy(Some(3)), vec![3]);
+    }
 }
