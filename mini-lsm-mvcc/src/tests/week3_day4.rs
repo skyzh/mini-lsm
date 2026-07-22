@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::time::Duration;
+
 use bytes::Bytes;
 use tempfile::tempdir;
 
@@ -21,7 +23,60 @@ use crate::{
     mvcc::watermark::Watermark,
 };
 
-use super::harness::{check_iter_result_by_key, construct_merge_iterator_over_storage};
+use super::harness::{
+    check_iter_result_by_key, construct_merge_iterator_over_storage, dump_files_in_dir,
+};
+
+#[test]
+fn test_task3_compaction_keeps_versions_together() {
+    let dir = tempdir().unwrap();
+    let mut options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
+    options.enable_wal = true;
+    let storage = MiniLsm::open(&dir, options).unwrap();
+    let _txn = storage.new_txn().unwrap();
+    for i in 0..=20000 {
+        storage
+            .put(b"0", format!("{:02000}", i).as_bytes())
+            .unwrap();
+    }
+    std::thread::sleep(Duration::from_secs(1));
+    while {
+        let snapshot = storage.inner.state.read();
+        !snapshot.imm_memtables.is_empty()
+    } {
+        storage.inner.force_flush_next_imm_memtable().unwrap();
+    }
+    assert!(storage.inner.state.read().l0_sstables.len() > 1);
+    storage.force_full_compaction().unwrap();
+    storage.dump_structure();
+    dump_files_in_dir(&dir);
+    assert!(storage.inner.state.read().l0_sstables.is_empty());
+    assert_eq!(storage.inner.state.read().levels.len(), 1);
+    assert_eq!(storage.inner.state.read().levels[0].1.len(), 1);
+
+    for i in 0..=100 {
+        storage
+            .put(b"1", format!("{:02000}", i).as_bytes())
+            .unwrap();
+    }
+    storage
+        .inner
+        .force_freeze_memtable(&storage.inner.state_lock.lock())
+        .unwrap();
+    std::thread::sleep(Duration::from_secs(1));
+    while {
+        let snapshot = storage.inner.state.read();
+        !snapshot.imm_memtables.is_empty()
+    } {
+        storage.inner.force_flush_next_imm_memtable().unwrap();
+    }
+    storage.force_full_compaction().unwrap();
+    storage.dump_structure();
+    dump_files_in_dir(&dir);
+    assert!(storage.inner.state.read().l0_sstables.is_empty());
+    assert_eq!(storage.inner.state.read().levels.len(), 1);
+    assert_eq!(storage.inner.state.read().levels[0].1.len(), 2);
+}
 
 #[test]
 fn test_task1_watermark() {

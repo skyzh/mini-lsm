@@ -20,6 +20,8 @@ cargo x copy-test --week 3 --day 2
 cargo x scheck
 ```
 
+The supplied Day 2 test covers timestamped batches, raw version order, and latest-state reads. The compaction boundary case is exercised by the Day 4 suite, once transactions can pin a watermark and keep old versions live in the completed engine.
+
 **Note:** You should also pass every checkpoint through Week 2 Day 4 after finishing this chapter.
 
 ## Before You Begin
@@ -122,7 +124,7 @@ src/lsm_storage.rs
 
 We have an `mvcc` field in `LsmStorageInner` that includes all data structures we need to use for multi-version concurrency control in this week. When you open a directory and initialize the storage engine, you will need to create that structure.
 
-In `write_batch`, allocate `latest_commit_ts() + 1` and use it for every record. Hold `self.mvcc().write_lock.lock()` across allocation and insertion so that concurrent batches cannot reuse a timestamp. Publish the new latest commit timestamp after the batch has been accepted by the memtable/WAL. If later maintenance such as freezing fails after the batch is visible, the timestamp must still not be reused.
+In `write_batch`, allocate `latest_commit_ts() + 1` and use it for every record. Hold `self.mvcc().write_lock.lock()` across allocation, insertion, and publication so that concurrent batches cannot reuse a timestamp. After every record has been accepted by the memtable/WAL, publish the new latest commit timestamp.
 
 ## Task 3: MVCC Compaction
 

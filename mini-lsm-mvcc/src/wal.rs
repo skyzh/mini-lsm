@@ -110,7 +110,7 @@ impl Wal {
         })
     }
 
-    /// Implement this in week 3, day 5.
+    /// Reference implementation of the optional crash-atomic batch WAL extension.
     pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
         let mut file = self.file.lock();
         let mut buf = Vec::<u8>::new();

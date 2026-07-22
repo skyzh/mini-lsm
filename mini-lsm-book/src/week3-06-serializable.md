@@ -27,7 +27,7 @@ Keep these invariants in mind:
 2. For a transaction at `read_ts`, compare its read set with the write sets committed after `read_ts` and before its own publication.
 3. Record a point-read key even when `get` returns `None`; the absence influenced the transaction.
 4. A failed validation publishes no data and no committed write-set record.
-5. Read-only transactions require no validation record and do not advance the commit timestamp.
+5. Transactions with an empty write set skip conflict validation; optimizing their timestamp and metadata path is a bonus task.
 6. Recording only keys returned by a scan does not record gaps, so inserts into those gaps can create phantoms.
 
 > **Predict before coding:** Two transactions begin at timestamp 10. T1 reads `b` and writes `a`; T2 reads `a` and writes `b`. T1 commits at 11. Which set intersection must abort T2? How would the answer change if T2's dependency came only from an empty range scan?
@@ -117,11 +117,11 @@ src/mvcc/txn.rs
 src/lsm_storage.rs
 ```
 
-Implement validation in the commit phase. Hold `commit_lock` across validation, timestamp allocation, write publication, and insertion into `committed_txns`. A read-only transaction can return without publishing a timestamp or validation record.
+Implement validation in the commit phase. Hold `commit_lock` across validation, timestamp allocation, write publication, and insertion into `committed_txns`.
 
 You will need to go through all transactions with commit timestamp within range `(read_ts, expected_commit_ts)` (both excluded bounds), and see if the read set of the current transaction overlaps with the write set of any transaction satisfying the criteria. If we can commit the transaction, submit a write batch, and insert the write set of this transaction into `self.inner.mvcc().committed_txns`, where the key is the commit timestamp.
 
-Skip validation if `write_set` is empty. A read-only transaction can always commit and should not create an empty write batch.
+Skip validation if `write_set` is empty. The checkpoint still sends the empty batch through the common commit path; avoiding its timestamp and metadata work is the bonus below.
 
 You should also modify the `put`, `delete`, and `write_batch` interface in `LsmStorageInner`. We recommend you define a helper function `write_batch_inner` that processes a write batch. If `options.serializable = true`, `put`, `delete`, and the user-facing `write_batch` should create a transaction instead of directly creating a write batch. Your write batch helper function should also return a `u64` commit timestamp so that `Transaction::Commit` can correctly store the committed transaction data into the MVCC structure.
 
@@ -161,7 +161,7 @@ We do not provide reference answers to these questions, so feel free to discuss 
 
 ## Bonus Tasks
 
-* **Read-Only Transactions.** With serializable enabled, we will need to keep track of the read set for a transaction.
+* **Read-Only Transactions.** Return without allocating a commit timestamp or retaining an empty validation record when the write set is empty.
 * **Precision/Predicate Locking.** The read set can be maintained using a range instead of a single key. This would be useful when a user scans the full key space. This will also enable serializable verification for scan.
 
 {{#include copyright.md}}

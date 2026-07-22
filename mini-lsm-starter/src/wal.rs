@@ -43,7 +43,7 @@ impl Wal {
         unimplemented!()
     }
 
-    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
+    /// Optional crash-atomic batch WAL extension.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }

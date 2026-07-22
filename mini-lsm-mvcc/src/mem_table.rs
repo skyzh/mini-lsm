@@ -152,12 +152,12 @@ impl MemTable {
     ///
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
-    /// In week 3, day 5, modify the function to use the batch API.
+    /// Route single-record writes through the reference batch WAL implementation.
     pub fn put(&self, key: KeySlice, value: &[u8]) -> Result<()> {
         self.put_batch(&[(key, value)])
     }
 
-    /// Implement this in week 3, day 5.
+    /// Reference implementation of the optional crash-atomic batch WAL extension.
     pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
         if let Some(ref wal) = self.wal {
             wal.put_batch(data)?;

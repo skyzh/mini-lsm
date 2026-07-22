@@ -17,6 +17,8 @@ cargo x copy-test --week 3 --day 4
 cargo x scheck
 ```
 
+The Day 4 suite also rechecks Day 2's rule that compaction must not split versions of one user key across output SSTs. The live transaction in that test pins the watermark so the completed engine cannot garbage-collect the history being measured.
+
 ## Before You Begin
 
 Retaining every version is correct but unbounded. The watermark is the smallest read timestamp still in use. Compaction may remove history that no transaction at or above that timestamp can distinguish.
