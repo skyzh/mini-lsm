@@ -465,6 +465,7 @@ impl LsmStorageInner {
     }
 
     pub fn sync(&self) -> Result<()> {
+        let _state_lock = self.state_lock.lock();
         self.state.read().memtable.sync_wal()
     }
 
@@ -655,13 +656,15 @@ impl LsmStorageInner {
             Arc::new(MemTable::create(memtable_id))
         };
 
-        self.freeze_memtable_with_memtable(memtable)?;
-
+        if self.options.enable_wal {
+            self.sync_dir()?;
+        }
         self.manifest.as_ref().unwrap().add_record(
             state_lock_observer,
             ManifestRecord::NewMemtable(memtable_id),
         )?;
-        self.sync_dir()?;
+
+        self.freeze_memtable_with_memtable(memtable)?;
 
         Ok(())
     }
@@ -689,6 +692,7 @@ impl LsmStorageInner {
             Some(self.block_cache.clone()),
             self.path_of_sst(sst_id),
         )?);
+        self.sync_dir()?;
 
         // Add the flushed L0 table to the list.
         {
@@ -711,14 +715,14 @@ impl LsmStorageInner {
             *guard = Arc::new(snapshot);
         }
 
-        if self.options.enable_wal {
-            std::fs::remove_file(self.path_of_wal(sst_id))?;
-        }
-
         self.manifest
             .as_ref()
             .unwrap()
             .add_record(&state_lock, ManifestRecord::Flush(sst_id))?;
+
+        if self.options.enable_wal {
+            std::fs::remove_file(self.path_of_wal(sst_id))?;
+        }
 
         self.sync_dir()?;
 

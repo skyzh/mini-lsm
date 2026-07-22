@@ -6,32 +6,48 @@
 
 <!-- ![Chapter Overview](./lsm-tutorial/week2-07-overview.svg) -->
 
-In the previous chapter, you already built a full LSM-based storage engine. At the end of this week, we will implement some easy but important optimizations of the storage engine. Welcome to Mini-LSM's week 2 snack time!
+The previous chapter completed the persistent LSM engine. This final chapter adds a small API improvement and integrity checks for every on-disk format. Welcome to Week 2 snack time!
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Implement the batch write interface.
-* Add checksums to the blocks, SST metadata, manifest, and WALs.
+* Add checksums to data blocks, SST metadata, bloom filters, manifest records, and WAL records.
+* Define the exact byte range protected by each checksum and reject corrupted input.
+* Explain why framing information is necessary for checksummed variable-length records.
 
-**Note: We do not have unit tests for this chapter. As long as you pass all previous tests and ensure checksums are properly encoded in your file format, it would be fine.**
+**Note:** The starter suite does not provide dedicated tests for this chapter. Run every earlier test, inspect each encoded format, and add corruption cases that verify your checksum boundaries.
+
+## Before You Begin
+
+This chapter changes every persistent format that the earlier chapters created. A checksum is useful only when the writer and reader agree on the exact bytes it covers and the reader can locate both those bytes and the stored checksum without trusting corrupted length fields blindly.
+
+Keep these invariants in mind:
+
+1. `put` and `delete` delegate to `write_batch`, so the existing single-record behavior remains unchanged. This Week 2 API processes a group of records but does not yet promise transactional atomicity.
+2. A checksum is computed over the encoded bytes exactly as they appear on disk, including a consistent byte order for integer fields.
+3. Each decoder isolates the same byte range that its encoder checksummed and verifies it before decoding or exposing the protected payload.
+4. Offsets and lengths delimit variable-size sections. The checksum itself and unrelated preceding bytes are not accidentally included.
+5. Corruption produces an error rather than silently returning data. Handling torn or truncated records without panicking is a separate robustness concern to consider.
+
+> **Predict before coding:** `Bloom::encode` appends a bloom filter to an SST buffer that already contains data blocks and metadata. If the checksum is computed over the entire buffer, what happens when `Bloom::decode` receives only the bloom-filter section? Which offset must the encoder remember?
 
 ## Task 1: Write Batch Interface
 
-In this task, we will prepare for week 3 of this course by adding a write batch API. You will need to modify:
+Prepare for Week 3 by adding a write-batch API. You will need to modify:
 
 ```
 src/lsm_storage.rs
 ```
 
-The user provides `write_batch` with a batch of records to be written to the database. The records are `WriteBatchRecord<T: AsRef<[u8]>>`, and therefore it can be either `Bytes`, `&[u8]` or `Vec<u8>`. There are two types of records: delete and put. You may handle them in the same way as your `put` and `delete` function.
+The user passes `write_batch` a slice of `WriteBatchRecord<T: AsRef<[u8]>>`, so keys and values may use types such as `Bytes`, `&[u8]`, or `Vec<u8>`. The two record variants are delete and put. Handle them with the same semantics as the existing `delete` and `put` methods.
 
-After that, you may refactor your original `put` and `delete` function to call `write_batch`.
+Then refactor `put` and `delete` to call `write_batch` with one record.
 
-You should pass all test cases in previous chapters after implementing this functionality.
+All tests from earlier chapters should continue to pass.
 
 ## Task 2: Block Checksum
 
-In this task, you will need to add a block checksum at the end of each block when encoding the SST. You will need to modify:
+Add a checksum after each encoded data block. You will need to modify:
 
 ```
 src/table/builder.rs
@@ -49,15 +65,15 @@ The format of the SST will be changed to:
 ---------------------------------------------------------------------------------------------------------------------------
 ```
 
-We use crc32 as our checksum algorithm. You can use `crc32fast::hash` to generate the checksum for the block after building a block.
+Use CRC-32 through `crc32fast::hash` to checksum each encoded block.
 
-Usually, when user specify the target block size in the storage options, the size should include both block content and checksum. For example, if the target block size is 4096, and the checksum takes 4 bytes, the actual block content target size should be 4092. However, to avoid breaking previous test cases and for simplicity, in our course, we will **still** use the target block size as the target content size, and simply append the checksum at the end of the block.
+Normally, the configured block size includes both content and checksum. A 4,096-byte target with a four-byte checksum would therefore leave 4,092 bytes for block content. To preserve the earlier tests, Mini-LSM continues to treat the configured size as the content target and appends the checksum afterward.
 
-When you read the block, you should verify the checksum in `read_block` correctly generate the slices for the block content. You should pass all test cases in previous chapters after implementing this functionality.
+In `read_block`, separate the content from its checksum, verify the content, and decode it only after verification succeeds. Run every earlier test after changing the format.
 
 ## Task 3: SST Meta Checksum
 
-In this task, you will need to add a block checksum for bloom filters and block metadata:
+Add checksums for bloom filters and block metadata. You will need to modify:
 
 ```
 src/table.rs
@@ -74,9 +90,9 @@ src/table/builder.rs
 ----------------------------------------------------------------------------------------------------------
 ```
 
-You will need to add a checksum at the end of the bloom filter in `Bloom::encode` and `Bloom::decode`. Note that most of our APIs take an existing buffer that the implementation will write into, for example, `Bloom::encode`. Therefore, you should record the offset of the beginning of the bloom filter before writing the encoded content, and only checksum the bloom filter itself instead of the whole buffer.
+Append a checksum in `Bloom::encode` and verify it in `Bloom::decode`. Because `encode` appends to an existing buffer, record the bloom filter's starting offset and checksum only the bytes added for that filter.
 
-After that, you can add a checksum at the end of block metadata. You might find it helpful to also add a length of metadata at the beginning of the section, so that it will be easier to know where to stop when decoding the block metadata.
+Then append a checksum to the block metadata. The existing block count can guide decoding; an explicit metadata length is another possible framing design.
 
 ## Task 4: WAL Checksum
 
@@ -86,12 +102,12 @@ In this task, you will need to modify:
 src/wal.rs
 ```
 
-We will do a per-record checksum in the write-ahead log. To do this, you have two choices:
+Protect each WAL record with its own checksum. You have two implementation choices:
 
 * Generate a buffer of the key-value record, and use `crc32fast::hash` to compute the checksum at once.
 * Write one field at a time (e.g., key length, key slice), and use a `crc32fast::Hasher` to compute the checksum incrementally on each field.
 
-This is up to your choice and you will need to *choose your own adventure*. Both method should produce exactly the same result, as long as you handle little endian / big endian correctly. The new WAL encoding should be like:
+Choose whichever approach makes the protected byte range clearest. Both methods must produce the same checksum: incremental hashing must feed the exact encoded bytes in their on-disk byte order. The new WAL encoding is:
 
 ```
 | key_len | key | value_len | value | checksum |
@@ -99,7 +115,7 @@ This is up to your choice and you will need to *choose your own adventure*. Both
 
 ## Task 5: Manifest Checksum
 
-Lastly, let us add a checksum on the manifest file. Manifest is similar to a WAL, except that previously, we do not store the length of each record. To make the implementation easier, we now add a header of record length at the beginning of a record, and add a checksum at the end of the record.
+Finally, protect each manifest record. Unlike the WAL, the Day 5 manifest did not store record lengths. Add a length header before each JSON record and a checksum after it.
 
 The new manifest format is like:
 
@@ -107,17 +123,32 @@ The new manifest format is like:
 | len | JSON record | checksum | len | JSON record | checksum | len | JSON record | checksum |
 ```
 
-After implementing everything, you should pass all previous test cases. We do not provide new test cases in this chapter.
+After implementing every format change, run all previous tests and your own corruption cases.
+
+## Chapter Checkpoint
+
+All earlier behavior should still pass after the format changes. In addition, every persistent section should round-trip successfully and fail verification when one protected byte is changed. Confirm that appending a bloom filter or metadata section to a non-empty buffer does not make its checksum depend on preceding sections.
+
+Build a small SST and identify every offset, length, payload, and checksum by byte range. Do the same for one WAL and one manifest record. For each format, flip a payload byte and predict which decoder reports the error. Also consider a truncated length or checksum and decide whether your decoder returns an error or panics.
 
 ## Test Your Understanding
 
-* Consider the case that an LSM storage engine only provides `write_batch` as the write interface (instead of single put + delete). Is it possible to implement it as follows: there is a single write thread with an mpsc channel receiver to get the changes, and all threads send write batches to the write thread. The write thread is the single point to write to the database. What are the pros/cons of this implementation? (Congrats if you do so you get BadgerDB!)
-* Is it okay to put all block checksums altogether at the end of the SST file instead of store it along with the block? Why?
+### Correctness and Corruption
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+* Does `write_batch` in this chapter provide atomic visibility or durability for the whole batch? What additional synchronization would be needed to make that guarantee?
+* Why must an incremental WAL checksum hash the encoded byte order of each length rather than the integer's native in-memory representation?
+* For every SST checksum, identify the first protected byte, the last protected byte, and the location of the stored checksum.
+* What happens if corruption changes a length or offset before the decoder has located the protected payload? How can a decoder validate bounds before slicing?
+* Is it okay to put all block checksums together at the end of the SST file instead of storing each checksum with its block? Why or why not?
+
+### API and Design
+
+* Consider the case that an LSM storage engine only provides `write_batch` as the write interface (instead of single put + delete). Is it possible to implement it as follows: there is a single write thread with an mpsc channel receiver to get the changes, and all threads send write batches to the write thread. The write thread is the single point to write to the database. What are the pros/cons of this implementation? (Congrats if you do so you get BadgerDB!)
+
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 
-* **Recovering when Corruption**. If there is a checksum error, open the database in a safe mode so that no writes can be performed and non-corrupted data can still be retrieved.
+* **Recovering from Corruption.** If a checksum fails, open the database in a read-only safe mode that can retrieve unaffected data.
 
 {{#include copyright.md}}

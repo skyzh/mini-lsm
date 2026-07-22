@@ -6,12 +6,14 @@
 
 ![Chapter Overview](./lsm-tutorial/week2-04-leveled.svg)
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
-* Implement a leveled compaction strategy and simulate it on the compaction simulator.
-* Incorporate leveled compaction strategy into the system.
+* Implement dynamic leveled compaction and simulate it with the compaction simulator.
+* Select a base level, rank overfull levels, and compact one upper-level SST with all overlapping lower-level SSTs.
+* Incorporate leveled compaction into the engine's read and compaction paths.
+* Explain why normal execution and manifest recovery require different result-application steps.
 
-To copy the test cases into the starter code and run them,
+To copy the test cases into the starter code and run them:
 
 ```
 cargo x copy-test --week 2 --day 4
@@ -20,18 +22,32 @@ cargo x scheck
 
 <div class="warning">
 
-It might be helpful to take a look at [week 2 overview](./week2-overview.md) before reading this chapter to have a general overview of compactions.
+Read the [Week 2 overview](./week2-overview.md) before beginning this chapter for an introduction to compaction and amplification.
 
 </div>
 
+## Before You Begin
+
+Simple leveled compaction established the basic level structure, but it rewrites whole levels and moves new data through levels whose target size is zero. This chapter makes both task selection and result application depend on SST sizes and key ranges.
+
+Keep these invariants in mind:
+
+1. L0 may overlap and is ordered newest to oldest. Every lower level is sorted by first key and contains non-overlapping SST ranges.
+2. The first level with a positive target size is the base level. L0 compaction targets it directly and has priority over size-based tasks.
+3. A non-L0 task selects exactly one upper-level SST and every lower-level SST whose inclusive key range overlaps it.
+4. The upper source is newer and wins duplicate keys. Tombstones are discarded only when the lower level is the bottom-most level.
+5. Applying the result removes exactly the selected files and restores first-key order in the lower level. During manifest replay, the SST objects are not loaded yet, so sorting must be deferred until recovery opens them.
+
+> **Predict before coding:** The selected upper SST covers `[100, 200]`; the lower level contains `[50, 99]`, `[100, 150]`, `[151, 250]`, and `[251, 300]`. Which lower SSTs belong in the task? If the task is being replayed from the manifest before SST metadata is loaded, when can the output files be sorted by first key?
+
 ## Task 1: Leveled Compaction
 
-In chapter 2 day 2, you have implemented the simple leveled compaction strategies. However, the implementation has a few problems:
+On Day 2, you implemented simple leveled compaction. That strategy has two important limitations:
 
-* Compaction always include a full level. Note that you cannot remove the old files until you finish the compaction, and therefore, your storage engine might use 2x storage space while the compaction is going on (if it is a full compaction). Tiered compaction has the same problem. In this chapter, we will implement partial compaction that we select one SST from the upper level for compaction, instead of the full level.
-* SSTs may be compacted across empty levels. As you have seen in the compaction simulator, when the LSM state is empty, and the engine flushes some L0 SSTs, these SSTs will be first compacted to L1, then from L1 to L2, etc. An optimal strategy is to directly place the SST from L0 to the lowest level possible, so as to avoid unnecessary write amplification.
+* Each task includes an entire level. Because input files cannot be removed until the output is complete and durable, full-level compaction can temporarily double the space used by the selected data. Tiered compaction has the same problem. Partial compaction reduces peak space by selecting one upper-level SST at a time.
+* New data moves through empty levels. Starting from an empty tree, simple leveled compaction first moves L0 to L1, then L1 to L2, and so on. Sending L0 directly to the lowest level with a positive target size avoids these unnecessary rewrites.
 
-In this chapter, you will implement a production-ready leveled compaction strategy. The strategy is the same as RocksDB's leveled compaction. You will need to modify:
+In this chapter, you will implement a more realistic leveled compaction strategy based on RocksDB's design. You will need to modify:
 
 ```
 src/compact/leveled.rs
@@ -45,23 +61,23 @@ cargo run --bin compaction-simulator leveled
 
 ### Task 1.1: Compute Target Sizes
 
-In this compaction strategy, you will need to know the first/last key of each SST and the size of the SSTs. The compaction simulator will set up some mock SSTs for you to access.
+This strategy needs each SST's size and inclusive first-to-last key range. The simulator supplies mock SST metadata.
 
-You will need to compute the target sizes of the levels. Assume `base_level_size_mb` is 200MB and the number of levels (except L0) is 6. When the LSM state is empty, the target sizes will be:
+First compute the target size of each level. With `base_level_size_mb = 200` and six levels below L0, an empty LSM tree has these targets:
 
 ```
 [0 0 0 0 0 200MB]
 ```
 
-Before the bottom level exceeds `base_level_size_mb`, all other intermediate levels will have target sizes of 0. The idea is that when the total amount of data is small, it's wasteful to create intermediate levels.
+Until the bottom level exceeds 200 MB, every intermediate level has a target size of zero. Small databases do not benefit from populating those levels.
 
-When the bottom level reaches or exceeds `base_level_size_mb`, we will compute the target size of the other levels by dividing the `level_size_multiplier` from the size. Assume the bottom level contains 300MB of data, and `level_size_multiplier=10`.
+Once the bottom level reaches the base size, work upward by dividing each lower target by `level_size_multiplier`. If the bottom contains 300 MB and the multiplier is 10, the targets are:
 
 ```
 0 0 0 0 30MB 300MB
 ```
 
-In addition, at most *one* level can have a positive target size below `base_level_size_mb`. Assume we now have 30GB files in the last level, the target sizes will be,
+At most *one* level may have a positive target below `base_level_size_mb`. If the bottom level contains 30 GB, the targets are:
 
 ```
 0 0 30MB 300MB 3GB 30GB
@@ -71,7 +87,7 @@ Notice in this case L1 and L2 have target size of 0, and L3 is the only level wi
 
 ### Task 1.2: Decide Base Level
 
-Now, let us solve the problem that SSTs may be compacted across empty levels in the simple leveled compaction strategy. When we compact L0 SSTs with lower levels, we do not directly put it to L1. Instead, we compact it with the first level with `target size > 0`. For example, when the target level sizes are:
+To avoid moving SSTs through empty levels, compact L0 with the first level whose target size is positive. For example, given these targets:
 
 ```
 0 0 0 0 30MB 300MB
@@ -103,7 +119,7 @@ The number of levels in the compaction simulator is 4. Therefore, the SSTs shoul
 
 ### Task 1.3: Decide Level Priorities
 
-Now that we will need to handle compactions below L0. L0 compaction always has the top priority, thus you should compact L0 with other levels first if it reaches the threshold. After that, we can compute the compaction priorities of each level by `current_size / target_size`. We only compact levels with this ratio `> 1.0` The one with the largest ratio will be chosen for compaction with the lower level. For example, if we have:
+After checking the L0 trigger, compute each lower level's priority as `current_size / target_size`. Only ratios greater than 1.0 are eligible. Compact the level with the highest priority into the next level. For example:
 
 ```
 L3: 200MB, target_size=20MB
@@ -120,17 +136,17 @@ L4: 202MB/200MB = 1.01
 L5: 1.9GB/2GB = 0.95
 ```
 
-L3 and L4 needs to be compacted with their lower level respectively, while L5 does not. And L3 has a larger ratio, and therefore we will produce a compaction task of L3 and L4. After the compaction is done, it is likely that we will schedule compactions of L4 and L5.
+L3 and L4 are over their targets, while L5 is not. L3 has the highest priority, so the controller selects an L3-to-L4 task. After that task completes, L4 might become eligible for compaction into L5.
 
 ### Task 1.4: Select SST to Compact
 
-Now, let us solve the problem that compaction always include a full level from the simple leveled compaction strategy. When we decide to compact two levels, we always select the oldest SST from the upper level. You can know the time that the SST is produced by comparing the SST id.
+To avoid compacting a full level, select only the oldest SST in the chosen upper level. SST IDs increase monotonically, so the smallest ID identifies the oldest file.
 
 There are other ways of choosing the compacting SST, for example, by looking into the number of delete tombstones. You can implement this as part of the bonus task.
 
-After you choose the upper level SST, you will need to find all SSTs in the lower level with overlapping keys of the upper level SST. Then, you can generate a compaction task that contain exactly one SST in the upper level and overlapping SSTs in the lower level.
+After choosing the upper SST, find every lower-level SST whose key range overlaps it. The task contains exactly one upper SST and all of those lower SSTs.
 
-When the compaction completes, you will need to remove the SSTs from the state and insert new SSTs into the correct place. Note that you should keep SST ids ordered by first keys in all levels except L0.
+When compaction completes, remove the selected files and insert the outputs in the correct lower-level position. In every level except L0, keep SST IDs ordered by first key.
 
 Running the compaction simulator, you should see:
 
@@ -150,7 +166,7 @@ Upper L1 [224.sst 7cd080e..=33d79d04]
 Lower L2 [210.sst 1c657df4..=31a00e1b, 211.sst 31a00e1c..=46da9e43] -> [228.sst 7cd080e..=1cd18f74, 229.sst 1cd18f75..=31d616db, 230.sst 31d616dc..=46da9e43]
 ```
 
-...should only have one SST from the upper layer.
+...should contain only one SST from the upper level.
 
 **Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
 
@@ -163,7 +179,13 @@ src/compact.rs
 src/lsm_storage.rs
 ```
 
-The implementation should be similar to simple leveled compaction. Remember to change both get/scan read path and the compaction iterators.
+The integration is similar to simple leveled compaction. Update both `get` and `scan`, as well as the iterators used to execute compaction.
+
+## Chapter Checkpoint
+
+Your controller should now compute dynamic target sizes, send L0 directly to the base level, and otherwise select one SST from the most overfull eligible level. Applying a result must preserve non-overlap and first-key order without requiring SST metadata during manifest replay.
+
+For one simulator task, calculate the target sizes and priorities by hand. Verify the chosen upper SST and enumerate every overlapping lower SST using inclusive endpoints. Then replay the same task with `in_recovery = true` and explain why sorting at that point would fail.
 
 ## Related Readings
 
@@ -171,20 +193,30 @@ The implementation should be similar to simple leveled compaction. Remember to c
 
 ## Test Your Understanding
 
+### Correctness and Scheduling
+
+* Why does L0 compaction take priority over a lower level with a larger size score?
+* Construct an overlap example that fails if endpoint equality is treated as non-overlapping.
+* Why must output SSTs be merged with untouched lower-level SSTs and sorted by first key?
+* What information is unavailable while manifest records are being replayed, and what phase of recovery makes it available?
+* If a new L0 file appears while an L0-to-base-level task runs, how does result application retain it?
+
+### Amplification and Design
+
 * What is the estimated write amplification of leveled compaction?
 * What is the estimated read amplification of leveled compaction?
 * Finding a good key split point for compaction may potentially reduce the write amplification, or it does not matter at all? (Consider that case that the user write keys beginning with some prefixes, `00` and `01`. The number of keys under these two prefixes are different and their write patterns are different. If we can always split `00` and `01` into different SSTs...)
 * Imagine that a user was using tiered (universal) compaction before and wants to migrate to leveled compaction. What might be the challenges of this migration? And how to do the migration?
 * And if we do it reversely, what if the user wants to migrate from leveled compaction to tiered compaction?
 * What happens if compaction speed cannot keep up with the SST flushes for leveled compaction?
-* What might needs to be considered if the system schedules multiple compaction tasks in parallel?
+* What must the system consider before scheduling multiple compaction tasks in parallel?
 * What is the peak storage usage for leveled compaction? Compared with universal compaction?
 * Is it true that with a lower `level_size_multiplier`, you can always get a lower write amplification?
 * What needs to be done if a user not using compaction at all decides to migrate to leveled compaction?
 * Some people propose to do intra-L0 compaction (compact L0 tables and still put them in L0) before pushing them to lower layers. What might be the benefits of doing so? (Might be related: [PebblesDB SOSP'17](https://www.cs.utexas.edu/~vijay/papers/sosp17-pebblesdb.pdf))
 * Consider the case that the upper level has two tables of `[100, 200], [201, 300]` and the lower level has `[50, 150], [151, 250], [251, 350]`. In this case, do you still want to compact one file in the upper level at a time? Why?
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 

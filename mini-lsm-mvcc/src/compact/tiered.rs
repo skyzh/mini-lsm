@@ -108,7 +108,7 @@ impl TieredCompactionController {
                 .take(num_tiers_to_take)
                 .cloned()
                 .collect::<Vec<_>>(),
-            bottom_tier_included: snapshot.levels.len() >= num_tiers_to_take,
+            bottom_tier_included: snapshot.levels.len() == num_tiers_to_take,
         })
     }
 
@@ -140,7 +140,7 @@ impl TieredCompactionController {
                 // retain the tier
                 levels.push((*tier_id, files.clone()));
             }
-            if tier_to_remove.is_empty() && !new_tier_added {
+            if tier_to_remove.is_empty() && !new_tier_added && !output.is_empty() {
                 // add the compacted tier to the LSM tree
                 new_tier_added = true;
                 levels.push((output[0], output.to_vec()));
