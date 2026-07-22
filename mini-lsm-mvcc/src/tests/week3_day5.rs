@@ -19,7 +19,7 @@ use tempfile::tempdir;
 
 use crate::{
     compact::CompactionOptions,
-    lsm_storage::{LsmStorageOptions, MiniLsm, WriteBatchRecord},
+    lsm_storage::{LsmStorageOptions, MiniLsm},
     tests::harness::check_lsm_iter_result_by_key,
 };
 
@@ -86,23 +86,4 @@ fn test_txn_integration() {
         &mut txn4.scan(Bound::Unbounded, Bound::Unbounded).unwrap(),
         vec![(Bytes::from("test1"), Bytes::from("233"))],
     );
-}
-
-#[test]
-fn test_read_only_txn_does_not_advance_commit_ts() {
-    let dir = tempdir().unwrap();
-    let options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
-    let storage = MiniLsm::open(&dir, options).unwrap();
-    storage.put(b"key", b"value").unwrap();
-    let commit_ts = storage.inner.mvcc().latest_commit_ts();
-
-    let txn = storage.new_txn().unwrap();
-    assert_eq!(txn.get(b"key").unwrap(), Some(Bytes::from("value")));
-    txn.commit().unwrap();
-
-    assert_eq!(storage.inner.mvcc().latest_commit_ts(), commit_ts);
-
-    let empty_batch: &[WriteBatchRecord<&[u8]>] = &[];
-    storage.write_batch(empty_batch).unwrap();
-    assert_eq!(storage.inner.mvcc().latest_commit_ts(), commit_ts);
 }

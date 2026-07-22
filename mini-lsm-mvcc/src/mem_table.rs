@@ -159,10 +159,6 @@ impl MemTable {
 
     /// Implement this in week 3, day 5.
     pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
-        if let Some(ref wal) = self.wal {
-            wal.put_batch(data)?;
-        }
-
         let mut estimated_size = 0;
         for (key, value) in data {
             estimated_size += key.raw_len() + value.len();
@@ -173,6 +169,9 @@ impl MemTable {
         }
         self.approximate_size
             .fetch_add(estimated_size, std::sync::atomic::Ordering::Relaxed);
+        if let Some(ref wal) = self.wal {
+            wal.put_batch(data)?;
+        }
         Ok(())
     }
 

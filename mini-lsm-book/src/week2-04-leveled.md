@@ -170,16 +170,15 @@ Lower L2 [210.sst 1c657df4..=31a00e1b, 211.sst 31a00e1c..=46da9e43] -> [228.sst 
 
 **Note: we do not provide fine-grained unit tests for this part. You can run the compaction simulator and compare with the output of the reference solution to see if your implementation is correct.**
 
-## Task 2: Integrate with the Read Path
+## Task 2: Integrate Leveled Compaction
 
 In this task, you will need to modify:
 
 ```
 src/compact.rs
-src/lsm_storage.rs
 ```
 
-The integration is similar to simple leveled compaction. Update both `get` and `scan`, as well as the iterators used to execute compaction.
+Extend compaction dispatch and iterator construction for `LeveledCompactionTask`. The Day 2 read path already scans an arbitrary list of levels, so `get` and `scan` require no additional change here.
 
 ## Chapter Checkpoint
 

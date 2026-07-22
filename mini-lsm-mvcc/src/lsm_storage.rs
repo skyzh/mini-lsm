@@ -572,9 +572,6 @@ impl LsmStorageInner {
     }
 
     pub fn write_batch_inner<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
-        if batch.is_empty() {
-            return Ok(self.mvcc().latest_commit_ts());
-        }
         let _lck = self.mvcc().write_lock.lock();
         let ts = self.mvcc().latest_commit_ts() + 1;
         let mut batch_datas: Vec<(key::Key<&[u8]>, &[u8])> = vec![];
@@ -600,8 +597,9 @@ impl LsmStorageInner {
             guard.memtable.put_batch(&batch_datas)?;
             size = guard.memtable.approximate_size();
         }
-        self.mvcc().update_commit_ts(ts);
         self.try_freeze(size)?;
+
+        self.mvcc().update_commit_ts(ts);
         Ok(ts)
     }
 

@@ -73,7 +73,6 @@ In the key+timestamp ordering, the smallest user key appears first, and the larg
 Replacing the key module makes representation assumptions visible as compiler errors. In this task, update:
 
 ```
-src/block.rs
 src/block/builder.rs
 src/block/iterator.rs
 ```
@@ -87,7 +86,7 @@ key_overlap_len (u16) | remaining_key_len (u16) | key (remaining_key_len) | time
 
 Use `raw_len()` to estimate the space required by the complete internal key, and store the timestamp after the remaining user-key bytes.
 
-After you change the block encoding, you will need to change the decoding in both `block.rs` and `iterator.rs` accordingly.
+After you change the block encoding, update the block iterator to decode and reconstruct timestamped keys accordingly.
 
 ## Task 2: Encoding Timestamps in SSTs
 
@@ -96,7 +95,6 @@ Then, you can go ahead and modify the table format,
 ```
 src/table.rs
 src/table/builder.rs
-src/table/iterator.rs
 ```
 
 Change block metadata encoding to include the timestamps of its first and last keys. Because `seek` and `add` accept `KeySlice`, the key comparator then carries the same ordering into SST construction and lookup.

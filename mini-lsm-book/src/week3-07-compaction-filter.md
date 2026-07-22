@@ -52,7 +52,10 @@ In this task, you will need to modify:
 
 ```
 src/compact.rs
+src/lsm_storage.rs
 ```
+
+Define `CompactionFilter::Prefix(Bytes)`, store installed filters in `LsmStorageInner`, and expose `add_compaction_filter` on the engine handle. Installing a filter only records policy for future compactions.
 
 Iterate the filters in `LsmStorageInner::compaction_filters`. If the first version of a key at or below the watermark matches, omit it and ensure that older versions of the same key are skipped as well.
 
