@@ -58,11 +58,15 @@ The resulting implementation must preserve these properties:
 | Merge inputs are ordered by recency, and the earlier input wins equal keys. | Reverse two inputs containing the same key and predict the changed result. |
 | Iterators remain fused after exhaustion or error. | Call `next` again and verify that iteration does not resume. |
 
+An ordinary write must retain the `state` read guard until insertion into the mutable memtable completes. Writing through a cloned snapshot after releasing the guard creates a race in which a concurrent freeze can make that memtable immutable before the write occurs.
+
 Before approving this gate, ask the agent to point to the exact comparison that resolves duplicate keys. Then explain in your own words why changing `>` to `>=`, or reversing the input order, would affect correctness.
 
 ## Review Gate 2: Durable Representation
 
 Have the agent implement blocks, block iterators, SST builders, SST readers, and SST iterators. Consult [Block](./week1-03-block.md), [Sorted String Table](./week1-04-sst.md), and [SST Optimizations](./week1-07-sst-optimizations.md) as needed.
+
+Because this path copies all seven test suites at the start, implement the final Day 7 prefix-compressed block format directly. There is no learning value in first implementing Day 3's uncompressed key layout only to replace it during the same review gate.
 
 Treat the file format as a protocol between the writer and reader. Check these properties:
 
@@ -72,6 +76,14 @@ Treat the file format as a protocol between the writer and reader. Check these p
 - an oversized entry still produces a valid block rather than an empty table or loop;
 - every prefix-compressed key decodes to its original bytes; and
 - Bloom filters may return false positives but never false negatives.
+
+Use this exact high-level SST trailer grammar so the writer and reader agree on where each variable-length section ends:
+
+```text
+blocks | metadata | metadata_offset:u32 | bloom | bloom_offset:u32
+```
+
+The final four bytes contain `bloom_offset`; the metadata offset is the four-byte field immediately before the Bloom section, at `bloom_offset - 4`.
 
 Ask the agent to sketch one encoded block, including its entries and offset table, using three short keys. Decode the sketch manually. A convincing explanation of the format is more valuable than a summary of the Rust functions.
 
@@ -100,6 +112,8 @@ after:  remove exactly that memtable and insert its SST at the newest side of L0
 ```
 
 Expensive SST construction and I/O should happen outside the `state` read-write lock. Structural changes still need `state_lock` so two flushes cannot select and install the same memtable concurrently.
+
+For Day 1, `close` stops and joins the existing worker threads and is harmless when called again after their handles have already been taken. It does not implicitly flush the remaining mutable memtable. If you choose a different lifecycle contract, state it and add tests before changing the implementation.
 
 Before approving this gate, construct one key that appears in the mutable memtable, an immutable memtable, and an L0 SST. Predict `get` and `scan` results when the newest entry is first a value and then a tombstone. Also exercise included, excluded, and unbounded scan endpoints.
 

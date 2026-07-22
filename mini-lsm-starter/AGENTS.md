@@ -37,11 +37,15 @@ Scope: memtables and merge iterators.
 
 Confirm key ordering, overwrite behavior, tombstone precedence, duplicate resolution, error propagation, and fused-iterator behavior.
 
+A mutable write must retain the `state` read guard until the skiplist insertion completes. Do not write through a cloned state snapshot after releasing that guard: a concurrent freeze could otherwise turn the target into an immutable memtable before the insertion.
+
 ### Review Gate 2: Durable Representation
 
 Scope: blocks, SST builders and readers, block and SST iterators, prefix encoding, and Bloom filters.
 
 Confirm byte boundaries, offset encoding, seek semantics, first/last-key metadata, exact decode round trips, and the absence of Bloom-filter false negatives.
+
+When all Week 1 tests are present, implement the final Day 7 prefix-compressed block format directly instead of first implementing and then replacing Day 3's uncompressed key layout.
 
 ### Review Gate 3: One Logical Engine
 
