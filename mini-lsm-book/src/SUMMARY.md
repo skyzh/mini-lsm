@@ -8,8 +8,10 @@
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
+- [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md)
+  - [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md)
+
 - [Week 1 Overview: Mini-LSM](./week1-overview.md)
-  - [Fast-Forward Week 1: Build with a Coding Agent](./week1-fast-forward.md)
   - [Memtable](./week1-01-memtable.md)
   - [Merge Iterator](./week1-02-merge-iterator.md)
   - [Block](./week1-03-block.md)

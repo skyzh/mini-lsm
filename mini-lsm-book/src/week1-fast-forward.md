@@ -2,18 +2,16 @@
   mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Fast-Forward Week 1: Build Mini-LSM with a Coding Agent
+# Day 1: Week 1 — Mini-LSM
 
-This is an alternative path through Week 1 for students who intend to use a coding agent. The agent may write most of the code. Your job is to define what correct means, constrain the work, challenge the result, and leave with a mental model you can use without the agent.
-
-The goal is not to finish seven chapters as quickly as possible. It is to build and defend one working storage engine:
+This is the first day of [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md). You will use a coding agent to build and defend one working storage engine from the original Week 1 material:
 
 ```text
 put/delete -> mutable memtable -> immutable memtables -> L0 SSTs
                      \____________ read + merge ____________/
 ```
 
-Use the existing Week 1 chapters as a reference library when you need a deeper explanation. You do not need to follow them one day at a time.
+Use the existing Week 1 chapters as a reference library when you need a deeper explanation. You do not need to follow them one chapter at a time.
 
 ## The Completion Contract
 
@@ -27,73 +25,9 @@ At the end of this path:
 
 The tests are evidence, not the specification. Generated code remains untrusted until you can connect it to an invariant and try to falsify it.
 
-## Prepare the Repository and the Agent
+## Start Day 1
 
-This section contains the complete setup for the agent-assisted path. Do all repository-wide preparation first, then start the agent from the starter directory—not from the repository root.
-
-### 1. Install the Toolchain and Course Tools
-
-Install Rust with [rustup](https://rustup.rs) if it is not already available. Then clone the repository and install the tools used by the course:
-
-```shell
-git clone https://github.com/skyzh/mini-lsm
-cd mini-lsm
-cargo x install-tools
-```
-
-The repository pins its Rust toolchain in `rust-toolchain.toml`, so Cargo will select it automatically when Rust is managed by `rustup`.
-
-If you already have the repository and tools, update your checkout as appropriate and begin from the repository root.
-
-### 2. Copy the Complete Week 1 Test Suite
-
-The normal course reveals tests one chapter at a time. The fast-forward path starts with the complete acceptance suite:
-
-```shell
-for day in 1 2 3 4 5 6 7; do
-  cargo x copy-test --week 1 --day "$day"
-done
-cargo x scheck
-```
-
-The initial check should fail because the starter contains unfinished code. Record the first failure; it gives you a reproducible baseline. Do not ask the agent to make this failure disappear by changing the tests.
-
-### 3. Start the Agent from `mini-lsm-starter`
-
-Change into the starter directory before launching your coding agent:
-
-```shell
-cd mini-lsm-starter
-pwd
-# Start your coding agent here using the command for your tool.
-```
-
-The final component of `pwd` should be `mini-lsm-starter`. This matters for two reasons:
-
-1. repository-aware agents discover the `AGENTS.md` in this directory and apply its learning constraints; and
-2. the agent begins with the starter as its working scope instead of treating the neighboring reference implementation as ordinary project context.
-
-Starting in this directory is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore explicitly prohibits reading, searching, diffing, or copying `../mini-lsm/`, including attempts to reconstruct the solution through Git history or an online copy.
-
-Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. Open `mini-lsm-starter`. The agent may consult the copied tests, starter interfaces, Rust documentation, and the Week 1 chapters under `../mini-lsm-book/src/`.
-
-### 4. Verify the Instructions Before Coding
-
-Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake that performs no implementation:
-
-> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its hard boundaries and working agreement. You must never inspect or copy the reference solution in `../mini-lsm`, directly or indirectly. Tell me which local sources you are allowed to use, then stop without changing files.
-
-If the response omits the reference-solution boundary, test protection, or review stops, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste the contents of `AGENTS.md` into its persistent project instructions.
-
-## Prompt the Agent in Reviewable Steps
-
-A useful prompt states the scope, invariant, evidence, and stopping point. “Implement Week 1 and make the tests pass” gives the agent no reason to expose its assumptions and gives you no natural place to inspect them.
-
-Use three kinds of prompts throughout this path.
-
-### Prompt 1: Ask for a Model, Not Code
-
-After the instruction handshake, ask the agent to understand the whole task without editing:
+Complete the repository and agent preparation in the [track overview](./agent-fast-forward-overview.md#prepare-the-repository-and-the-agent). With the agent running from `mini-lsm-starter` and the instruction handshake complete, send this kickoff prompt:
 
 > We are completing Week 1 of Mini-LSM in this starter directory. Use the starter interfaces, copied Week 1 tests, and Week 1 book chapters, but never access `../mini-lsm`. Do not edit yet.
 >
@@ -108,25 +42,7 @@ After the instruction handshake, ask the agent to understand the whole task with
 
 Answer the prediction before asking the agent to evaluate it. This turns the first exchange into a check of your current model rather than a generated summary to skim.
 
-### Prompt 2: Implement One Gate
-
-Use a fresh prompt for each review gate:
-
-> Implement only Review Gate `<number and name>`. Before editing, restate the invariants for this gate and list the files you expect to change. Keep the diff focused and do not modify supplied tests, public interfaces, or unrelated code.
->
-> Run focused checks while working. When the gate is implemented, stop and report the changed behavior, the exact commands and results, one remaining uncertainty, and one adversarial case that I should predict. Do not continue to the next gate.
-
-Replace the placeholder with the gate below. A gate may require several internal iterations, but it should produce one coherent diff that you can review before the next subsystem depends on it.
-
-### Prompt 3: Challenge the Result
-
-After inspecting the diff and answering the agent's boundary question, ask for evidence rather than reassurance:
-
-> Review this gate as an untrusted contribution. Connect each changed behavior to an invariant and a supplied test. Identify one plausible bug that could still pass those tests, propose the smallest additional test or manual check that exposes it, and wait for my approval before adding that test. If you find a real problem, explain the failing invariant before changing the implementation.
-
-Do not let “all tests pass” end the review. Conversely, do not ask the agent to invent speculative refactors once the gate's contract and adversarial checks are satisfied.
-
-Repeat Prompts 2 and 3 for each gate. The review stops are where you catch a locally reasonable decision before it spreads across the system.
+When its plan matches the three gates below, use the overview's implementation and challenge prompts for each gate in turn.
 
 ## Review Gate 1: Ordered State
 
