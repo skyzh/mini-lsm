@@ -42,6 +42,8 @@ The initial check should fail because the starter contains unfinished code. Reco
 
 Keep the agent's implementation work inside `mini-lsm-starter`. The repository also contains the reference solution in `mini-lsm`; tell the agent not to inspect or copy it. Otherwise the exercise becomes code transfer rather than systems reasoning.
 
+The starter workspace includes an `AGENTS.md` with these learning boundaries. Agents that support repository instructions should load it automatically; keep the constraints in your prompt as well so the working agreement is explicit.
+
 ## Give the Agent a Contract, Not Just a Goal
 
 You can give the following brief to your coding agent. Adapt the tool-specific wording, but keep the constraints and review gates.
