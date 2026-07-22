@@ -8,9 +8,6 @@
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
-- [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md)
-  - [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md)
-
 - [Week 1 Overview: Mini-LSM](./week1-overview.md)
   - [Memtable](./week1-01-memtable.md)
   - [Merge Iterator](./week1-02-merge-iterator.md)
@@ -38,6 +35,9 @@
   - [Serializable Snapshot Isolation](./week3-06-serializable.md)
   - [Snack Time: Compaction Filters](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
+
+- [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md)
+  - [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md)
 
 ---
 
