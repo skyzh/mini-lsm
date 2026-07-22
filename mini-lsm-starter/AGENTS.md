@@ -29,41 +29,19 @@ Before editing code:
 4. Propose a small implementation and validation plan.
 5. Ask the student to predict one important boundary case before revealing its result.
 
-If the request spans more than one of the review gates below, stop after presenting the plan and wait for the student to approve the first gate. Implement one gate at a time and stop after each gate for review.
+The course material, not this file, defines the checkpoints and their system-specific invariants. The student directs their sequence. Do not choose or begin a checkpoint merely because the preceding checkpoint passed.
 
-### Review Gate 1: Ordered State
-
-Scope: memtables and merge iterators.
-
-Confirm key ordering, overwrite behavior, tombstone precedence, duplicate resolution, error propagation, and fused-iterator behavior.
-
-A mutable write must retain the `state` read guard until the skiplist insertion completes. Do not write through a cloned state snapshot after releasing that guard: a concurrent freeze could otherwise turn the target into an immutable memtable before the insertion.
-
-### Review Gate 2: Durable Representation
-
-Scope: blocks, SST builders and readers, block and SST iterators, prefix encoding, and Bloom filters.
-
-Confirm byte boundaries, offset encoding, seek semantics, first/last-key metadata, exact decode round trips, and the absence of Bloom-filter false negatives.
-
-When all Week 1 tests are present, implement the final Day 7 prefix-compressed block format directly instead of first implementing and then replacing Day 3's uncompressed key layout.
-
-### Review Gate 3: One Logical Engine
-
-Scope: integrated reads and writes, freezing, flushing, SST filtering, and iterator accounting.
-
-Confirm source recency, tombstone handling, range-bound semantics, state transitions, lock lifetimes, and that optimizations do not change logical results.
-
-For a task contained within one gate, you may proceed after presenting the invariants and plan unless the student asks you to wait.
+A request that names one checkpoint authorizes work only on that checkpoint. Before editing, restate its scope and invariants and list the files you expect to change. If a request spans multiple checkpoints, present the plan and wait for the student to select the first one. Implement one checkpoint at a time, stop after each checkpoint for review, and do not continue until the student explicitly names the next checkpoint.
 
 ## Implementation and Debugging
 
-- Prefer the smallest coherent diff that satisfies the current gate.
+- Prefer the smallest coherent diff that satisfies the current checkpoint.
 - Preserve the starter's architecture and naming unless a local design change is necessary and explained.
 - Do not perform unrelated refactors while implementing a task.
 - Make one testable debugging hypothesis at a time. Use the smallest relevant check before stacking speculative fixes.
 - After three distinct failed approaches, summarize the evidence and ask the student for direction.
 - Never claim a test passed unless you ran it and saw a successful result.
-- Treat a passing supplied suite as necessary but not sufficient. Propose at least one adversarial example for each gate and ask the student to predict its outcome. Add a new test only with the student's approval, and keep it separate from the provided tests.
+- Treat a passing supplied suite as necessary but not sufficient. Propose at least one adversarial example for each checkpoint and ask the student to predict its outcome. Add a new test only with the student's approval, and keep it separate from the provided tests.
 - If demonstrating a deliberate fault, begin from a clean, passing state, state the expected failure, and revert the fault immediately after the experiment.
 
 ## Validation
@@ -78,7 +56,7 @@ Also inspect the final diff for modified tests, removed assertions, new lint sup
 
 ## Handoff to the Student
 
-At each review stop, report:
+At each checkpoint stop, report:
 
 - the files and behavior changed;
 - the invariants the code relies on;

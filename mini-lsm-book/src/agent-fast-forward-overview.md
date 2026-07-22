@@ -1,5 +1,5 @@
 <!--
-  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+  mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
 # Agent Fast Forward in 3 Days (WIP)
@@ -72,7 +72,7 @@ Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake
 
 > Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its hard boundaries and working agreement. You must never inspect or copy the reference solution in `../mini-lsm`, directly or indirectly. Tell me which local sources you are allowed to use, then stop without changing files.
 
-If the response omits the reference-solution boundary, test protection, or review stops, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste the contents of `AGENTS.md` into its persistent project instructions.
+If the response omits the reference-solution boundary, test protection, or checkpoint stops, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste the contents of `AGENTS.md` into its persistent project instructions.
 
 ## Prompt the Agent in Reviewable Steps
 
@@ -82,29 +82,29 @@ Use three kinds of prompts throughout the fast-forward track.
 
 ### Prompt 1: Ask for a Model, Not Code
 
-Each day begins with a task-specific kickoff prompt. Ask the agent to map the system, state its invariants, divide the work into review gates, identify ambiguities, and ask you to predict a boundary case before it edits anything. The day page provides the concrete prompt.
+Each day begins with a task-specific kickoff prompt. Ask the agent to map the system, state its invariants, divide the work into checkpoints, identify ambiguities, and ask you to predict a boundary case before it edits anything. The day page provides the concrete prompt.
 
 Answer the prediction before asking the agent to evaluate it. This turns the first exchange into a check of your current model rather than a generated summary to skim.
 
-### Prompt 2: Implement One Gate
+### Prompt 2: Implement One Checkpoint
 
-Use a fresh prompt for each review gate:
+Use a fresh prompt for each checkpoint. You choose the checkpoint; the agent must not infer that passing one checkpoint authorizes it to begin the next:
 
-> Implement only Review Gate `<number and name>`. Before editing, restate the invariants for this gate and list the files you expect to change. Keep the diff focused and do not modify supplied tests, public interfaces, or unrelated code.
+> Implement only Checkpoint `<number and name>`. Before editing, restate the invariants for this checkpoint and list the files you expect to change. Keep the diff focused and do not modify supplied tests, public interfaces, or unrelated code.
 >
-> Run focused checks while working. When the gate is implemented, stop and report the changed behavior, the exact commands and results, one remaining uncertainty, and one adversarial case that I should predict. Do not continue to the next gate.
+> Run focused checks while working. When the checkpoint is implemented, stop and report the changed behavior, the exact commands and results, one remaining uncertainty, and one adversarial case that I should predict. Do not continue to the next checkpoint.
 
-A gate may require several internal iterations, but it should produce one coherent diff that you can review before the next subsystem depends on it.
+A checkpoint may require several internal iterations, but it should produce one coherent diff that you can review before the next subsystem depends on it.
 
 ### Prompt 3: Challenge the Result
 
 After inspecting the diff and answering the agent's boundary question, ask for evidence rather than reassurance:
 
-> Review this gate as an untrusted contribution. Connect each changed behavior to an invariant and a supplied test. Identify one plausible bug that could still pass those tests, propose the smallest additional test or manual check that exposes it, and wait for my approval before adding that test. If you find a real problem, explain the failing invariant before changing the implementation.
+> Review this checkpoint as an untrusted contribution. Connect each changed behavior to an invariant and a supplied test. Identify one plausible bug that could still pass those tests, propose the smallest additional test or manual check that exposes it, and wait for my approval before adding that test. If you find a real problem, explain the failing invariant before changing the implementation.
 
-Do not let “all tests pass” end the review. Conversely, do not ask the agent to invent speculative refactors once the gate's contract and adversarial checks are satisfied.
+Do not let “all tests pass” end the review. Conversely, do not ask the agent to invent speculative refactors once the checkpoint's contract and adversarial checks are satisfied.
 
-Repeat Prompts 2 and 3 for each gate. The review stops are where you catch a locally reasonable decision before it spreads across the system.
+Repeat Prompts 2 and 3 for each checkpoint. The checkpoint stops are where you catch a locally reasonable decision before it spreads across the system.
 
 When the workspace is prepared and the instruction handshake succeeds, continue to [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md).
 
