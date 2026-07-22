@@ -27,9 +27,27 @@ At the end of this path:
 
 The tests are evidence, not the specification. Generated code remains untrusted until you can connect it to an invariant and try to falsify it.
 
-## Prepare the Workspace
+## Prepare the Repository and the Agent
 
-Start in the repository root and copy the entire Week 1 test suite into the starter project:
+This section contains the complete setup for the agent-assisted path. Do all repository-wide preparation first, then start the agent from the starter directory—not from the repository root.
+
+### 1. Install the Toolchain and Course Tools
+
+Install Rust with [rustup](https://rustup.rs) if it is not already available. Then clone the repository and install the tools used by the course:
+
+```shell
+git clone https://github.com/skyzh/mini-lsm
+cd mini-lsm
+cargo x install-tools
+```
+
+The repository pins its Rust toolchain in `rust-toolchain.toml`, so Cargo will select it automatically when Rust is managed by `rustup`.
+
+If you already have the repository and tools, update your checkout as appropriate and begin from the repository root.
+
+### 2. Copy the Complete Week 1 Test Suite
+
+The normal course reveals tests one chapter at a time. The fast-forward path starts with the complete acceptance suite:
 
 ```shell
 for day in 1 2 3 4 5 6 7; do
@@ -38,28 +56,77 @@ done
 cargo x scheck
 ```
 
-The initial check should fail because the starter contains unfinished code. Record the first failure; it gives you a reproducible baseline.
+The initial check should fail because the starter contains unfinished code. Record the first failure; it gives you a reproducible baseline. Do not ask the agent to make this failure disappear by changing the tests.
 
-Keep the agent's implementation work inside `mini-lsm-starter`. The repository also contains the reference solution in `mini-lsm`; tell the agent not to inspect or copy it. Otherwise the exercise becomes code transfer rather than systems reasoning.
+### 3. Start the Agent from `mini-lsm-starter`
 
-The starter workspace includes an `AGENTS.md` with these learning boundaries. Agents that support repository instructions should load it automatically; keep the constraints in your prompt as well so the working agreement is explicit.
+Change into the starter directory before launching your coding agent:
 
-## Give the Agent a Contract, Not Just a Goal
+```shell
+cd mini-lsm-starter
+pwd
+# Start your coding agent here using the command for your tool.
+```
 
-You can give the following brief to your coding agent. Adapt the tool-specific wording, but keep the constraints and review gates.
+The final component of `pwd` should be `mini-lsm-starter`. This matters for two reasons:
 
-> We are completing Week 1 of Mini-LSM in `mini-lsm-starter`. You may edit the starter implementation, but do not modify tests and do not inspect or copy the reference implementation in `mini-lsm`.
+1. repository-aware agents discover the `AGENTS.md` in this directory and apply its learning constraints; and
+2. the agent begins with the starter as its working scope instead of treating the neighboring reference implementation as ordinary project context.
+
+Starting in this directory is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore explicitly prohibits reading, searching, diffing, or copying `../mini-lsm/`, including attempts to reconstruct the solution through Git history or an online copy.
+
+Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. Open `mini-lsm-starter`. The agent may consult the copied tests, starter interfaces, Rust documentation, and the Week 1 chapters under `../mini-lsm-book/src/`.
+
+### 4. Verify the Instructions Before Coding
+
+Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake that performs no implementation:
+
+> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its hard boundaries and working agreement. You must never inspect or copy the reference solution in `../mini-lsm`, directly or indirectly. Tell me which local sources you are allowed to use, then stop without changing files.
+
+If the response omits the reference-solution boundary, test protection, or review stops, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste the contents of `AGENTS.md` into its persistent project instructions.
+
+## Prompt the Agent in Reviewable Steps
+
+A useful prompt states the scope, invariant, evidence, and stopping point. “Implement Week 1 and make the tests pass” gives the agent no reason to expose its assumptions and gives you no natural place to inspect them.
+
+Use three kinds of prompts throughout this path.
+
+### Prompt 1: Ask for a Model, Not Code
+
+After the instruction handshake, ask the agent to understand the whole task without editing:
+
+> We are completing Week 1 of Mini-LSM in this starter directory. Use the starter interfaces, copied Week 1 tests, and Week 1 book chapters, but never access `../mini-lsm`. Do not edit yet.
 >
-> First inspect the starter interfaces, the copied Week 1 tests, and the Week 1 book chapters. Before editing, return:
+> Return:
 >
 > 1. a map of the write, read, and flush paths;
-> 2. the ordering and ownership invariants that connect their components;
+> 2. the ordering, ownership, and file-format invariants that connect their components;
 > 3. an implementation plan divided into the three review gates on this page; and
 > 4. any ambiguity you found between the prose, interfaces, and tests.
 >
-> Implement one review gate at a time. Keep changes within that gate, format the code, and run the relevant tests before continuing. For every gate, report the invariants preserved, the commands run, any failure encountered, and one additional adversarial test or check. Do not weaken assertions, delete tests, or change public interfaces merely to make a test pass. Stop after each gate so I can review the diff and explanation.
+> Ask me to predict one important boundary case, then stop.
 
-Do not begin by asking for the whole course to be implemented in one uninterrupted pass. The review stops are where you inspect assumptions before they spread across the system.
+Answer the prediction before asking the agent to evaluate it. This turns the first exchange into a check of your current model rather than a generated summary to skim.
+
+### Prompt 2: Implement One Gate
+
+Use a fresh prompt for each review gate:
+
+> Implement only Review Gate `<number and name>`. Before editing, restate the invariants for this gate and list the files you expect to change. Keep the diff focused and do not modify supplied tests, public interfaces, or unrelated code.
+>
+> Run focused checks while working. When the gate is implemented, stop and report the changed behavior, the exact commands and results, one remaining uncertainty, and one adversarial case that I should predict. Do not continue to the next gate.
+
+Replace the placeholder with the gate below. A gate may require several internal iterations, but it should produce one coherent diff that you can review before the next subsystem depends on it.
+
+### Prompt 3: Challenge the Result
+
+After inspecting the diff and answering the agent's boundary question, ask for evidence rather than reassurance:
+
+> Review this gate as an untrusted contribution. Connect each changed behavior to an invariant and a supplied test. Identify one plausible bug that could still pass those tests, propose the smallest additional test or manual check that exposes it, and wait for my approval before adding that test. If you find a real problem, explain the failing invariant before changing the implementation.
+
+Do not let “all tests pass” end the review. Conversely, do not ask the agent to invent speculative refactors once the gate's contract and adversarial checks are satisfied.
+
+Repeat Prompts 2 and 3 for each gate. The review stops are where you catch a locally reasonable decision before it spreads across the system.
 
 ## Review Gate 1: Ordered State
 
