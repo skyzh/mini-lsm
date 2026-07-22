@@ -4,19 +4,34 @@
 
 # Timestamp Key Encoding + Refactor
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
-* Refactor your implementation to use key+ts representation.
-* Make your code compile with the new key representation.
+* Encode a `(user_key, timestamp)` internal key in blocks and SST metadata.
+* Preserve the order `user_key ascending, timestamp descending` through every storage iterator.
+* Explain why Bloom filters hash only the user-key portion and why key-range checks ignore timestamps.
 
-To run test cases,
+To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 1
 cargo x scheck
 ```
 
-**Note: The MVCC subsystem is not fully implemented until week 3 day 2. You only need to pass week 3 day 1 tests and all week 1 tests at the end of this day. Week 2 tests won't work because of compaction.**
+**Note:** The MVCC subsystem is not complete until Day 2. At the end of this chapter, only the Day 1 tests and Week 1 tests are expected to pass. Week 2 compaction still uses pre-MVCC assumptions.
+
+## Before You Begin
+
+This chapter changes representation, not visibility. Every existing layer that stores, compares, seeks, or summarizes keys must agree on the same internal ordering.
+
+Keep these invariants in mind:
+
+1. Internal keys sort by user key in ascending order and timestamp in descending order.
+2. Prefix compression applies only to user-key bytes. The timestamp is encoded in full for every entry.
+3. Block metadata stores complete first and last internal keys, including their timestamps.
+4. Bloom filters hash user-key bytes only, because a lookup asks whether any version of that user key may exist.
+5. Day 1 still writes `TS_DEFAULT`; seeing multiple versions through `LsmIterator` is temporarily acceptable until Day 2.
+
+> **Predict before coding:** In what order should `a@7`, `a@3`, `aa@9`, and `b@1` appear? If a block entry shares all user-key bytes with the previous entry, which fields are still encoded for that entry?
 
 ## Task 0: Use MVCC Key Encoding
 
@@ -47,7 +62,7 @@ Alternative key representation: | user_key (varlen) | ts (8 bytes) | in a single
 Our key representation: | user_key slice | ts (u64) |
 ```
 
-In the key+ts encoding, the key with a smallest user key and a largest timestamp will be ordered first. For example,
+In the key+timestamp ordering, the smallest user key appears first, and the largest timestamp for one user key appears first. For example:
 
 ```
 ("a", 233) < ("a", 0) < ("b", 233) < ("b", 0)
@@ -55,7 +70,7 @@ In the key+ts encoding, the key with a smallest user key and a largest timestamp
 
 ## Task 1: Encode Timestamps in Blocks
 
-The first thing you will notice is that your code might not compile after replacing the key module. In this chapter, all you need to do is to make it compile. In this task, you will need to modify:
+Replacing the key module makes representation assumptions visible as compiler errors. In this task, update:
 
 ```
 src/block.rs
@@ -63,14 +78,14 @@ src/block/builder.rs
 src/block/iterator.rs
 ```
 
-You will notice that `raw_ref()` and `len()` are removed from the key API. Instead, we have `key_ref` to retrieve the slice of the user key, and `key_len` to retrieve the length of the user key. You will need to refactor your block builder and decoding implementation to use the new APIs. Also, you will need to change your block encoding to encode the timestamps. In `BlockBuilder::add`, you should do that. The new block entry record will be like:
+`raw_ref()` and `len()` are removed from the key API. Use `key_ref()` for user-key bytes and `key_len()` for their length. Update the block builder and decoder to encode the timestamp explicitly. The new block entry is:
 
 
 ```
 key_overlap_len (u16) | remaining_key_len (u16) | key (remaining_key_len) | timestamp (u64)
 ```
 
-You may use `raw_len` to estimate the space required by a key, and store the timestamp after the user key.
+Use `raw_len()` to estimate the space required by the complete internal key, and store the timestamp after the remaining user-key bytes.
 
 After you change the block encoding, you will need to change the decoding in both `block.rs` and `iterator.rs` accordingly.
 
@@ -84,9 +99,9 @@ src/table/builder.rs
 src/table/iterator.rs
 ```
 
-Specifically, you will need to change your block meta encoding to include the timestamps of the keys. All other code remains the same. As we use `KeySlice` in the signature of all functions (i.e., seek, add), the new key comparator should automatically order the keys by user key and timestamps.
+Change block metadata encoding to include the timestamps of its first and last keys. Because `seek` and `add` accept `KeySlice`, the key comparator then carries the same ordering into SST construction and lookup.
 
-In your table builder, you may directly use the `key_ref()` to build the bloom filter. This naturally creates a prefix bloom filter for your SSTs.
+Use `key_ref()` to build the Bloom filter. All timestamped versions of one user key then share one fingerprint.
 
 ## Task 3: LSM Iterators
 
@@ -118,6 +133,26 @@ Now that we have a timestamp in the key, and when creating the iterators, we wil
 
 When you check if a user key is in a table, you can simply compare the user key without comparing the timestamp.
 
-At this point, you should build your implementation and pass all week 1 test cases. All keys stored in the system will use `TS_DEFAULT` (which is timestamp 0). We will make the engine fully multi-version and pass all test cases in the next two chapters.
+At this point, all stored keys still use `TS_DEFAULT` (timestamp 0). The next two chapters assign real commit timestamps and select versions by read timestamp.
+
+## Chapter Checkpoint
+
+Your engine should encode and decode timestamped keys without changing Day 1 visibility semantics.
+
+Verify these cases explicitly:
+
+1. Round-trip two entries with the same user key and different timestamps through a block and an SST.
+2. Seek to a timestamp between two versions and confirm that descending timestamp order positions the iterator correctly.
+3. Confirm that two versions of one user key add the same Bloom-filter fingerprint.
+
+## Test Your Understanding
+
+* Why is timestamp order reversed while user-key order is not?
+* Which encoded structures would become inconsistent if block metadata omitted timestamps?
+* Why should a point lookup for `k` test one user-key fingerprint rather than a separate fingerprint for every possible `k@ts`?
+* During Day 1, why is it acceptable for `LsmIterator` to return repeated user keys, and why must that behavior change on Day 2?
+* Construct a seek target that distinguishes comparing full internal keys from comparing only user keys.
+
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 {{#include copyright.md}}

@@ -4,23 +4,37 @@
 
 # Snapshot Read - Memtables and Timestamps
 
-In this chapter, you will:
+By the end of this chapter, you will be able to:
 
 * Refactor your memtable/WAL to store multiple versions of a key.
-* Implement the new engine write path to assign each key a timestamp.
-* Make your compaction process aware of multi-version keys.
-* Implement the new engine read path to return the latest version of a key.
+* Assign one unique commit timestamp to every write batch.
+* Preserve every version through compaction while keeping all versions of one user key in one SST.
+* Return the newest committed version of each user key from the latest snapshot.
 
 During the refactor, you might need to change the signature of some functions from `&self` to `self: &Arc<Self>` as necessary.
 
-To run test cases,
+To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 2
 cargo x scheck
 ```
 
-**Note: You will also need to pass everything <= 2.4 after finishing this chapter.**
+**Note:** You should also pass every checkpoint through Week 2 Day 4 after finishing this chapter.
+
+## Before You Begin
+
+Day 1 changed the internal representation but still wrote timestamp 0. This chapter turns timestamps into a commit order. Reads still use the latest timestamp; historical snapshots arrive on Day 3.
+
+Keep these invariants in mind:
+
+1. Every record in one write batch receives the same timestamp, and different committed batches receive different timestamps.
+2. The write lock covers timestamp allocation, the memtable/WAL update, and publication of the new latest commit timestamp.
+3. A scan over a user-key range must include every internal version that could determine the visible value. Included and excluded user-key bounds therefore map to different timestamp sentinels.
+4. Compaction retains all versions in this chapter. It may split output between user keys, but never between two versions of the same user key.
+5. The WAL checksum covers key length, user-key bytes, timestamp, value length, and value bytes in their encoded byte order.
+
+> **Predict before coding:** A batch writes `a` and `b` at timestamp 7, while the memtable already contains `a@6`. What is their internal order? For the user range `(a, b]`, which timestamp sentinels exclude every version of `a` while including every version of `b`?
 
 ## Task 1: MemTable, Write-Ahead Log, and Read Path
 
@@ -50,7 +64,7 @@ After that, you can continue to fix all compiler errors so as to complete this t
 
 We keep the get interface so that the test cases can still probe a specific version of a key in the memtable. This interface should not be used in your read path after finishing this task. Given that we store `KeyBytes`, which is `(Bytes, u64)` in the skiplist, while the user probe the `KeySlice`, which is `(&[u8], u64)`. We have to find a way to convert the latter to a reference of the former, so that we can retrieve the data in the skiplist.
 
-To do this, you may use unsafe code to force cast the `&[u8]` to be static and use `Bytes::from_static` to create a bytes object from a static slice. This is sound because `Bytes` will not try to free the memory of the slice as it is assumed static.
+To do this, you may temporarily cast the `&[u8]` to a `'static` slice and use `Bytes::from_static` to construct a lookup key without copying. This is sound only because the `Bytes` value is used for the synchronous lookup and cannot escape the original slice's lifetime. Storing or returning that value would make the cast unsound.
 
 <details>
 
@@ -62,7 +76,7 @@ Bytes::from_static(unsafe { std::mem::transmute(key.key_ref()) })
 
 </details>
 
-This was not a problem because what we had before is `Bytes` and `&[u8]`, where `Bytes` implements `Borrow<[u8]>`.
+The pre-MVCC map did not need this conversion because `Bytes` implements `Borrow<[u8]>`.
 
 **MemTable::put**
 
@@ -82,7 +96,7 @@ It should now store `(KeyBytes, Bytes)` and the return key type should be `KeySl
 
 **Wal::recover** and **Wal::put**
 
-Write-ahead log should now accept a key slice instead of a user key slice. When serializing and deserializing the WAL record, you should put timestamp into the WAL file and do checksum over the timestamp and all other fields you had before.
+The write-ahead log should now accept a key slice instead of only user-key bytes. When serializing and deserializing a WAL record, include the timestamp and checksum the exact encoded bytes for every field.
 
 The WAL format is as follows:
 
@@ -92,11 +106,11 @@ The WAL format is as follows:
 
 **LsmStorageInner::get**
 
-Previously, we implement `get` as first probe the memtables and then scan the SSTs. Now that we change the memtable to use the new key-ts APIs, we will need to re-implement the `get` interface. The easiest way to do this is to create a merge iterator over everything we have -- memtables, immutable memtables, L0 SSTs, and other level SSTs, the same as what you have done in `scan`, except that we do a bloom filter filtering over the SSTs.
+Previously, `get` could probe sources one at a time. Now a version's timestamp, not only its source, determines visibility. The simplest correct implementation creates the same merged stream as `scan` over memtables, immutable memtables, L0 SSTs, and lower levels, while using Bloom filters to avoid impossible SST probes.
 
 **LsmStorageInner::scan**
 
-You will need to incorporate the new memtable APIs, and you should set the scan range to be `(user_key_begin, TS_RANGE_BEGIN)` and `(user_key_end, TS_RANGE_END)`. Note that when you handle the exclude boundary, you will need to correctly position the iterator to the next key (instead of the current key of the same timestamp).
+Incorporate the new memtable APIs and map user-key bounds to internal-key bounds. An included lower bound starts at `TS_RANGE_BEGIN`; an excluded lower bound must skip every timestamp of that user key. An included upper bound ends at `TS_RANGE_END`; an excluded upper bound stops before `TS_RANGE_BEGIN` for that user key.
 
 ## Task 2: Write Path
 
@@ -108,7 +122,7 @@ src/lsm_storage.rs
 
 We have an `mvcc` field in `LsmStorageInner` that includes all data structures we need to use for multi-version concurrency control in this week. When you open a directory and initialize the storage engine, you will need to create that structure.
 
-In your `write_batch` implementation, you will need to obtain a commit timestamp for all keys in a write batch. You can get the timestamp by using `self.mvcc().latest_commit_ts() + 1` at the beginning of the logic, and `self.mvcc().update_commit_ts(ts)` at the end of the logic to increment the next commit timestamp. To ensure all write batches have different timestamps and new keys are placed on top of old keys, you will need to hold a write lock `self.mvcc().write_lock.lock()` at the beginning of the function, so that only one thread can write to the storage engine at the same time.
+In `write_batch`, allocate `latest_commit_ts() + 1` and use it for every record. Hold `self.mvcc().write_lock.lock()` across allocation and insertion so that concurrent batches cannot reuse a timestamp. Publish the new latest commit timestamp after the batch has been accepted by the memtable/WAL. If later maintenance such as freezing fails after the batch is visible, the timestamp must still not be reused.
 
 ## Task 3: MVCC Compaction
 
@@ -118,7 +132,7 @@ In this task, you will need to modify:
 src/compact.rs
 ```
 
-What we had done in previous chapters is to only keep the latest version of a key and remove a key when we compact the key to the bottom level if the key is removed. With MVCC, we now have timestamps associated with the keys, and we cannot use the same logic for compaction. 
+Previous compaction retained only the newest value and could remove a bottom-level tombstone. With MVCC, older versions may still serve a snapshot, so those rules are not yet safe.
 
 In this chapter, you may simply remove the logic to remove the keys. You may ignore `compact_to_bottom_level` for now, and you should keep ALL versions of a key during the compaction.
 
@@ -136,16 +150,29 @@ In the previous chapter, we implemented the LSM iterator to act as viewing the s
 
 You will need to record `prev_key` in the iterator. If we already returned the latest version of a key to the user, we can skip all old versions and proceed to the next key.
 
-At this point, you should pass all tests in previous chapters except persistence tests (2.5 and 2.6).
+At this point, you should pass all previous tests except the persistence tests from Week 2 Days 5 and 6.
+
+## Chapter Checkpoint
+
+Each write batch should now create one ordered group of versions, and latest-state reads should collapse that history back to one value per user key.
+
+Verify these cases explicitly:
+
+1. Write the same key in three batches and confirm that a raw internal iterator sees all three timestamps in descending order while `get` returns only the newest value.
+2. Scan each combination of included and excluded bounds around a key that has several versions.
+3. Force an SST-size boundary in the middle of a key's history and confirm that every version remains in one output SST.
+4. Round-trip a WAL record and confirm its checksum covers the encoded timestamp as well as the key and value.
 
 ## Test Your Understanding
 
 * What is the difference of `get` in the MVCC engine and the engine you built in week 2?
 * In week 2, you stop at the first memtable/level where a key is found when `get`. Can you do the same in the MVCC version?
-* How do you convert `KeySlice` to `&KeyBytes`? Is it a safe/sound operation?
-* Why do we need to take a write lock in the write path?
+* How do you convert `KeySlice` into a temporary `KeyBytes` lookup key? Which lifetime condition makes the unsafe conversion sound?
+* Why must the write lock cover both timestamp selection and batch insertion?
+* Why does an excluded lower bound use the opposite timestamp sentinel from an included lower bound?
+* What observable failure occurs if compaction splits two versions of one user key across SSTs in the same level?
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 

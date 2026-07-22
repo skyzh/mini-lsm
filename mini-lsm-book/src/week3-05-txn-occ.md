@@ -4,14 +4,35 @@
 
 # Transaction and Optimistic Concurrency Control
 
-In this chapter, you will implement all interfaces of `Transaction`. Your implementation will maintain a private workspace for modifications inside a transaction, and commit them in batch, so that all modifications within the transaction will only be visible to the transaction itself until commit. We only check for conflicts (i.e., serializable conflicts) when commit, and this is optimistic concurrency control.
+By the end of this chapter, you will be able to:
 
-To run test cases,
+* Maintain a private transaction workspace with read-your-writes semantics.
+* Merge local updates and tombstones with the transaction's stable engine snapshot.
+* Commit one transaction as one atomic memtable and WAL batch.
+
+To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 5
 cargo x scheck
 ```
+
+This chapter prepares for optimistic concurrency control; serializable conflict validation is added on Day 6.
+
+## Before You Begin
+
+A transaction now has two sources: its private workspace and the engine snapshot at `read_ts`. The local source is newer and must win on duplicate user keys.
+
+Keep these invariants in mind:
+
+1. `get` and `scan` provide read-your-writes, including local deletions.
+2. Local entries shadow the engine snapshot but remain invisible to every other transaction until commit.
+3. Commit marks the transaction unusable before publishing any writes.
+4. A non-empty transaction uses one commit timestamp and one WAL batch, even when it exceeds the memtable size target.
+5. The complete WAL record is appended before any record from that batch becomes visible in the memtable. Recovery validates the whole batch before applying any of it.
+6. A read-only transaction publishes no batch and does not advance the commit timestamp.
+
+> **Predict before coding:** The snapshot contains `a=old,b=old`; the local workspace contains `a=new,b=del,c=new`. What should an unbounded scan return? If the process crashes after writing only half of the WAL batch, how many of those local updates may recovery expose?
 
 ## Task 1: Local Workspace + Put and Delete
 
@@ -31,7 +52,7 @@ In this task, you will need to modify:
 src/mvcc/txn.rs
 ```
 
-For `get`, you should first probe the local storage. If a value is found, return the value or `None` depending on whether it is a deletion marker. For `scan`, you will need to implement a `TxnLocalIterator` for the skiplist as in chapter 1.1 when you implement the iterator for a memtable without key timestamp. You will need to store a `TwoMergeIterator<TxnLocalIterator, FusedIterator<LsmIterator>>` in the `TxnIterator`. And, lastly, given that the `TwoMergeIterator` will retain the deletion markers in the child iterators, you will need to modify your `TxnIterator` implementation to correctly handle deletions.
+For `get`, probe local storage first and interpret an empty value as a deletion. For `scan`, implement `TxnLocalIterator` over the timestamp-free skiplist and merge it ahead of `FusedIterator<LsmIterator>`. Because the merge iterator retains tombstones, `TxnIterator` must suppress them without exposing the older engine value they shadow.
 
 ## Task 3: Commit
 
@@ -41,7 +62,7 @@ In this task, you will need to modify:
 src/mvcc/txn.rs
 ```
 
-We assume that a transaction will only be used on a single thread. Once your transaction enters the commit phase, you should set `self.committed` to true, so that users cannot do any other operations on the transaction. You `put`, `delete`, `scan`, and `get` implementation should error if the transaction is already committed.
+We assume that a transaction is used from one thread. As it enters commit, atomically mark it committed so later `put`, `delete`, `scan`, `get`, or repeated `commit` calls fail.
 
 Your commit implementation should simply collect all key-value pairs from the local storage and submit a write batch to the storage engine.
 
@@ -67,20 +88,35 @@ The new WAL encoding is as follows:
 
 `batch_size` is the size of the `BODY` section. `checksum` is the checksum for the `BODY` section.
 
-There are no test cases to verify your implementation. As long as you pass all existing test cases and implement the above WAL format, everything should be fine.
+Add focused validation for the encoded batch boundary and checksum. Recovery must reject a truncated or corrupt batch without applying a prefix of its records.
 
-You should implement `Wal::put_batch` and `MemTable::put_batch`. The original `put` function should treat the
-single key-value pair as a batch. That is to say, at this point, your `put` function should call `put_batch`.
+Implement `Wal::put_batch` and `MemTable::put_batch`. The original `put` function should treat one key-value pair as a one-record batch and call `put_batch`.
+
+Append the complete batch to the WAL before inserting its entries into the skiplist. Otherwise, an I/O error can leave values visible in memory even though the durable log rejected their commit.
 
 A batch should be handled in the same mem table and the same WAL, even if it exceeds the mem table size limit.
+
+## Chapter Checkpoint
+
+Transaction-local reads should now behave like one overlay, and a successful commit should create one indivisible durable batch.
+
+Verify these cases explicitly:
+
+1. Overwrite and delete keys from the snapshot, then compare local `get` with included, excluded, and unbounded scans.
+2. Confirm that another transaction cannot observe the workspace before commit and that an older transaction cannot observe it afterward.
+3. Commit a batch larger than the memtable threshold and confirm that it is not split across memtables or WALs.
+4. Truncate a WAL batch at the header, body, and checksum; each recovery attempt should return an error and expose none of that batch.
+5. Commit a read-only transaction and confirm that the latest commit timestamp does not change.
 
 ## Test Your Understanding
 
 * With all the things we have implemented up to this point, does the system satisfy snapshot isolation? If not, what else do we need to do to support snapshot isolation? (Note: snapshot isolation is different from serializable snapshot isolation we will talk about in the next chapter)
 * What if the user wants to batch import data (i.e., 1TB?) If they use the transaction API to do that, will you give them some advice? Is there any opportunity to optimize for this case?
 * What is optimistic concurrency control? What would the system be like if we implement pessimistic concurrency control instead in Mini-LSM?
-* What happens if your system crashes and leave a corrupted WAL on the disk? How do you handle this situation?
-* When you commit the txn, is it necessary to put everything into the memtable in batch, or you can simply put it key by key? Why?
+* What happens if your system crashes and leaves a corrupted WAL on disk? How do you distinguish a complete batch from a prefix?
+* When you commit the transaction, is it necessary to put everything into the memtable as a batch, or can you insert it key by key? Which interleavings would expose a partial commit?
+* Why must WAL append happen before memtable publication? What should the caller observe if either step fails?
+* Should an empty transaction allocate a commit timestamp? What downstream state changes would that cause?
 
 ## Bonus Tasks
 

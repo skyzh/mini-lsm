@@ -4,14 +4,33 @@
 
 # (A Partial) Serializable Snapshot Isolation
 
-Now, we are going to add a conflict detection algorithm at the transaction commit time, so as to make the engine to have some level of serializable.
+By the end of this chapter, you will be able to:
 
-To run test cases,
+* Detect a tracked read/write dependency against transactions committed after a snapshot began.
+* Serialize validation and publication under one commit lock.
+* Explain why key-only scan tracking does not prevent phantom anomalies.
+
+To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 6
 cargo x scheck
 ```
+
+## Before You Begin
+
+Day 5 provides stable snapshots and atomic writes, but two transactions can still make decisions from the same old state and produce write skew. Day 6 validates a transaction immediately before commit.
+
+Keep these invariants in mind:
+
+1. Validation and write publication happen under `commit_lock`, so no transaction can commit between the check and the write.
+2. For a transaction at `read_ts`, compare its read set with the write sets committed after `read_ts` and before its own publication.
+3. Record a point-read key even when `get` returns `None`; the absence influenced the transaction.
+4. A failed validation publishes no data and no committed write-set record.
+5. Read-only transactions require no validation record and do not advance the commit timestamp.
+6. Recording only keys returned by a scan does not record gaps, so inserts into those gaps can create phantoms.
+
+> **Predict before coding:** Two transactions begin at timestamp 10. T1 reads `b` and writes `a`; T2 reads `a` and writes `b`. T1 commits at 11. Which set intersection must abort T2? How would the answer change if T2's dependency came only from an empty range scan?
 
 Let us go through an example of serializable. Consider that we have two transactions in the engine that:
 
@@ -98,11 +117,11 @@ src/mvcc/txn.rs
 src/lsm_storage.rs
 ```
 
-Now, we can go ahead and implement the validation in the commit phase. You should take the `commit_lock` every time we process a transaction commit. This ensures only one transaction goes into the transaction verification and commit phase.
+Implement validation in the commit phase. Hold `commit_lock` across validation, timestamp allocation, write publication, and insertion into `committed_txns`. A read-only transaction can return without publishing a timestamp or validation record.
 
 You will need to go through all transactions with commit timestamp within range `(read_ts, expected_commit_ts)` (both excluded bounds), and see if the read set of the current transaction overlaps with the write set of any transaction satisfying the criteria. If we can commit the transaction, submit a write batch, and insert the write set of this transaction into `self.inner.mvcc().committed_txns`, where the key is the commit timestamp.
 
-You can skip the check if `write_set` is empty. A read-only transaction can always be committed.
+Skip validation if `write_set` is empty. A read-only transaction can always commit and should not create an empty write batch.
 
 You should also modify the `put`, `delete`, and `write_batch` interface in `LsmStorageInner`. We recommend you define a helper function `write_batch_inner` that processes a write batch. If `options.serializable = true`, `put`, `delete`, and the user-facing `write_batch` should create a transaction instead of directly creating a write batch. Your write batch helper function should also return a `u64` commit timestamp so that `Transaction::Commit` can correctly store the committed transaction data into the MVCC structure.
 
@@ -114,15 +133,31 @@ In this task, you will need to modify:
 src/mvcc/txn.rs
 ```
 
-When you commit a transaction, you can also clean up the committed txn map to remove all transactions below the watermark, as they will not be involved in any future serializable validations.
+After a successful write transaction commits, remove committed transaction records strictly below the watermark; no future transaction can have an older active `read_ts`.
+
+## Chapter Checkpoint
+
+Point-read dependencies should now produce an execution equivalent to commit order, while the documented scan-phantom limitation remains visible.
+
+Verify these cases explicitly:
+
+1. Reproduce write skew and confirm exactly one of the overlapping transactions aborts.
+2. Read a missing key, let another transaction insert it, then attempt to commit a dependent write from the first transaction.
+3. Confirm that disjoint read and write sets both commit, and that two blind writes to the same key can serialize by commit order.
+4. Run the scan-phantom example and explain why returned-key hashes cannot represent the missing predicate.
+5. Keep the oldest transaction alive and confirm committed write-set metadata is retained until its watermark advances.
 
 ## Test Your Understanding
 
 * If you have some experience with building a relational database, you may think about the following question: assume that we build a database based on Mini-LSM where we store each row in the relation table as a key-value pair (key: primary key, value: serialized row) and enable serializable verification, does the database system directly gain ANSI serializable isolation level capability? Why or why not?
 * The thing we implement here is actually write snapshot-isolation (see [A critique of snapshot isolation](https://dl.acm.org/doi/abs/10.1145/2168836.2168853)) that guarantees serializable. Is there any cases where the execution is serializable, but will be rejected by the write snapshot-isolation validation?
 * There are databases that claim they have serializable snapshot isolation support by only tracking the keys accessed in gets and scans (instead of key range). Do they really prevent write skews caused by phantoms? (Okay... Actually, I'm talking about [BadgerDB](https://dgraph.io/blog/post/badger-txn/).)
+* Why must `commit_lock` cover both validation and publication? Construct an interleaving that fails if the lock is released between them.
+* Why does a `get` miss belong in the read set?
+* Why can two transactions that only write the same key both commit without violating serializability?
+* Which committed transaction records are safe to garbage-collect at a given watermark?
 
-We do not provide reference answers to the questions, and feel free to discuss about them in the Discord community.
+We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
 
 ## Bonus Tasks
 

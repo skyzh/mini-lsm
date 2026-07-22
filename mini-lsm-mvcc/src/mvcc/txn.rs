@@ -149,6 +149,9 @@ impl Transaction {
                 }
             })
             .collect::<Vec<_>>();
+        if batch.is_empty() {
+            return Ok(());
+        }
         let ts = self.inner.write_batch_inner(&batch)?;
         if serializability_check {
             let mut committed_txns = self.inner.mvcc().committed_txns.lock();
