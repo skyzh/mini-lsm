@@ -2,7 +2,7 @@
   mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Agent Fast Forward in 3 Days
+# Agent Fast Forward in 3 Days (WIP)
 
 This is an alternative course track for students who intend to use a coding agent. Instead of spending seven chapters on each original course week, you will use one focused day to specify, generate, review, and challenge that week's system.
 
