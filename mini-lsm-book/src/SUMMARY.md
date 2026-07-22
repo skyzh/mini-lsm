@@ -36,6 +36,9 @@
   - [Snack Time: Compaction Filters](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
+- [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md)
+  - [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md)
+
 ---
 
 # DEPRECATED Mini-LSM v1
