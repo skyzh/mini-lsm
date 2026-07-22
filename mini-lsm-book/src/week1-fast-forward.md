@@ -35,16 +35,16 @@ Complete the repository and agent preparation in the [track overview](./agent-fa
 >
 > 1. a map of the write, read, and flush paths;
 > 2. the ordering, ownership, and file-format invariants that connect their components;
-> 3. an implementation plan divided into the three review gates on this page; and
+> 3. an implementation plan divided into the three checkpoints on this page; and
 > 4. any ambiguity you found between the prose, interfaces, and tests.
 >
 > Ask me to predict one important boundary case, then stop.
 
 Answer the prediction before asking the agent to evaluate it. This turns the first exchange into a check of your current model rather than a generated summary to skim.
 
-When its plan matches the three gates below, use the overview's implementation and challenge prompts for each gate in turn.
+When its plan matches the three checkpoints below, choose the first checkpoint and use the overview's implementation and challenge prompts. Begin each later checkpoint only when you explicitly ask the agent to do so.
 
-## Review Gate 1: Ordered State
+## Checkpoint 1: Ordered State
 
 Have the agent implement the memtable and iterator layers. Use the [Memtable](./week1-01-memtable.md) and [Merge Iterator](./week1-02-merge-iterator.md) chapters when the code or tests do not explain a decision.
 
@@ -60,13 +60,13 @@ The resulting implementation must preserve these properties:
 
 An ordinary write must retain the `state` read guard until insertion into the mutable memtable completes. Writing through a cloned snapshot after releasing the guard creates a race in which a concurrent freeze can make that memtable immutable before the write occurs.
 
-Before approving this gate, ask the agent to point to the exact comparison that resolves duplicate keys. Then explain in your own words why changing `>` to `>=`, or reversing the input order, would affect correctness.
+Before approving this checkpoint, ask the agent to point to the exact comparison that resolves duplicate keys. Then explain in your own words why changing `>` to `>=`, or reversing the input order, would affect correctness.
 
-## Review Gate 2: Durable Representation
+## Checkpoint 2: Durable Representation
 
 Have the agent implement blocks, block iterators, SST builders, SST readers, and SST iterators. Consult [Block](./week1-03-block.md), [Sorted String Table](./week1-04-sst.md), and [SST Optimizations](./week1-07-sst-optimizations.md) as needed.
 
-Because this path copies all seven test suites at the start, implement the final Day 7 prefix-compressed block format directly. There is no learning value in first implementing Day 3's uncompressed key layout only to replace it during the same review gate.
+Because this path copies all seven test suites at the start, implement the final Day 7 prefix-compressed block format directly. There is no learning value in first implementing Day 3's uncompressed key layout only to replace it during the same checkpoint.
 
 Treat the file format as a protocol between the writer and reader. Check these properties:
 
@@ -89,7 +89,7 @@ Ask the agent to sketch one encoded block, including its entries and offset tabl
 
 For an adversarial check, use keys with no shared prefix, a long shared prefix, and an empty value. Confirm that encoding and decoding preserve all three cases.
 
-## Review Gate 3: One Logical Engine
+## Checkpoint 3: One Logical Engine
 
 Have the agent connect the read path, write path, freezing, flushing, SST filtering, Bloom-filter lookup, and iterator accounting. Use [Read Path](./week1-05-read-path.md) and [Write Path](./week1-06-write-path.md) when reviewing the integration.
 
@@ -115,7 +115,7 @@ Expensive SST construction and I/O should happen outside the `state` read-write 
 
 For Day 1, `close` stops and joins the existing worker threads and is harmless when called again after their handles have already been taken. It does not implicitly flush the remaining mutable memtable. If you choose a different lifecycle contract, state it and add tests before changing the implementation.
 
-Before approving this gate, construct one key that appears in the mutable memtable, an immutable memtable, and an L0 SST. Predict `get` and `scan` results when the newest entry is first a value and then a tombstone. Also exercise included, excluded, and unbounded scan endpoints.
+Before approving this checkpoint, construct one key that appears in the mutable memtable, an immutable memtable, and an L0 SST. Predict `get` and `scan` results when the newest entry is first a value and then a tombstone. Also exercise included, excluded, and unbounded scan endpoints.
 
 ## Audit the Finished Engine
 
@@ -138,7 +138,7 @@ Review actual diffs and test output, not only the report. Search for removed ass
 
 Finally, introduce one small, deliberate fault—for example, reverse equal-key precedence in a merge iterator or make an excluded upper bound inclusive. Predict which test should fail, run it, and revert the fault. This verifies that the tests can detect at least one mistake you understand.
 
-## The Student Checkpoint
+## Day 1 Completion Checkpoint
 
 You are ready for Week 2 when you can do these without delegating the answer back to the agent:
 
