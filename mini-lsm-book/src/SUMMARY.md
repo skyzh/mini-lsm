@@ -37,7 +37,7 @@
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
 - [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md)
-  - [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md)
+  - [Day 1 - Mini-LSM](./week1-fast-forward.md)
 
 ---
 

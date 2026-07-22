@@ -2,16 +2,16 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Day 1: Week 1 — Mini-LSM
+# Day 1 - Mini-LSM
 
-This is the first day of [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md). You will use a coding agent to build and defend one working storage engine from the original Week 1 material:
+This is the first day of [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md). You will use a coding agent to build and defend one working storage engine from the original Mini-LSM material:
 
 ```text
 put/delete -> mutable memtable -> immutable memtables -> L0 SSTs
                      \____________ read + merge ____________/
 ```
 
-Use the existing Week 1 chapters as a reference library when you need a deeper explanation. You do not need to follow them one chapter at a time.
+Use the existing Mini-LSM chapters as a reference library when you need a deeper explanation. You do not need to follow them one chapter at a time.
 
 ## The Completion Contract
 
@@ -20,16 +20,27 @@ At the end of this path:
 - `put`, `delete`, `get`, and bounded `scan` work across memory and disk;
 - a frozen memtable can be flushed into an L0 SST;
 - Bloom filters and prefix encoding improve the implementation without changing its results;
-- the complete Week 1 test suite passes; and
+- the complete supplied test suite passes; and
 - you can trace a key through the engine, explain why the newest value wins, and design a test for a plausible bug.
 
 The tests are evidence, not the specification. Generated code remains untrusted until you can connect it to an invariant and try to falsify it.
 
+## Copy the Complete Test Suite
+
+Complete the repository and agent preparation in the [track overview](./agent-fast-forward-overview.md#prepare-the-repository-and-the-agent). Leave the agent at the instruction-handshake stop, then run these commands from the repository root. The original course reveals tests one chapter at a time; Day 1 starts with the complete acceptance suite:
+
+```shell
+cargo x copy-test --week 1
+cargo x scheck
+```
+
+The initial check should fail because the starter contains unfinished code. Record the first failure; it gives you a reproducible baseline. Do not ask the agent to make this failure disappear by changing the tests.
+
 ## Start Day 1
 
-Complete the repository and agent preparation in the [track overview](./agent-fast-forward-overview.md#prepare-the-repository-and-the-agent). With the agent running from `mini-lsm-starter` and the instruction handshake complete, send this kickoff prompt:
+With the agent running from `mini-lsm-starter`, the instruction handshake complete, and the test suite copied, send this kickoff prompt:
 
-> We are completing Week 1 of Mini-LSM in this starter directory. Use the starter interfaces, copied Week 1 tests, and Week 1 book chapters, but never access `../mini-lsm`. Do not edit yet.
+> We are completing Mini-LSM in this starter directory. Use the starter interfaces, copied acceptance tests, and Mini-LSM book chapters, but never access `../mini-lsm`. Do not edit yet.
 >
 > Return:
 >
@@ -140,7 +151,7 @@ Finally, introduce one small, deliberate fault—for example, reverse equal-key 
 
 ## Day 1 Completion Checkpoint
 
-You are ready for Week 2 when you can do these without delegating the answer back to the agent:
+You are ready for Day 2 when you can do these without delegating the answer back to the agent:
 
 - draw the write, read, and flush paths from memory;
 - explain the ordering rule that selects one value from duplicate keys;
@@ -150,6 +161,6 @@ You are ready for Week 2 when you can do these without delegating the answer bac
 - describe an unsafe flush interleaving and how the implementation prevents it; and
 - turn a suspected invariant violation into a minimal test.
 
-If you cannot yet do one of these, use the corresponding Week 1 chapter and ask the agent to quiz you with concrete states or byte layouts. The measure of success is not whether you typed the implementation. It is whether you can specify, inspect, test, and change the system with confidence.
+If you cannot yet do one of these, use the corresponding Mini-LSM chapter and ask the agent to quiz you with concrete states or byte layouts. The measure of success is not whether you typed the implementation. It is whether you can specify, inspect, test, and change the system with confidence.
 
 {{#include copyright.md}}

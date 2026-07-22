@@ -4,15 +4,15 @@
 
 # Agent Fast Forward in 3 Days (WIP)
 
-This is an alternative course track for students who intend to use a coding agent. Instead of spending seven chapters on each original course week, you will use one focused day to specify, generate, review, and challenge that week's system.
+This is an alternative course track for students who intend to use a coding agent. Instead of following seven chapters for each course phase, you will use one focused day to specify, generate, review, and challenge a complete system.
 
 The agent may write most of the code. Your job is to define what correct means, constrain the work, inspect the result, and leave with a mental model you can use without the agent.
 
 | Fast-forward day | Original course material | Outcome |
 | --- | --- | --- |
-| [Day 1](./week1-fast-forward.md) | Week 1: Mini-LSM | A working storage engine with memtables, SSTs, reads, writes, and flushes. |
-| Day 2 | Week 2: Compaction and persistence | Coming later. |
-| Day 3 | Week 3: MVCC | Coming later. |
+| [Day 1](./week1-fast-forward.md) | Mini-LSM | A working storage engine with memtables, SSTs, reads, writes, and flushes. |
+| Day 2 | Compaction and persistence | Coming later. |
+| Day 3 | MVCC | Coming later. |
 
 The original chapters remain a reference library. This track changes the pacing and the student's role; it does not remove the need to understand ordering, representation, concurrency, and failure modes.
 
@@ -34,20 +34,7 @@ The repository pins its Rust toolchain in `rust-toolchain.toml`, so Cargo will s
 
 If you already have the repository and tools, update your checkout as appropriate and begin from the repository root.
 
-### 2. Copy the Complete Week 1 Test Suite
-
-The normal course reveals tests one chapter at a time. Day 1 of the fast-forward track starts with the complete Week 1 acceptance suite:
-
-```shell
-for day in 1 2 3 4 5 6 7; do
-  cargo x copy-test --week 1 --day "$day"
-done
-cargo x scheck
-```
-
-The initial check should fail because the starter contains unfinished code. Record the first failure; it gives you a reproducible baseline. Do not ask the agent to make this failure disappear by changing the tests.
-
-### 3. Start the Agent from `mini-lsm-starter`
+### 2. Start the Agent from `mini-lsm-starter`
 
 Change into the starter directory before launching your coding agent:
 
@@ -66,7 +53,7 @@ Starting in this directory is not a security sandbox: an agent can still travers
 
 Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. Open `mini-lsm-starter`. The agent may consult the copied tests, starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`.
 
-### 4. Verify the Instructions Before Coding
+### 3. Verify the Instructions Before Coding
 
 Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake that performs no implementation:
 
@@ -106,6 +93,6 @@ Do not let “all tests pass” end the review. Conversely, do not ask the agent
 
 Repeat Prompts 2 and 3 for each checkpoint. The checkpoint stops are where you catch a locally reasonable decision before it spreads across the system.
 
-When the workspace is prepared and the instruction handshake succeeds, continue to [Day 1: Week 1 — Mini-LSM](./week1-fast-forward.md).
+When the workspace is prepared and the instruction handshake succeeds, continue to [Day 1 - Mini-LSM](./week1-fast-forward.md).
 
 {{#include copyright.md}}
