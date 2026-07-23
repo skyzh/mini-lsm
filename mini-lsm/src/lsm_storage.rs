@@ -378,9 +378,24 @@ impl LsmStorageInner {
                         memtables.insert(x);
                     }
                     ManifestRecord::Compaction(task, output) => {
-                        let (new_state, _) = compaction_controller
+                        let (new_state, files_to_remove) = compaction_controller
                             .apply_compaction_result(&state, &task, &output, true);
-                        // TODO: apply remove again
+
+                        // try removing old ssts
+                        for table_id in files_to_remove {
+                            let sst_path = Self::path_of_sst_static(path, table_id);
+                            if let Err(err) = std::fs::remove_file(&sst_path) {
+                                if err.kind() != std::io::ErrorKind::NotFound {
+                                    eprintln!(
+                                        "failed to remove obsolete SST during recovery: table_id={}, path={}, error={}",
+                                        table_id,
+                                        sst_path.display(),
+                                        err
+                                    );
+                                }
+                            }
+                        }
+
                         state = new_state;
                         next_sst_id =
                             next_sst_id.max(output.iter().max().copied().unwrap_or_default());
