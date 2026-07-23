@@ -13,7 +13,6 @@
 // limitations under the License.
 
 mod harness;
-mod regression;
 mod week1_day1;
 mod week1_day2;
 mod week1_day3;
