@@ -4,9 +4,9 @@
 
 # Agent Fast Forward in 3 Days (WIP)
 
-This is an alternative course track for students who intend to use a coding agent. Instead of following seven chapters for each course phase, you will use one focused day to specify, generate, review, and challenge a complete system.
+This is an alternative course track for students who intend to use a coding agent. The agent will write much of the code, but it must not silently design the system for you. Each day is a dialogue in which you make the consequential decisions, the agent turns a few accepted decisions into a small code change, and tests challenge the shared model.
 
-The agent may write most of the code. Your job is to define what correct means, constrain the work, inspect the result, and leave with a mental model you can use without the agent.
+Fast forward means compressing implementation time, not compressing the design into one generated answer.
 
 | Fast-forward day | Original course material | Outcome |
 | --- | --- | --- |
@@ -44,54 +44,71 @@ pwd
 # Start your coding agent here using the command for your tool.
 ```
 
-The final component of `pwd` should be `mini-lsm-starter`. This matters for two reasons:
+The final component of `pwd` should be `mini-lsm-starter`. This matters because repository-aware agents discover the `AGENTS.md` in this directory and begin with the starter as their working scope.
 
-1. repository-aware agents discover the `AGENTS.md` in this directory and apply its learning constraints; and
-2. the agent begins with the starter as its working scope instead of treating the neighboring reference implementation as ordinary project context.
+Starting there is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore prohibits reading, searching, diffing, or copying `../mini-lsm`, including attempts to reconstruct the solution through Git history or an online copy.
 
-Starting in this directory is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore explicitly prohibits reading, searching, diffing, or copying `../mini-lsm/`, including attempts to reconstruct the solution through Git history or an online copy.
-
-Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. Open `mini-lsm-starter`. The agent may consult the copied tests, starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`.
+Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. The agent may consult copied tests, starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`.
 
 ### 3. Verify the Instructions Before Coding
 
 Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake that performs no implementation:
 
-> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its hard boundaries and working agreement. You must never inspect or copy the reference solution in `../mini-lsm`, directly or indirectly. Tell me which local sources you are allowed to use, then stop without changing files.
+> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its reference-solution boundary, test protections, and student-owned design protocol. Explain which choices require a stop and which mechanical coding choices do not. Tell me which local sources you may use, then stop without changing files.
 
-If the response omits the reference-solution boundary, test protection, or checkpoint stops, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste the contents of `AGENTS.md` into its persistent project instructions.
+If the response omits the reference-solution boundary, test protection, or one-decision-at-a-time stop, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste `AGENTS.md` into its persistent project instructions.
 
-## Prompt the Agent in Reviewable Steps
+## The Design-and-Test Loop
 
-A useful prompt states the scope, invariant, evidence, and stopping point. “Implement everything and make the tests pass” gives the agent no reason to expose its assumptions and gives you no natural place to inspect them.
+Begin a checkpoint with an ordinary capability request:
 
-Use three kinds of prompts throughout the fast-forward track.
+> Implement block format.
 
-### Prompt 1: Ask for a Model, Not Code
+That prompt authorizes the learning process, not a one-shot patch. The agent should inspect allowed context and ask its first design question. It should not return a complete design, edit code, or run ahead to a passing suite.
 
-Each day begins with a task-specific kickoff prompt. Ask the agent to map the system, state its invariants, divide the work into checkpoints, identify ambiguities, and ask you to predict a boundary case before it edits anything. The day page provides the concrete prompt.
+Repeat this loop:
 
-Answer the prediction before asking the agent to evaluate it. This turns the first exchange into a check of your current model rather than a generated summary to skim.
+1. **Agent asks one decision.** It labels the question as a fixed contract to derive or an open design choice, gives the invariant or concrete case, explains real alternatives when they exist, and asks you to choose or predict.
+2. **Student reasons.** State a choice and why. A prediction is useful even when you are uncertain.
+3. **Agent checks the reasoning.** It connects the answer to interfaces, prose, or tests. If the answer violates a constraint, it shows the evidence and asks again instead of silently overriding you.
+4. **Agent records the choice.** The accepted answer enters a short decision ledger.
+5. **Agent implements one slice.** Once enough decisions specify a coherent slice, it previews the files, behavior, and focused test and waits for your authorization.
+6. **Tests produce evidence.** A coding mistake can be fixed directly. A failure that exposes an unsettled or incorrect design returns to the dialogue.
+7. **Student reviews.** Inspect the diff and test output before authorizing the next slice.
 
-### Prompt 2: Implement One Checkpoint
+The agent must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek semantics, error behavior, synchronization, and optimization placement. Some answers are fixed by the course protocol and must be derived; others are genuine choices. It need not interrupt you over a local variable name, import order, formatting, or an obvious compiler-directed repair.
 
-Use a fresh prompt for each checkpoint. You choose the checkpoint; the agent must not infer that passing one checkpoint authorizes it to begin the next:
+The distinction keeps the conversation educational without turning every keystroke into ceremony.
 
-> Implement only Checkpoint `<number and name>`. Before editing, restate the invariants for this checkpoint and list the files you expect to change. Keep the diff focused and do not modify supplied tests, public interfaces, or unrelated code.
->
-> Run focused checks while working. When the checkpoint is implemented, stop and report the changed behavior, the exact commands and results, one remaining uncertainty, and one adversarial case that I should predict. Do not continue to the next checkpoint.
+## Keep a Decision Ledger
 
-A checkpoint may require several internal iterations, but it should produce one coherent diff that you can review before the next subsystem depends on it.
+Ask the agent to maintain this table during each checkpoint:
 
-### Prompt 3: Challenge the Result
+| Decision or constraint | Student's conclusion | Invariant or evidence | Consequence |
+| --- | --- | --- | --- |
+| Example: exact-size block | Accept it | The limit is inclusive | Reject only when projected size is greater than the target. |
 
-After inspecting the diff and answering the agent's boundary question, ask for evidence rather than reassurance:
+The ledger makes hidden assumptions reviewable. It also prevents a required course constraint from being presented as a free preference, and lets you distinguish a coding bug from code that faithfully implements a bad decision.
 
-> Review this checkpoint as an untrusted contribution. Connect each changed behavior to an invariant and a supplied test. Identify one plausible bug that could still pass those tests, propose the smallest additional test or manual check that exposes it, and wait for my approval before adding that test. If you find a real problem, explain the failing invariant before changing the implementation.
+You can delegate a decision when it is not where you want to spend learning time:
 
-Do not let “all tests pass” end the review. Conversely, do not ask the agent to invent speculative refactors once the checkpoint's contract and adversarial checks are satisfied.
+> Choose this one for me, explain the tradeoff, and record it as delegated. Continue asking me about the remaining decisions.
 
-Repeat Prompts 2 and 3 for each checkpoint. The checkpoint stops are where you catch a locally reasonable decision before it spreads across the system.
+Delegating one choice is not permission for the agent to decide the rest.
+
+## Review a Code Slice
+
+Before each edit, the agent should state:
+
+- which accepted decisions determine the slice;
+- which files and observable behavior will change; and
+- which focused check it expects to exercise that behavior.
+
+After the edit, require the exact command and result, then ask:
+
+> Treat this slice as untrusted. Connect the changed behavior to the decision ledger and supplied tests. Identify one plausible bug that could still pass, propose the smallest adversarial check, and ask me to predict its outcome before adding it.
+
+Do not let “all tests pass” end the review. Conversely, once the contract and adversarial checks are satisfied, continue to the next unresolved decision instead of inventing unrelated refactors.
 
 When the workspace is prepared and the instruction handshake succeeds, continue to [Day 1 - Mini-LSM](./week1-fast-forward.md).
 
