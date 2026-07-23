@@ -47,7 +47,7 @@ The first three chapters refactor internal formats and finish snapshot reads. Th
 | [Day 2: Memtables and Timestamps](./week3-02-snapshot-read-part-1.md) | Most data still uses timestamp 0. | Writes receive one commit timestamp per batch and all versions survive compaction. |
 | [Day 3: Transaction API](./week3-03-snapshot-read-part-2.md) | Reads return only the newest global state. | Transactions select the newest visible version at a fixed read timestamp, including after recovery. |
 | [Day 4: Watermark and Garbage Collection](./week3-04-watermark.md) | Compaction retains every historical version. | Compaction retains exactly the versions active snapshots can still observe. |
-| [Day 5: Transactional Writes](./week3-05-txn-occ.md) | Transaction writes are not private. | A transaction reads its own workspace and publishes its updates with one commit timestamp. |
+| [Day 5: Transactional Writes](./week3-05-txn-occ.md) | Transaction writes are neither private nor crash-atomic. | A transaction reads its own workspace and commits one timestamped, framed WAL batch. |
 | [Day 6: Serializable Validation](./week3-06-serializable.md) | Snapshot isolation permits write skew. | Commit-time validation rejects read/write conflicts for tracked keys. |
 | [Day 7: Compaction Filters](./week3-07-compaction-filter.md) | Garbage collection is based only on version age. | User-installed filters can reclaim a logical key prefix during compaction. |
 
@@ -67,7 +67,7 @@ Before finishing Week 3, check that you can explain:
 - how included and excluded user-key bounds map to internal timestamp bounds;
 - which version a read at timestamp `T` returns when newer versions and tombstones exist;
 - why the watermark preserves one version at or below its value;
-- why one commit timestamp makes a completed batch visible together, but per-record WAL writes do not provide crash atomicity;
+- why a shared commit timestamp provides atomic visibility while a framed, checksummed WAL batch provides crash atomicity;
 - what anomaly commit-time validation prevents and which scan phantoms it does not prevent; and
 - why a compaction filter cannot blindly remove versions newer than the watermark.
 

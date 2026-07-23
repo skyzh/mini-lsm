@@ -19,7 +19,7 @@ cargo x scheck
 
 ## Before You Begin
 
-Day 5 provides stable snapshots and atomic writes, but two transactions can still make decisions from the same old state and produce write skew. Day 6 validates a transaction immediately before commit.
+Day 5 provides stable snapshots and crash-atomic writes, but two transactions can still make decisions from the same old state and produce write skew. Day 6 validates a transaction immediately before commit.
 
 Keep these invariants in mind:
 

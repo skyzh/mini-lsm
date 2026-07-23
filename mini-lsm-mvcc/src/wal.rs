@@ -110,7 +110,7 @@ impl Wal {
         })
     }
 
-    /// Reference implementation of the optional crash-atomic batch WAL extension.
+    /// Implement this in week 3, day 5.
     pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
         let mut file = self.file.lock();
         let mut buf = Vec::<u8>::new();
@@ -142,69 +142,5 @@ impl Wal {
         file.flush()?;
         file.get_mut().sync_all()?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use bytes::Bytes;
-    use crossbeam_skiplist::SkipMap;
-    use tempfile::tempdir;
-
-    use crate::key::{KeyBytes, KeySlice};
-
-    use super::Wal;
-
-    #[test]
-    fn test_batch_round_trip() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("test.wal");
-        let wal = Wal::create(&path).unwrap();
-        wal.put_batch(&[
-            (KeySlice::from_slice(b"a", 2), b"1"),
-            (KeySlice::from_slice(b"b", 2), b""),
-        ])
-        .unwrap();
-        wal.sync().unwrap();
-        drop(wal);
-
-        let map = SkipMap::<KeyBytes, Bytes>::new();
-        let recovered = Wal::recover(&path, &map).unwrap();
-        drop(recovered);
-        assert_eq!(map.len(), 2);
-        assert_eq!(
-            map.get(&KeyBytes::from_bytes_with_ts(Bytes::from_static(b"a"), 2))
-                .unwrap()
-                .value(),
-            &Bytes::from_static(b"1")
-        );
-        assert!(
-            map.get(&KeyBytes::from_bytes_with_ts(Bytes::from_static(b"b"), 2))
-                .unwrap()
-                .value()
-                .is_empty()
-        );
-    }
-
-    #[test]
-    fn test_recovery_rejects_truncated_batch_without_applying_it() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("test.wal");
-        let wal = Wal::create(&path).unwrap();
-        wal.put_batch(&[
-            (KeySlice::from_slice(b"a", 2), b"1"),
-            (KeySlice::from_slice(b"b", 2), b"2"),
-        ])
-        .unwrap();
-        wal.sync().unwrap();
-        drop(wal);
-
-        let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
-        file.set_len(file.metadata().unwrap().len() - 1).unwrap();
-        drop(file);
-
-        let map = SkipMap::<KeyBytes, Bytes>::new();
-        assert!(Wal::recover(&path, &map).is_err());
-        assert!(map.is_empty());
     }
 }

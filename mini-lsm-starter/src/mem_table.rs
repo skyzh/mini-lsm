@@ -94,12 +94,12 @@ impl MemTable {
     ///
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
-    /// The reference implementation may route this through the optional batch WAL extension.
+    /// In week 3, day 5, route this through the batch WAL implementation.
     pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
-    /// Optional crash-atomic batch WAL extension.
+    /// Implement this in week 3, day 5.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }

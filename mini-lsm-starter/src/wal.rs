@@ -43,7 +43,7 @@ impl Wal {
         unimplemented!()
     }
 
-    /// Optional crash-atomic batch WAL extension.
+    /// Implement this in week 3, day 5.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
