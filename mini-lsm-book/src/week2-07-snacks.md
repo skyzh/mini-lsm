@@ -15,7 +15,7 @@ By the end of this chapter, you will be able to:
 * Define the exact byte range protected by each checksum and reject corrupted input.
 * Explain why framing information is necessary for checksummed variable-length records.
 
-**Note:** The starter suite does not provide dedicated tests for this chapter. Run every earlier test, inspect each encoded format, and add corruption cases that verify your checksum boundaries.
+**Note:** The starter suite does not provide dedicated tests for this chapter. `cargo x copy-test --week 2` therefore copies Days 1 through 6; requesting `--day 7` reports that no dedicated test exists. Run every earlier test, inspect each encoded format, and add corruption cases that verify your checksum boundaries.
 
 ## Before You Begin
 

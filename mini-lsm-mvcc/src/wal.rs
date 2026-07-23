@@ -18,7 +18,7 @@ use std::io::{BufWriter, Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use bytes::{Buf, BufMut, Bytes};
 use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
@@ -54,10 +54,15 @@ impl Wal {
         file.read_to_end(&mut buf)?;
         let mut rbuf: &[u8] = buf.as_slice();
         while rbuf.has_remaining() {
+            ensure!(
+                rbuf.remaining() >= std::mem::size_of::<u32>(),
+                "incomplete WAL batch header"
+            );
             let batch_size = rbuf.get_u32() as usize;
-            if rbuf.remaining() < batch_size {
-                bail!("incomplete WAL");
-            }
+            ensure!(
+                batch_size <= rbuf.remaining().saturating_sub(std::mem::size_of::<u32>()),
+                "incomplete WAL batch"
+            );
             let mut batch_buf = &rbuf[..batch_size];
             let mut kv_pairs = Vec::new();
             let mut hasher = crc32fast::Hasher::new();
@@ -65,8 +70,17 @@ impl Wal {
             // Students' implementation only needs to do a single checksum on the buffer. We compute both for verification purpose.
             let single_checksum = crc32fast::hash(batch_buf);
             while batch_buf.has_remaining() {
+                ensure!(
+                    batch_buf.remaining() >= std::mem::size_of::<u16>(),
+                    "incomplete WAL key length"
+                );
                 let key_len = batch_buf.get_u16() as usize;
                 hasher.write(&(key_len as u16).to_be_bytes());
+                ensure!(
+                    batch_buf.remaining()
+                        >= key_len + std::mem::size_of::<u64>() + std::mem::size_of::<u16>(),
+                    "incomplete WAL key"
+                );
                 let key = Bytes::copy_from_slice(&batch_buf[..key_len]);
                 hasher.write(&key);
                 batch_buf.advance(key_len);
@@ -74,6 +88,7 @@ impl Wal {
                 hasher.write(&ts.to_be_bytes());
                 let value_len = batch_buf.get_u16() as usize;
                 hasher.write(&(value_len as u16).to_be_bytes());
+                ensure!(batch_buf.remaining() >= value_len, "incomplete WAL value");
                 let value = Bytes::copy_from_slice(&batch_buf[..value_len]);
                 hasher.write(&value);
                 kv_pairs.push((key, ts, value));
@@ -100,18 +115,21 @@ impl Wal {
         let mut file = self.file.lock();
         let mut buf = Vec::<u8>::new();
         for (key, value) in data {
-            buf.put_u16(key.key_len() as u16);
+            let key_len = u16::try_from(key.key_len()).context("WAL key is too large")?;
+            let value_len = u16::try_from(value.len()).context("WAL value is too large")?;
+            buf.put_u16(key_len);
             buf.put_slice(key.key_ref());
             buf.put_u64(key.ts());
-            buf.put_u16(value.len() as u16);
+            buf.put_u16(value_len);
             buf.put_slice(value);
         }
-        // write batch_size header (u32)
-        file.write_all(&(buf.len() as u32).to_be_bytes())?;
-        // write key-value pairs body
-        file.write_all(&buf)?;
-        // write checksum (u32)
-        file.write_all(&crc32fast::hash(&buf).to_be_bytes())?;
+        let batch_size = u32::try_from(buf.len()).context("WAL batch is too large")?;
+        let checksum = crc32fast::hash(&buf);
+        let mut record = Vec::with_capacity(std::mem::size_of::<u32>() * 2 + buf.len());
+        record.put_u32(batch_size);
+        record.put_slice(&buf);
+        record.put_u32(checksum);
+        file.write_all(&record)?;
         Ok(())
     }
 

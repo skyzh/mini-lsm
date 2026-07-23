@@ -23,7 +23,7 @@ use crate::{
 use super::harness::{check_iter_result_by_key, construct_merge_iterator_over_storage};
 
 #[test]
-fn test_task3_mvcc_compaction() {
+fn test_task1_compaction_filter() {
     let dir = tempdir().unwrap();
     let options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
     let storage = MiniLsm::open(&dir, options.clone()).unwrap();

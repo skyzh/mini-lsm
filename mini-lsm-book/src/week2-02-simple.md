@@ -156,10 +156,11 @@ Run the controller from a background thread. `trigger_compaction` is called ever
 In this task, you will need to modify:
 
 ```
+src/lsm_iterator.rs
 src/lsm_storage.rs
 ```
 
-Extend both `get` and `scan` across every level below L1. You will also need to change the inner type of `LsmStorageIterator` again.
+Extend both `get` and `scan` across every level below L1. Change the inner type of `LsmStorageIterator` so that it merges one `SstConcatIterator` per level.
 
 To test your implementation interactively,
 
