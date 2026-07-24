@@ -2,13 +2,13 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Agent Fast Forward in 3 Days (WIP)
+# Mini-LSM with Coding Agents (WIP)
 
-This is an alternative course track for students who intend to use a coding agent. The agent will write much of the code, but it must not silently design the system for you. Each day is a dialogue in which you make the consequential decisions, the agent turns a few accepted decisions into a small code change, and tests challenge the shared model.
+This is a three-day guided track for students who intend to use a coding agent. The agent will write much of the code, but it must not silently design the system for you. You will reason about concrete examples, the agent will turn a few accepted decisions into a small code change, and tests will challenge your shared model.
 
-Fast forward means compressing implementation time, not compressing the design into one generated answer.
+The goal is not to finish with the fewest prompts. It is to finish able to explain, test, and change the system the agent helped you build.
 
-| Fast-forward day | Original course material | Outcome |
+| Guided day | Original course material | Outcome |
 | --- | --- | --- |
 | [Day 1](./week1-fast-forward.md) | Mini-LSM | A working storage engine with memtables, SSTs, reads, writes, and flushes. |
 | Day 2 | Compaction and persistence | Coming later. |
@@ -68,7 +68,7 @@ That prompt authorizes the learning process, not a one-shot patch. The agent sho
 
 Repeat this loop:
 
-1. **Agent asks one decision.** It labels the question as a fixed contract to derive or an open design choice, gives the invariant or concrete case, explains real alternatives when they exist, and asks you to choose or predict.
+1. **Agent gives one short stop.** It starts with a concrete example, labels the question **Course rule** or **Your choice**, and asks you to choose or predict in plain English.
 2. **Student reasons.** State a choice and why. A prediction is useful even when you are uncertain.
 3. **Agent checks the reasoning.** It connects the answer to interfaces, prose, or tests. If the answer violates a constraint, it shows the evidence and asks again instead of silently overriding you.
 4. **Agent records the choice.** The accepted answer enters a short decision ledger.
@@ -76,9 +76,28 @@ Repeat this loop:
 6. **Tests produce evidence.** A coding mistake can be fixed directly. A failure that exposes an unsettled or incorrect design returns to the dialogue.
 7. **Student reviews.** Inspect the diff and test output before authorizing the next slice.
 
-The agent must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek semantics, error behavior, synchronization, and optimization placement. Some answers are fixed by the course protocol and must be derived; others are genuine choices. It need not interrupt you over a local variable name, import order, formatting, or an obvious compiler-directed repair.
+The agent must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek behavior, errors, synchronization, and where an optimization belongs. Some answers are course rules to derive; others are genuine choices. It need not interrupt you over a local variable name, import order, formatting, or an obvious compiler-directed repair.
 
 The distinction keeps the conversation educational without turning every keystroke into ceremony.
+
+At any stop, you can answer with one of these commands:
+
+- `simpler` — ask the same question with shorter sentences and less terminology;
+- `example` — show the smallest concrete example that exposes the behavior;
+- `hint` — reveal one useful fact, then let you try again; or
+- `choose for me` — let the agent decide this one, explain why, and record it as delegated.
+
+Here is the intended shape of a stop:
+
+> **Course rule — Which value should be visible?**
+>
+> We write `cat = old`, freeze that memory table, then write `cat = new`.
+>
+> What should `get("cat")` return, and why?
+>
+> You can reply `simpler`, `example`, `hint`, or `choose for me`.
+
+After you answer, the agent can name the general rule—here, newest-value precedence—and connect it to the implementation. A question should teach the terminology, not require you to decode it before you can begin.
 
 ## Keep a Decision Ledger
 
@@ -107,6 +126,8 @@ Before each edit, the agent should state:
 After the edit, require the exact command and result, then ask:
 
 > Treat this slice as untrusted. Connect the changed behavior to the decision ledger and supplied tests. Identify one plausible bug that could still pass, propose the smallest adversarial check, and ask me to predict its outcome before adding it.
+
+The agent should also point to one important changed line and ask: “What is this line trying to do, and what behavior might break if it changed?” The purpose is to connect a decision to code, not to quiz you on arbitrary syntax.
 
 Do not let “all tests pass” end the review. Conversely, once the contract and adversarial checks are satisfied, continue to the next unresolved decision instead of inventing unrelated refactors.
 

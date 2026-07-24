@@ -2,18 +2,18 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Day 1 - Mini-LSM
+# Day 1 - Build the Storage Engine
 
-This is the first day of [Agent Fast Forward in 3 Days](./agent-fast-forward-overview.md). You will use a coding agent to build and defend one working storage engine from the original Mini-LSM material:
+This is the first day of [Mini-LSM with Coding Agents](./agent-fast-forward-overview.md). You will use a coding agent to build, test, and explain one working storage engine from the original Mini-LSM material:
 
 ```text
 put/delete -> mutable memtable -> immutable memtables -> L0 SSTs
                      \____________ read + merge ____________/
 ```
 
-You decide consequential behavior; the agent handles mechanical implementation. A short request begins a design interview; it must not produce a complete implementation in one turn.
+You decide behavior that affects correctness or the design; the agent handles mechanical implementation. A short request begins a guided dialogue, not a complete implementation in one turn.
 
-## The Completion Contract
+## What You Will Finish
 
 At the end of this path:
 
@@ -40,11 +40,11 @@ The initial check should fail because the starter contains unfinished code. Reco
 
 With the agent running from `mini-lsm-starter`, the instruction handshake complete, and the tests copied, send:
 
-> Implement the Mini-LSM write, read, and flush paths. Follow the student-owned design protocol in `AGENTS.md`. Ask one design decision at a time, record my accepted choices, and do not edit until those choices specify one coherent slice. Never access `../mini-lsm`.
+> Build Day 1 with me, starting with ordered in-memory state. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm`. Before coding, ask one short question at a time using a concrete example. Use plain English and introduce technical terms after I answer. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 
-The first useful response is a question, not an architecture essay or a patch. It will usually ask you to choose the first checkpoint. Select one of the three below and explain why it is a useful boundary.
+The first useful response is a concrete question about ordered state, not an architecture essay or a patch. Starting with Checkpoint 1 gives you one predictable path through the day. You may reorder checkpoints if you already understand their dependencies.
 
-For each checkpoint, the tables below are an audit guide for you. Do not paste a whole table back as a ready-made specification. Make the agent elicit one topic at a time, label it as a fixed contract or an open choice, and use the table afterward to check whether the dialogue covered the important ground.
+The tables below are audit guides. Do not paste a whole table back as a ready-made specification. Let the agent elicit one topic at a time, and use the table afterward to check whether the dialogue covered the important ground.
 
 ## Checkpoint 1: Ordered State
 
@@ -54,9 +54,9 @@ Ask:
 
 This checkpoint covers the memtable and iterator layers. Use the [Memtable](./week1-01-memtable.md) and [Merge Iterator](./week1-02-merge-iterator.md) chapters when a question needs more context.
 
-The agent should stop on at least these contract topics and ask you to derive the required behavior:
+The agent should use concrete examples to help you work out at least these course rules:
 
-| Decision | Case that exposes it |
+| Behavior to work out | Small case that exposes it |
 | --- | --- |
 | Memtable ordering | Insert keys out of bytewise order, then scan. |
 | Duplicate precedence inside a memtable | Put two values for one key before reading it. |
@@ -67,7 +67,7 @@ The agent should stop on at least these contract topics and ask you to derive th
 
 One critical outcome is that an ordinary write retains the `state` read guard until insertion into the mutable memtable completes. Writing through a cloned snapshot after releasing the guard permits a concurrent freeze to make that memtable immutable before the write occurs.
 
-Once the representation and precedence choices are settled, authorize the smallest coherent slice. After its focused test passes, ask the agent to identify the exact comparison that resolves duplicate keys. Explain in your own words why changing `>` to `>=`, or reversing input order, changes the visible value.
+Once the representation and ordering rules are settled, authorize the smallest coherent slice. After its focused test passes, have the agent point to the exact comparison that resolves duplicate keys. Explain in your own words what that line is trying to do and why changing `>` to `>=`, or reversing input order, changes the visible value.
 
 ## Checkpoint 2: Durable Representation
 
@@ -79,9 +79,9 @@ This checkpoint covers blocks, block iterators, SST builders, SST readers, SST i
 
 Because this path copies all seven test suites at the start, the accepted design should converge directly on the final Day 7 prefix-compressed block format. Do not first implement the Day 3 layout and silently replace it. The agent should explicitly ask which acceptance target applies and record that choice.
 
-First derive the parts fixed by the course contract:
+First use concrete byte examples to derive the parts fixed by the course:
 
-| Contract | Case that exposes it |
+| Behavior to work out | Small case that exposes it |
 | --- | --- |
 | Integer encoding and exact block layout | Independently decode a three-entry block. |
 | Inclusive target-size accounting | Add an entry that makes the encoded block exactly the target size. |
@@ -91,7 +91,7 @@ First derive the parts fixed by the course contract:
 | SST trailer placement | Locate metadata and Bloom sections from the end of the file. |
 | Bloom-filter authority | Compare a definite negative with a possible positive. |
 
-Then make the genuinely open implementation choices, such as linear versus binary lower-bound search when both satisfy the interface, allocation versus reuse for reconstructed keys, and how much malformed-input checking to add without changing the provided API. Record required protocol facts as constraints and open selections as choices.
+Then make the genuinely open implementation choices, such as scanning versus binary search when looking for the first key at or after a target, allocating versus reusing memory for reconstructed keys, and how much malformed-input checking to add without changing the provided API. Record required course rules separately from choices you made.
 
 The high-level SST trailer grammar is:
 
@@ -103,43 +103,24 @@ The final four bytes contain `bloom_offset`; the metadata offset is the four-byt
 
 Treat the writer and reader as two parties implementing a protocol. A round-trip test alone can miss an encoder and decoder that agree with each other but disagree with the specified bytes. Ask for at least one independently calculated byte layout.
 
-### Illustrative Dialogue: “Implement Block Format”
-
-This is a condensed example of the expected interaction, including representative command output rather than a transcript captured from your machine. It targets the final prefix-compressed format required by fast-forward Day 1.
+<details>
+<summary>Worked example: one plain-English block-format stop</summary>
 
 > **Student:** Implement block format.
 >
-> **Agent:** This can be split into builder/encoding and iterator/seek slices. Which slice should establish the contract first, and why?
+> **Agent:** **Course rule — What must one entry depend on?**
 >
-> **Student:** Builder and encoding first. The iterator consumes that representation, while encoding can be checked independently against exact bytes.
+> A block contains `mini-a`, `mini-b`, and `mini-c`. The iterator is allowed to jump straight to `mini-c`. If `mini-c` stores only what changed from `mini-b`, can the iterator reconstruct it without first reading `mini-b`? Should each compressed key therefore compare itself with the first key or the previous key?
 >
-> **Agent:** Contract derivation: the full Week 1 suite is installed. Should this slice implement the earlier uncompressed Day 3 entry or the final Day 7 prefix-compressed entry? What evidence decides?
+> You can reply `simpler`, `example`, `hint`, or `choose for me`.
 >
-> **Student:** The final Day 7 format. Replacing an intermediate format inside the same checkpoint would be throwaway work, and the installed acceptance target includes prefix compression.
+> **Student:** Compare with the first key. Then the iterator needs only the first key and the selected entry, rather than a chain of earlier entries.
 >
-> **Agent:** Contract derivation: a compressed key can be relative to the previous key or the first key in the block. Which basis does the course require, and what does it permit an iterator to do?
->
-> **Student:** Use the first key. Then any entry can be reconstructed independently once the first key is known; using the previous key would require decoding the chain before it.
->
-> **Agent:** Derive the projected encoded size for a new entry with `rest_key_len` suffix bytes and decide whether an exact fit is admitted.
->
-> **Student:** For `n` existing entries: `data.len() + 2 + 2 + rest_key_len + 2 + value.len() + 2 * (n + 1) + 2`. The fields are overlap length, suffix length, suffix, value length, value, all offsets after the add, and the one final count. Equality fits.
->
-> **Agent:** Open choice: because first-key compression makes an arbitrary entry independently decodable, lower-bound seek can scan linearly or binary-search offsets. Which do you want?
->
-> **Student:** Binary search. The entries are sorted, and independent reconstruction makes each comparison possible without decoding all preceding entries.
->
-> **Agent:** Open choice: `decode` has no error return. Should this checkpoint trust encoder-produced bytes, add assertions that still panic, or request an interface change to return `Result`?
->
-> **Student:** Trust encoder-produced bytes for this checkpoint and document the boundary. A production decoder should return `Result` and validate counts, offsets, and lengths, but changing the interface is outside scope.
->
-> **Agent:** The slice is specified. I will change `src/block/builder.rs`, `src/block.rs`, and `src/block/iterator.rs`, then run `cargo test --lib tests::week1_day7::test_task3_block_key_compression`. Prediction first: with empty values, `mini-a` encodes as an overlap of 0 plus a six-byte suffix, and `mini-b` as an overlap of 5 plus a one-byte suffix. What are the two entry offsets and final encoded size?
->
-> **Student:** The first entry is 12 bytes and starts at 0. The second is 7 bytes and starts at 12. Two offsets and the final count add 6 bytes, so the encoded block is 25 bytes. I authorize this slice.
->
-> **Agent:** Implemented only the authorized block slice. `cargo test --lib tests::week1_day7::test_task3_block_key_compression` exited 0. The entries reconstructed as `mini-a` and `mini-b`, the empty values survived, and the encoded length was 25 bytes. I did not begin the SST layer. One remaining weakness is that the supplied valid-block tests do not establish safe behavior for malformed offsets. Before I add an adversarial test, predict what the current trusted decoder would do with an offset beyond the data section.
+> **Agent:** Correct. This is called the prefix basis. I will record “first key” as a course rule. One consequence is that an iterator can inspect any entry independently, which permits either a linear scan or binary search. That search method is a **Your choice** stop we can discuss next.
 
-The final agent turn contains evidence, a checkpoint stop, and a new question. It does not treat a passing test as permission to continue. In a real session, inspect the diff and actual command output before accepting that report. An unexpected test failure either reveals a mechanical bug or reopens one specific decision.
+</details>
+
+The example begins with an operation the student can picture and names the concept afterward. A real implementation stop must still preview the files and focused test, wait for authorization, report actual evidence, and stop before beginning the next slice. An unexpected test failure either reveals a mechanical bug or reopens one specific decision.
 
 Before approving the completed checkpoint, decode three keys by hand: one with no shared prefix, one with a long shared prefix, and one with an empty value. Confirm that a seek returns the first key greater than or equal to its target and that a Bloom-filter negative can never hide a present key.
 

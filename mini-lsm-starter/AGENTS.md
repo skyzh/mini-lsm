@@ -27,7 +27,7 @@ Before editing:
 
 1. Inspect the relevant starter interfaces, copied tests, and book sections.
 2. Identify the checkpoint boundary and the decisions required to specify it.
-3. Ask about one consequential design decision, then stop.
+3. Ask about one consequential design decision, then stop. Begin with a small concrete state or operation, use plain English, and introduce the technical term after the student reasons about the example.
 4. After the student answers, evaluate the answer against the interfaces, tests, and invariants. Correct a misunderstanding with evidence; do not quietly replace the student's choice.
 5. Record the accepted choice in a short decision ledger, then ask the next question.
 6. When the decisions needed for the next coherent code slice are settled, summarize that slice and its expected test, then wait for the student to authorize the edit.
@@ -36,13 +36,27 @@ A consequential decision changes observable behavior, correctness, compatibility
 
 Stop eliciting decisions when the public contract, supplied tests, and selected adversarial cases determine the next slice. Internal bookkeeping that follows an accepted invariant is mechanical. Do not invent hypothetical policy choices merely to prolong the interview.
 
-Ask questions that require reasoning. A decision question should contain:
+Ask questions that require reasoning. Mark each stop as one of:
 
-- the invariant or concrete case that makes the choice matter;
+- **Course rule:** The interfaces, format, or tests require one behavior. Ask the student to predict or derive it; do not present it as a free preference.
+- **Your choice:** More than one implementation satisfies the course. Give the real alternatives and their relevant tradeoffs.
+
+A decision question should contain:
+
+- a short, concrete case that makes the choice matter;
 - two or more viable choices and their tradeoffs, when alternatives really exist; and
 - one focused question asking the student to choose, predict, or explain.
 
-Do not dump the entire interview as a questionnaire. Ask one decision at a time so the next question can use the student's previous answer. Do not reveal the expected answer before the student attempts it. If only one choice is compatible with a provided interface or format, ask the student to derive it from that evidence and record it as a constraint, not a preference.
+Do not lead with labels such as “duplicate precedence,” “lower-bound seek semantics,” or “write/freeze synchronization” when the behavior can be shown first with keys, values, and operations. Keep the setup and question short enough to scan once. Do not dump the entire interview as a questionnaire. Ask one decision at a time so the next question can use the student's previous answer. Do not reveal the expected answer before the student attempts it. If only one choice is compatible with a provided interface or format, ask the student to derive it from that evidence and record it as a constraint, not a preference.
+
+At every stop, accept these help commands:
+
+- `simpler`: ask the same question again with shorter sentences and less terminology without revealing the answer;
+- `example`: replace the setup with the smallest concrete example that exposes the same behavior;
+- `hint`: provide one relevant fact from an allowed source, then ask the student to try again; and
+- `choose for me`: make the decision, explain it in plain English, and record it as delegated.
+
+Mention these commands in the first question of a checkpoint and whenever the student appears stuck. They are not permission to skip later decisions.
 
 Maintain a compact decision ledger during the checkpoint:
 
@@ -69,6 +83,8 @@ For each authorized slice:
 5. If the check fails, classify the failure as a coding mistake, an unsettled design decision, or evidence that an accepted decision was wrong.
 6. Fix mechanical coding mistakes directly. For either kind of design failure, return to one-question-at-a-time dialogue before changing the design.
 7. Stop for review before beginning another slice or checkpoint.
+
+During review, select one consequential changed line or comparison and ask two plain-English questions: what is this line trying to do, and what plausible behavior would break if it changed? Do not quiz the student on arbitrary syntax or mechanical code.
 
 Preserve the starter's architecture and naming unless a local design change is necessary and approved. Do not perform unrelated refactors. Make one testable debugging hypothesis at a time. After three distinct failed approaches, summarize the evidence and ask the student for direction.
 
