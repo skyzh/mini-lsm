@@ -11,7 +11,7 @@ The goal is not to finish with the fewest prompts. It is to finish able to expla
 | Guided day | Original course material | Outcome |
 | --- | --- | --- |
 | [Day 1](./week1-fast-forward.md) | Mini-LSM | A working storage engine with memtables, SSTs, reads, writes, and flushes. |
-| Day 2 | Compaction and persistence | Coming later. |
+| [Day 2](./week2-fast-forward.md) | Compaction and persistence | Background compaction, restart recovery, and checksummed disk formats. |
 | Day 3 | MVCC | Coming later. |
 
 The original chapters remain a reference library. This track changes the pacing and the student's role; it does not remove the need to understand ordering, representation, concurrency, and failure modes.
