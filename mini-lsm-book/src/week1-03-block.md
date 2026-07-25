@@ -81,6 +81,8 @@ At the end of each block, we store the offset of every entry followed by the tot
 
 The block footer then has the layout shown above. Every number in the footer is stored as a `u16`.
 
+The offsets turn variable-length entries into an index. Given entry number `i`, the decoder can jump to its starting byte instead of walking through every preceding key and value. That makes binary search over entry numbers possible while keeping the encoded records compact. The final count tells the decoder how many trailing `u16` values belong to this offset array and therefore where the data section ends.
+
 Each block has a size limit, `target_size`, which corresponds to `block_size` in the provided code. Unless the first key-value pair alone exceeds this limit, ensure that the encoded block is no larger than `target_size`.
 
 When `BlockBuilder::build` is called, it produces the raw data section and the unencoded entry offsets, which are stored in a `Block`. Keeping raw key-value data contiguous and storing offsets separately avoids unnecessary allocations and decoding work. Copy the raw block data into the `data` vector and decode one entry offset every 2 bytes, rather than materializing all entries as a structure such as `Vec<(Vec<u8>, Vec<u8>)>`. This compact layout is efficient.
@@ -140,7 +142,7 @@ Passing the supplied tests demonstrates behavior for valid blocks. It does not p
 
 * Do you love bubble tea? Why or why not?
 
-We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

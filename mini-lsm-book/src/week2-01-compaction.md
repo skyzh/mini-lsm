@@ -171,6 +171,6 @@ Answer correctness questions with a concrete LSM state or execution. For amplifi
 * Does it make sense to have a `struct ConcatIterator<I: StorageIterator>` in the system?
 * Some researchers/engineers propose to offload compaction to a remote server or a serverless lambda function. What are the benefits, and what might be the potential challenges and performance impacts of doing remote compaction? (Think of the point when a compaction completes and what happens to the block cache on the next read request...)
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 2 end-of-week self-check](./week2-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

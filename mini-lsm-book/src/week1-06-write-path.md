@@ -165,7 +165,7 @@ After the tests pass, record the state before and after a manual flush: the muta
 * Imagine a multitenant LSM system hosting 10,000 databases on one machine with 128 GB of memory. If each memtable has a 256 MB size limit, how much memory would all memtables require?
   * You clearly do not have enough memory for all of them to reach that limit simultaneously. If each tenant still has a separate memtable, how could you design the flush policy to fit within the global memory budget? Would sharing one memtable among tenants—for example, by encoding a tenant ID in each key prefix—make sense?
 
-We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

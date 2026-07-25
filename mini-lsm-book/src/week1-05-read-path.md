@@ -118,7 +118,7 @@ Exercise all four combinations of included and excluded scan bounds, plus unboun
 * Suppose a user creates an iterator over the entire 1 TB storage engine, and the scan takes about an hour. What problems could this cause? We will revisit this question at several points in the course.
 * Some LSM-tree storage engines provide a multi-get, or vectored-get, interface. The caller supplies a list of keys and receives a value for each one; for example, `multi_get(vec!["a", "b", "c", "d"]) -> a=1,b=2,c=3,d=4`. The simplest implementation performs one `get` per key. How would you implement multi-get, and what could you optimize? Hint: some work in the get path needs to be performed only once for the entire batch. You can also consider an improved disk-I/O interface designed for multi-get.
 
-We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

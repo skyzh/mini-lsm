@@ -318,15 +318,15 @@ For several simulator iterations, annotate each task with the trigger that selec
 
 ### Amplification and Design
 
-* What is the estimated write amplification of tiered compaction? This is difficult in general; begin by ignoring the final *reduce sorted runs* trigger.
-* What is the estimated read amplification of tiered compaction?
+* Estimate write amplification for one concrete tier-size sequence. Begin by ignoring the final *reduce sorted runs* trigger, and count physical SST bytes written divided by flushed bytes.
+* Estimate worst-case point-read amplification for a state with `N` tiers and no cache or Bloom-filter benefit. Which policy parameter bounds that value?
 * What are the advantages and disadvantages of universal compaction compared with leveled compaction?
-* How much free storage space does universal compaction require relative to the logical data size?
+* How much temporary free storage does one universal-compaction task require? Answer for a concrete set of input-tier sizes and distinguish peak task space from steady-state space amplification.
 * What happens if compaction speed cannot keep up with the SST flushes for tiered compaction?
 * What must the system consider before scheduling multiple compaction tasks in parallel?
 * SSDs also write its own logs (basically it is a log-structured storage). If the SSD has a write amplification of 2x, what is the end-to-end write amplification of the whole system? Related: [ZNS: Avoiding the Block Interface Tax for Flash-based SSDs](https://www.usenix.org/conference/atc21/presentation/bjorling).
 * Consider the case that the user chooses to keep a large number of sorted runs (i.e., 300) for tiered compaction. To make the read path faster, is it a good idea to keep some data structure that helps reduce the time complexity (i.e., to `O(log n)`) of finding SSTs to read in each layer for some key ranges? Note that normally, you will need to do a binary search in each sorted run to find the key ranges that you will need to read. (Check out Neon's [layer map](https://neon.tech/blog/persistent-structures-in-neons-wal-indexing) implementation!)
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 2 end-of-week self-check](./week2-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

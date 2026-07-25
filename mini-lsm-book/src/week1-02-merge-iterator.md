@@ -210,7 +210,7 @@ After the tests pass, trace one key that appears in three memtables through ever
 * What are the time and space complexities of building and advancing your merge iterator in terms of the number of input iterators?
 * Suppose that (1) you create an iterator over the skiplist memtable and (2) another thread inserts keys into that memtable. Will the iterator see the new keys? Design a small experiment rather than relying only on the type signature.
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

@@ -39,6 +39,20 @@ Managed mode requires the caller to provide timestamps. They might come from a c
 
 In unmanaged mode, the engine chooses timestamps. A transaction records the latest committed timestamp when it begins. Later commits remain invisible to that transaction, so every read observes the same logical snapshot.
 
+## Separate the Guarantees
+
+MVCC is a mechanism for storing and selecting versions; by itself, it does not define all transaction guarantees. Keep these questions separate as you work through the week:
+
+1. **Version order:** Which versions exist, and how are they ordered in memtables and SSTs?
+2. **Snapshot visibility:** Given `read_ts`, which committed version may a read observe? A stable snapshot prevents later commits from appearing halfway through a transaction.
+3. **Atomic commit:** Do all writes in one transaction become visible together? Mini-LSM uses one commit timestamp for atomic visibility and one framed WAL batch for all-or-nothing recovery. These are related but distinct guarantees.
+4. **Durability:** After which synchronization point must a successful commit survive a crash? A well-framed WAL record can still be lost if it was not made durable.
+5. **Isolation:** Is the outcome of concurrent transactions equivalent to some serial order? Stable snapshots alone do not ensure this; write skew is a counterexample.
+
+Classic **snapshot isolation** gives each transaction the committed snapshot from its start, includes its own writes, and prevents two concurrent transactions that update the same item from both committing. Even with that write-write rule, transactions that write different items can produce write skew. See the background and write-skew example in [Serializable Isolation for Snapshot Databases](https://www.cs.cornell.edu/~sowell/dbpapers/serializable_isolation.pdf).
+
+Mini-LSM builds these properties incrementally. Days 1–4 implement version ordering, stable snapshots, and safe version reclamation. Day 5 adds a private workspace plus atomic visibility and crash-atomic WAL batches; it does not yet validate concurrent decisions. Day 6 adds conservative commit-time validation for point-key dependencies. Because scans record returned keys rather than the gaps in a range predicate, the completed exercise does **not** provide full serializability for scan-heavy workloads. This scope is part of the lesson, not an implementation detail to hide.
+
 The first three chapters refactor internal formats and finish snapshot reads. The remaining chapters track active snapshots, add transactional writes and validation, and reclaim obsolete data.
 
 | Chapter | Before | After |
@@ -47,8 +61,8 @@ The first three chapters refactor internal formats and finish snapshot reads. Th
 | [Day 2: Memtables and Timestamps](./week3-02-snapshot-read-part-1.md) | Most data still uses timestamp 0. | Writes receive one commit timestamp per batch and all versions survive compaction. |
 | [Day 3: Transaction API](./week3-03-snapshot-read-part-2.md) | Reads return only the newest global state. | Transactions select the newest visible version at a fixed read timestamp, including after recovery. |
 | [Day 4: Watermark and Garbage Collection](./week3-04-watermark.md) | Compaction retains every historical version. | Compaction retains exactly the versions active snapshots can still observe. |
-| [Day 5: Transactional Writes](./week3-05-txn-occ.md) | Transaction writes are neither private nor crash-atomic. | A transaction reads its own workspace and commits one timestamped, framed WAL batch. |
-| [Day 6: Serializable Validation](./week3-06-serializable.md) | Snapshot isolation permits write skew. | Commit-time validation rejects read/write conflicts for tracked keys. |
+| [Day 5: Transaction Workspace and Atomic Commit](./week3-05-txn-occ.md) | Transaction writes are neither private nor crash-atomic. | A transaction reads its own workspace and commits one timestamped, framed WAL batch. |
+| [Day 6: Serializable Validation](./week3-06-serializable.md) | Stable snapshots still permit write skew. | Commit-time validation rejects read/write conflicts for tracked keys. |
 | [Day 7: Compaction Filters](./week3-07-compaction-filter.md) | Garbage collection is based only on version age. | User-installed filters can reclaim a logical key prefix during compaction. |
 
 ## How to Use This Week
@@ -70,5 +84,57 @@ Before finishing Week 3, check that you can explain:
 - why a shared commit timestamp provides atomic visibility while a framed, checksummed WAL batch provides crash atomicity;
 - what anomaly commit-time validation prevents and which scan phantoms it does not prevent; and
 - why a compaction filter cannot blindly remove versions newer than the watermark.
+
+## End-of-Week Self-Check
+
+For each scenario, name the relevant guarantee before answering. This is as important as computing the visible value.
+
+### 1. Snapshot Visibility and Tombstones
+
+The internal stream contains `k@9=delete, k@7=v7, k@3=v3`. What does a read return at timestamps 10, 8, 7, and 2?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+At 10, the newest visible version is the tombstone at 9, so the key is absent. At 8 and 7, `v7` is visible. At 2, no version is visible. A correct iterator skips versions newer than `read_ts`, chooses the first remaining version, and never continues past a chosen tombstone to resurrect an older value.
+
+</details>
+
+### 2. Watermark Garbage Collection
+
+For the same versions and watermark 7, which versions must a non-bottom compaction retain? What may a bottom-level compaction do after the watermark advances to 9?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+At watermark 7, retain every version above it (`k@9`) and the newest version at or below it (`k@7`); `k@3` is obsolete. After the watermark reaches 9, a bottom-level compaction may remove the selected tombstone and all older versions because no active snapshot needs them and no older value can survive below the task.
+
+</details>
+
+### 3. Atomicity Is Not Durability or Serializability
+
+One transaction writes `a` and `b`. Name what one shared commit timestamp guarantees, what one framed and checksummed WAL batch guarantees, and what `sync` adds. Do any of these alone prevent write skew?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+The shared timestamp makes the completed batch visible as one logical version. WAL framing and verification prevent recovery from exposing only a prefix of a torn or corrupt batch. Synchronization establishes the point after which the record must survive a crash. None of these validates dependencies between concurrent transactions, so none alone prevents write skew.
+
+</details>
+
+### 4. Validation Scope
+
+T1 and T2 begin at timestamp 10. T1 reads `b` and writes `a`; T2 reads `a` and writes `b`. T1 commits first. Why should T2 abort? Why can the same key-only scheme miss an insert into an empty scan range?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+T1's committed write set contains `a`, which intersects T2's read set, so T2 must abort to break the write-skew execution. An empty range scan returns no keys to hash; an insertion into the gap therefore has no recorded key intersection. Preventing that phantom requires tracking the predicate or key range, not only returned keys.
+
+</details>
 
 {{#include copyright.md}}

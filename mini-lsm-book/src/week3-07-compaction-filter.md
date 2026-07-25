@@ -87,6 +87,6 @@ Verify these cases explicitly:
 * How would you report progress for a `DROP TABLE` operation backed by an asynchronous compaction filter?
 * What API or metadata would be needed to remove or supersede a previously installed filter safely?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

@@ -95,7 +95,7 @@ Test more than a clean close: create several memtables, synchronize, reopen, and
 ### Recovery and Durability
 
 * When should you call `fsync` in your engine? What happens if you call `fsync` too often (i.e., on every put key request)?
-* How costly is the `fsync` operation in general on an SSD (solid state drive)?
+* **Experiment:** Measure batched `fsync` latency and throughput on your own storage device. Record the operating system, filesystem, device, queue depth, and batch size; why is there no single hardware-independent answer?
 * When can you tell the user that their modifications (put/delete) have been persisted?
 * Why must a new memtable be recorded in the manifest before a synchronized write to its WAL can be considered recoverable?
 * Why should a flushed memtable's WAL be deleted only after the manifest's flush record is durable?
@@ -106,6 +106,6 @@ Test more than a clean close: create several memtables, synchronize, reopen, and
 
 * Is it possible to design an LSM engine without WAL (i.e., use L0 as WAL)? What will be the implications of this design?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 2 end-of-week self-check](./week2-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

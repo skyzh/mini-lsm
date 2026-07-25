@@ -51,7 +51,7 @@ The three SSTs have overlapping key ranges, so a lookup for key 02333 might prob
 ```
 SST 4: key range 00000 - key 03000, 1000 keys
 SST 5: key range 03001 - key 06000, 1000 keys
-SST 6: key range 06000 - key 10010, 1000 keys
+SST 6: key range 06001 - key 10010, 1000 keys
 ```
 
 The engine merges SSTs 1, 2, and 3, resolves duplicate keys, and splits the sorted result to avoid producing one oversized file. The three output SSTs have non-overlapping ranges, so a lookup for key 02333 needs to inspect only SST 4.
@@ -121,5 +121,45 @@ Before moving to Week 3, check that you can explain:
 - which facts belong in the manifest and which bytes belong in a WAL;
 - the required durable-write order for creating and deleting files;
 - what each checksum covers and how a decoder finds that exact byte range.
+
+## End-of-Week Self-Check
+
+Answer with a concrete file set or event order. These scenarios deliberately combine material from several chapters.
+
+### 1. Compaction Priority and Concurrent Flush
+
+A full-compaction task captures L0 files `[5, 4]` and bottom-level files `[1, 2]`. File 6 is flushed while the task writes its output. File 5 contains the newest entry for `k`, a tombstone; file 1 contains `k -> old`. What remains in L0 after installation, and does `k` appear in the compaction output?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+L0 retains `[6]`; result application removes only the captured files. File 5 has priority over file 1. Because the task includes the bottom level and therefore every possible older version, both the tombstone and `k -> old` may disappear. A non-bottom task would need to retain the tombstone.
+
+</details>
+
+### 2. Crash-Safe File Installation
+
+Order these events for a flush: write the SST, synchronize the SST, synchronize the directory entry, append and synchronize the manifest record. When may an obsolete input file be deleted?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+The new SST contents and its directory entry must be durable before the durable manifest may reference the file. Obsolete inputs may be deleted only after the replacement manifest record is durable, followed by another directory synchronization. A crash may leave an unreferenced extra file, but recovery must never be directed to a missing file.
+
+</details>
+
+### 3. Reading Amplification Numbers
+
+Two policies report different amplification. What must you define before deciding which policy is better?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+Define the workload and the numerator and denominator of every metric: physical read work per logical read, total physical bytes written per logical bytes entering the LSM, and physical storage per live logical data. Also state whether the measurement includes temporary compaction space, cache hits, WAL writes, and device-level write amplification. A policy is not universally better: workload latency and resource limits determine which tradeoff matters.
+
+</details>
 
 {{#include copyright.md}}

@@ -115,6 +115,8 @@ Verify these cases explicitly:
 * Why must compaction keep one version at or below the watermark instead of deleting every version below it?
 * What race appears if a transaction reads the latest timestamp before registering itself with the watermark?
 
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs.
+
 ## Bonus Tasks
 
 * **O(1) Watermark.** You may implement an amortized O(1) watermark structure by using a hash map or a cyclic queue.

@@ -142,6 +142,6 @@ Verify these cases explicitly:
 * Which object owns the lifetime of a scan's read timestamp, and what could compaction reclaim if that object were dropped too early?
 * Is the maximum timestamp among current SST entries always a durable history of every timestamp ever allocated? What additional metadata would be needed if timestamps must never be reused after all records at the maximum timestamp are garbage-collected?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

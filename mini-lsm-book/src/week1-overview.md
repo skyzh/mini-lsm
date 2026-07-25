@@ -42,4 +42,44 @@ Before moving to Week 2, check that you can explain:
 - which data is in memory, which data is on disk, and which structure owns each piece;
 - how the read and write paths choose the newest visible value for a key.
 
+## End-of-Week Self-Check
+
+Try these scenarios without running the code. Open the answer criteria only after writing down both the result and the invariant that produces it.
+
+### 1. One View from Several Sources
+
+The mutable memtable contains `b -> delete` and `d -> 4`. The newest immutable memtable contains `a -> 1` and `b -> 2`. L0, from newest to oldest, contains one SST with `a -> 0`, `c -> 3`, and `d -> 3`. What do `get(a)`, `get(b)`, and the inclusive scan `[a, d]` return?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+`get(a)` returns `1`, because every memtable is newer than every L0 SST. `get(b)` returns not found: the tombstone wins and must stop the search. The scan returns `a -> 1, c -> 3, d -> 4`. A complete explanation identifies where duplicate keys are resolved before tombstones are hidden and why the final stream is sorted and unique.
+
+</details>
+
+### 2. Freeze and Flush without Changing Results
+
+The immutable-memtable IDs are `[7, 6, 5]` from newest to oldest, and L0 IDs are `[4, 3]` from newest to oldest. After one correct flush, what are the two lists? Which logical read result is allowed to change because of the flush?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+The oldest immutable memtable, ID 5, is flushed, so the lists become `imm_memtables = [7, 6]` and `l0_sstables = [5, 4, 3]`. The SST reuses the memtable ID. No logical read result may change: the state update replaces one physical representation with another at the same recency position.
+
+</details>
+
+### 3. Safe Optimizations
+
+An SST's range contains `k`, but its Bloom filter reports “may contain,” and an SST seek lands on the next key `m`. May `get(k)` return `m`? Would the answer change if the Bloom filter reported “definitely absent”?
+
+<details>
+
+<summary>Answer criteria</summary>
+
+“May contain” is not proof of membership, so the engine must seek and then check exact key equality; it cannot return `m`. A valid “definitely absent” result lets the engine skip the SST entirely. Both optimizations may reduce work but must not change the value returned.
+
+</details>
+
 {{#include copyright.md}}
