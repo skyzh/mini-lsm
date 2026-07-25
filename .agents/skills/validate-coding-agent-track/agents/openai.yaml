@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate Coding-Agent Track"
+  short_description: "Review coding-agent course tracks for usability"
+  default_prompt: "Use $validate-coding-agent-track to audit this coding-agent course chapter for correctness and agent usability."
