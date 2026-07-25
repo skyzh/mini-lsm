@@ -68,6 +68,8 @@ In the key+timestamp ordering, the smallest user key appears first, and the larg
 ("a", 233) < ("a", 0) < ("b", 233) < ("b", 0)
 ```
 
+The descending timestamp order makes snapshot lookup a lower-bound seek. Seeking to `(a, read_ts)` skips `a` versions newer than the snapshot and lands on the greatest timestamp less than or equal to `read_ts`, if one exists. All remaining versions of `a` are adjacent, so the iterator can choose one visible version and then skip the rest. Keeping user keys in ascending order preserves ordinary range-scan order.
+
 ## Task 1: Encode Timestamps in Blocks
 
 Replacing the key module makes representation assumptions visible as compiler errors. In this task, update:
@@ -151,6 +153,6 @@ Verify these cases explicitly:
 * During Day 1, why is it acceptable for `LsmIterator` to return repeated user keys, and why must that behavior change on Day 2?
 * Construct a seek target that distinguishes comparing full internal keys from comparing only user keys.
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

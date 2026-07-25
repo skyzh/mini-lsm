@@ -2,7 +2,7 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# (A Partial) Serializable Snapshot Isolation
+# Serializable Validation (with a Scan Limitation)
 
 By the end of this chapter, you will be able to:
 
@@ -20,6 +20,8 @@ cargo x scheck
 ## Before You Begin
 
 Day 5 provides stable snapshots and crash-atomic writes, but two transactions can still make decisions from the same old state and produce write skew. Day 6 validates a transaction immediately before commit.
+
+This chapter does not implement the full Serializable Snapshot Isolation (SSI) algorithm from the research literature. For point reads, it uses a simpler and more conservative rule: abort when the current transaction's read set intersects the write set of any transaction committed after its snapshot. Holding one commit lock across validation and publication lets each accepted writing transaction be serialized at its commit position; read-only transactions remain at their snapshot position. The rule may reject some histories that were already serializable. For scans, recording only returned keys misses gaps and therefore cannot provide the same guarantee.
 
 Keep these invariants in mind:
 
@@ -150,14 +152,14 @@ Verify these cases explicitly:
 ## Test Your Understanding
 
 * If you have some experience with building a relational database, you may think about the following question: assume that we build a database based on Mini-LSM where we store each row in the relation table as a key-value pair (key: primary key, value: serialized row) and enable serializable verification, does the database system directly gain ANSI serializable isolation level capability? Why or why not?
-* The thing we implement here is actually write snapshot-isolation (see [A critique of snapshot isolation](https://dl.acm.org/doi/abs/10.1145/2168836.2168853)) that guarantees serializable. Is there any cases where the execution is serializable, but will be rejected by the write snapshot-isolation validation?
+* The point-key rule is related to write snapshot isolation (see [A critique of snapshot isolation](https://dl.acm.org/doi/abs/10.1145/2168836.2168853)): it aborts on any relevant read-after-snapshot write conflict instead of detecting only cycles. Construct a serializable execution that this conservative rule still rejects.
 * There are databases that claim they have serializable snapshot isolation support by only tracking the keys accessed in gets and scans (instead of key range). Do they really prevent write skews caused by phantoms? (Okay... Actually, I'm talking about [BadgerDB](https://dgraph.io/blog/post/badger-txn/).)
 * Why must `commit_lock` cover both validation and publication? Construct an interleaving that fails if the lock is released between them.
 * Why does a `get` miss belong in the read set?
 * Why can two transactions that only write the same key both commit without violating serializability?
 * Which committed transaction records are safe to garbage-collect at a given watermark?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

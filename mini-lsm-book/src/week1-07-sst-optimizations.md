@@ -166,6 +166,6 @@ Measure or inspect three things: the encoded size of a block containing keys wit
 * Why must the first key in a block have an overlap length of zero? What malformed or circular representation could result otherwise?
 * Compare the encoded sizes of keys that share a long prefix, keys that share no prefix, and one key larger than the target block size. When does prefix encoding provide little or no benefit?
 
-We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

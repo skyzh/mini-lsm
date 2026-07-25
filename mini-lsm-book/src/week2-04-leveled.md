@@ -202,8 +202,8 @@ For one simulator task, calculate the target sizes and priorities by hand. Verif
 
 ### Amplification and Design
 
-* What is the estimated write amplification of leveled compaction?
-* What is the estimated read amplification of leveled compaction?
+* Estimate write amplification under an explicit level multiplier, overlap fraction, and steady-state workload. Which term changes when compaction selects one upper SST instead of an entire level?
+* Estimate worst-case point-read amplification with no cache or Bloom-filter benefit. How do overlapping L0 files differ from the one candidate file per lower level?
 * Finding a good key split point for compaction may potentially reduce the write amplification, or it does not matter at all? (Consider that case that the user write keys beginning with some prefixes, `00` and `01`. The number of keys under these two prefixes are different and their write patterns are different. If we can always split `00` and `01` into different SSTs...)
 * Imagine that a user was using tiered (universal) compaction before and wants to migrate to leveled compaction. What might be the challenges of this migration? And how to do the migration?
 * And if we do it reversely, what if the user wants to migrate from leveled compaction to tiered compaction?
@@ -215,7 +215,7 @@ For one simulator task, calculate the target sizes and priorities by hand. Verif
 * Some people propose to do intra-L0 compaction (compact L0 tables and still put them in L0) before pushing them to lower layers. What might be the benefits of doing so? (Might be related: [PebblesDB SOSP'17](https://www.cs.utexas.edu/~vijay/papers/sosp17-pebblesdb.pdf))
 * Consider the case that the upper level has two tables of `[100, 200], [201, 300]` and the lower level has `[50, 150], [151, 250], [251, 350]`. In this case, do you still want to compact one file in the upper level at a time? Why?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 2 end-of-week self-check](./week2-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

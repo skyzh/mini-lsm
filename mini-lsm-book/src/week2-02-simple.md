@@ -202,8 +202,8 @@ Compare a short simulator run with the reference output, then alter one paramete
 
 ### Amplification and Design
 
-* What is the estimated write amplification of leveled compaction?
-* What is the estimated read amplification of leveled compaction?
+* Estimate write amplification for a steady-state overwrite workload. State the level count, size ratio, and how much of each lower level a task rewrites; explain why the chapter's full-level policy differs from partial leveled compaction.
+* Estimate worst-case point-read amplification with no cache or Bloom-filter benefit. State how you count L0 and each non-empty sorted run.
 * Is it correct that a key will only be purged from the LSM tree if the user requests to delete it and it has been compacted in the bottom-most level?
 * Is it a good strategy to periodically do a full compaction on the LSM tree? Why or why not?
 * Actively choosing some old files/levels to compact even if they do not violate the level amplifier would be a good choice, is it true? (Look at the [Lethe](https://disc-projects.bu.edu/lethe/) paper!)
@@ -211,6 +211,6 @@ Compare a short simulator run with the reference output, then alter one paramete
 * So far, SST filenames have used monotonically increasing IDs. What problems might arise from naming a file `<level>_<begin_key>_<end_key>.sst` instead? Revisit this question in Week 3.
 * What is your favorite boba shop in your city? (If you answered yes in week 1 day 3...)
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 2 end-of-week self-check](./week2-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 {{#include copyright.md}}

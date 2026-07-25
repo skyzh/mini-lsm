@@ -16,6 +16,24 @@ This course has three parts, or weeks. In the first week, you will focus on the 
 
 Follow [Environment Setup](./00-get-started.md) to prepare your development environment.
 
+## From Bitcask to Mini-LSM
+
+If Bitcask is your starting point, you already know the central log-structured idea: do not overwrite an old record in place. Append a new record, let an index identify the newest value, and reclaim obsolete records later. Mini-LSM keeps that idea but changes the index and the shape of the files.
+
+In a Bitcask-style engine, an in-memory hash index maps each key to its newest record on disk. That design is excellent for point lookups, but the hash index does not place keys in order. An ordered range scan therefore needs an additional ordered index or must examine and sort matching keys. The entire key directory must also fit in memory. See the original [Bitcask paper](https://riak.com/assets/bitcask-intro.pdf) for the design and its stated memory requirement.
+
+Mini-LSM instead maintains **sorted** data at every stage:
+
+1. A memtable is an ordered in-memory map. It absorbs small random writes without updating disk pages in place.
+2. Freezing and flushing a memtable turns one sorted memory run into an immutable sorted-string table (SST). Because the input is already sorted, the engine can write the file sequentially.
+3. Reads merge the newest memtables and SSTs into one logical sorted view. Source priority resolves several physical versions of the same key.
+4. Compaction merges sorted runs in the background. It pays sequential rewrite work to bound how many runs a read must consult and to reclaim obsolete values and tombstones.
+5. A write-ahead log protects the mutable part that has not reached an SST. The manifest separately records which immutable files form the current tree.
+
+This is the design bargain behind the course: foreground writes become cheap appends and in-memory updates, while background compaction pays and schedules the work that an in-place index would perform on the write path. Sorted runs also make ordered scans and merge-based maintenance natural. The original [LSM-tree paper](https://www.cs.umb.edu/~poneil/lsmtree.pdf) motivates the structure as a way to maintain a disk index with lower insertion cost.
+
+The three weeks follow the consequences of that bargain. Week 1 establishes one correct logical view over sorted memory and disk structures. Week 2 controls the delayed maintenance work and makes both the file layout and unflushed writes recoverable. Week 3 retains several timestamped versions so concurrent readers can keep stable snapshots while writes continue.
+
 ## Overview of LSM
 
 An LSM storage engine generally has three components:

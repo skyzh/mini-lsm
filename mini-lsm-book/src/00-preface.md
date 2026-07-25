@@ -23,7 +23,7 @@ an LSM tree, however, writes—including insertions, updates, and deletions—ar
 engine batches these operations into sorted-string table (SST) files and writes them to disk. Once written, SST files are
 immutable. A background process called compaction merges these files and applies their updates and deletions.
 
-This architectural design makes LSM trees easy to work with.
+This architectural design creates several useful engineering properties.
 
 1. Data on persistent storage is immutable, which makes concurrency control more straightforward. Compaction can be offloaded to remote servers, and data can be stored and served directly from cloud-native storage systems such as S3.
 2. Changing the compaction algorithm lets the storage engine balance read, write, and space amplification. By tuning compaction parameters, we can optimize the LSM tree for different workloads.
@@ -32,9 +32,9 @@ This course will teach you how to build an LSM-tree-based storage engine in the 
 
 ## Prerequisites
 
-* You should know the basics of the Rust programming language. Reading [The Rust Programming Language](https://doc.rust-lang.org/book/) is sufficient.
-* You should understand the basic concepts behind key-value storage engines, including why persistence requires a more complex design. If you have no prior experience with database or storage systems, consider implementing Bitcask through the [PingCAP Talent Plan](https://github.com/pingcap/talent-plan/tree/master/courses/rust/projects/project-2).
-* You do not need to know how an LSM tree works, but we recommend reading an introduction, such as an overview of LevelDB. This background will familiarize you with concepts such as mutable and immutable memtables, SSTs, compaction, and write-ahead logs (WALs).
+* You should know the basics of the Rust programming language. Reading [The Rust Programming Language](https://doc.rust-lang.org/book/) is sufficient. The course introduces less common Rust patterns when they appear, but you should be comfortable reading compiler errors and consulting crate documentation.
+* You should understand a small persistent key-value store such as Bitcask: appending updates to a log, keeping an in-memory index that points to the newest record, representing deletion with a marker, reclaiming obsolete records by merging files, and rebuilding state after a restart. If these ideas are unfamiliar, consider implementing Bitcask through the [PingCAP Talent Plan](https://github.com/pingcap/talent-plan/tree/master/courses/rust/projects/project-2).
+* You do **not** need prior knowledge of LSM trees, compaction strategies, MVCC, or transaction isolation. The [course overview](./00-overview.md) bridges the Bitcask model to Mini-LSM, and each week introduces its own storage concepts. An external LevelDB or RocksDB overview is optional enrichment rather than required preparation.
 
 ## What Should You Expect from This Course?
 
@@ -43,6 +43,17 @@ After completing this course, you should have a deep understanding of how an LSM
 ### Structure
 
 The course consists of several parts, or weeks. Each week has seven chapters, and you can complete each chapter in two to three hours. The first six chapters of each week guide you through building a working system. The final chapter is a *snack time* chapter in which you implement a few approachable improvements to what you built over the previous six days. Each chapter includes required tasks, *Test Your Understanding* questions, and bonus tasks.
+
+### How to Use the Learning Checks
+
+The book uses four kinds of checks for different purposes:
+
+1. **Predict before coding** asks you to trace a small state before implementation details distract you. If your code later disagrees, first decide which invariant your prediction or implementation missed.
+2. **Chapter checkpoints** combine tests with cases that the supplied suite may not cover. Record the state, execution, or byte layout that supports your conclusion; passing tests alone is not sufficient evidence.
+3. **Test Your Understanding** begins with questions that have a concrete answer in the chapter's model, then broadens into performance and production-design prompts. For an open-ended prompt, state the workload and system assumptions before defending a tradeoff.
+4. **End-of-week self-checks** provide small integrated scenarios with collapsed answer criteria. Use them as calibration after answering the chapter questions, not as an implementation recipe.
+
+Questions that require an external API detail or paper should link the relevant primary source. If a question still seems underspecified, identify the missing assumption instead of guessing a universal answer.
 
 ### Testing
 

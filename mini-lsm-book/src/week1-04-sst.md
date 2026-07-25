@@ -126,9 +126,9 @@ Inspect the block-reading path after the tests pass. Explain when a disk read oc
 
 * Can an LSM engine store columnar data, such as a table with 100 integer columns? Would the current SST format still be a good choice?
 * Suppose the LSM engine uses an object-storage service such as S3. How would you adapt the SST format, its parameters, and the block cache to suit that environment?
-* For now, we load the metadata for every SST into memory. If 16 GB of memory is reserved for this metadata, can you estimate the maximum database size the LSM system could support? This limitation motivates an index cache.
+* For now, we load the metadata for every SST into memory. If 16 GB is reserved for this metadata, estimate the maximum database size under explicit assumptions for average key length, block size, metadata bytes per block, and SST utilization. Which assumption dominates? This limitation motivates an index cache.
 
-We do not provide reference answers to these questions. Feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 

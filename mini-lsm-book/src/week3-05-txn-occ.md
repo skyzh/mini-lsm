@@ -2,7 +2,7 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Transaction and Optimistic Concurrency Control
+# Transaction Workspace and Atomic Commit
 
 By the end of this chapter, you will be able to:
 
@@ -107,13 +107,15 @@ Verify these cases explicitly:
 
 ## Test Your Understanding
 
-* With all the things we have implemented up to this point, does the system satisfy snapshot isolation? If not, what else do we need to do to support snapshot isolation? (Note: snapshot isolation is different from serializable snapshot isolation we will talk about in the next chapter)
+* Compare this chapter's guarantees with classic snapshot isolation as defined in the Week 3 overview. Which first-committer-wins rule is not enforced if two concurrent transactions blindly write the same key? Does allowing both commits necessarily make that particular history non-serializable?
 * What if the user wants to batch import data (i.e., 1TB?) If they use the transaction API to do that, will you give them some advice? Is there any opportunity to optimize for this case?
-* What is optimistic concurrency control? What would the system be like if we implement pessimistic concurrency control instead in Mini-LSM?
+* Day 6 uses optimistic concurrency control: it checks for conflicts at commit instead of preventing them while the transaction runs. What locks or blocking behavior would a pessimistic design add, and how would that change abort rates and concurrency?
 * Why are both a shared commit timestamp and WAL framing required for transaction atomicity?
 * Why must WAL append happen before memtable publication? What should the caller observe if either step fails?
 * When can the engine safely check the memtable size and freeze it without splitting the transaction?
 * Should an empty transaction allocate a commit timestamp? What are the tradeoffs? This checkpoint follows the existing batch-write behavior.
+
+Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs.
 
 ## Bonus Tasks
 

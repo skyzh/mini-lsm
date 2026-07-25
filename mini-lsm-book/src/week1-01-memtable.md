@@ -219,9 +219,9 @@ Answer the correctness questions with reference to your implementation. For ques
 
 * Could an LSM tree use other data structures for its memtable? What are the advantages and disadvantages of a skiplist?
 * Is the memtable's memory layout efficient? Does it have good data locality? Consider how `Bytes` is implemented and stored in the skiplist. How could you optimize the memtable's layout?
-* This course uses `parking_lot` locks. Is its read-write lock fair? What might happen to readers waiting to acquire the lock when a writer is already waiting for the current readers to release it?
+* **Documentation check:** Read `parking_lot`'s [`RwLock` fairness section](https://docs.rs/parking_lot/latest/parking_lot/type.RwLock.html#fairness). What might happen to readers waiting to acquire the lock when a writer is already waiting for the current readers to release it? How does eventual fairness differ from strict first-in, first-out service?
 
-We do not provide reference answers to these questions, so feel free to discuss them in the Discord community.
+Use the [Week 1 end-of-week self-check](./week1-overview.md#end-of-week-self-check) to calibrate the core invariants. The remaining design questions may have several defensible answers; state your workload and assumptions before comparing tradeoffs. You can also discuss them in the Discord community.
 
 ## Bonus Tasks
 
