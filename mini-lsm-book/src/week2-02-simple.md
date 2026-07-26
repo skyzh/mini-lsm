@@ -160,7 +160,7 @@ src/lsm_iterator.rs
 src/lsm_storage.rs
 ```
 
-Extend both `get` and `scan` across every level below L1. Change the inner type of `LsmStorageIterator` so that it merges one `SstConcatIterator` per level.
+Extend both `get` and `scan` across every level below L1. Change the inner type of `LsmIterator` so that it merges one `SstConcatIterator` per level.
 
 To test your implementation interactively,
 
