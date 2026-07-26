@@ -278,6 +278,7 @@ fn test_task3_storage_get() {
         vec![
             (Bytes::from_static(b"0"), Bytes::from_static(b"2333333")),
             (Bytes::from_static(b"00"), Bytes::from_static(b"2333333")),
+            (Bytes::from_static(b"10"), Bytes::from_static(b"test")),
             (Bytes::from_static(b"4"), Bytes::from_static(b"23")),
         ],
         Some(storage.block_cache.clone()),
@@ -312,6 +313,10 @@ fn test_task3_storage_get() {
     assert_eq!(
         storage.get(b"3").unwrap(),
         Some(Bytes::from_static(b"23333"))
+    );
+    assert_eq!(
+        storage.get(b"10").unwrap(),
+        Some(Bytes::from_static(b"test"))
     );
     assert_eq!(storage.get(b"4").unwrap(), None);
     assert_eq!(storage.get(b"--").unwrap(), None);

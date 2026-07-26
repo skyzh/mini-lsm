@@ -165,7 +165,7 @@
         <line x1="467.5" y1="472.1117" x2="502.2417" y2="480.95225" marker-end="url(#FilledArrow_Marker_2)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       </g>
       <g id="Line_31">
-        <line x1="110.41992" y1="227.974" x2="338.68008" y2="227.974" marker-end="url(#FilledArrow_Marker_3)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        <line x1="338.68008" y1="227.974" x2="110.41992" y2="227.974" marker-end="url(#FilledArrow_Marker_3)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
       </g>
       <g id="Graphic_32">
         <text transform="translate(45 199)" fill="black">
