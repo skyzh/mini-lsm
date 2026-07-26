@@ -2,11 +2,36 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Preface
+# Learn Database Internals by Building a Storage Engine
 
-![Banner](./mini-lsm-logo.png)
+![Mini-LSM: Learn database internals by building an LSM storage engine in Rust](./mini-lsm-banner.svg)
 
-This course teaches you how to build a simple LSM-tree storage engine in Rust.
+Mini-LSM is a hands-on course for systems and backend engineers. You will build an LSM-tree storage engine in Rust, from its in-memory write path and on-disk format to compaction, crash recovery, MVCC, and transactions.
+
+Week 1 produces a working storage engine. Weeks 2 and 3 add production-inspired durability, background maintenance, and concurrency control. If you use a coding agent, a separate guided track lets the agent handle much of the mechanical implementation while you retain ownership of the representation, ordering, failure, and testing decisions.
+
+## Choose Your Path
+
+| Path | Format | Start here |
+| --- | --- | --- |
+| **Guided course** | Three weeks, with seven implementation chapters per week | [Read the course overview](./00-overview.md) |
+| **Coding-agent track** | Three planned days of decision stops, small code slices, and adversarial tests; Days 1–2 are available | [Prepare your agent and begin](./agent-fast-forward-overview.md) |
+
+Both paths build the same small storage system. The difference is who types most of the code, not who owns the understanding.
+
+## Is This Course for You?
+
+Mini-LSM is designed for you if you have used PostgreSQL, MySQL, Redis, RocksDB, or another data system and want to understand what happens below its API. It is also a practical starting point if you want to read production storage-engine code but first need a complete system small enough to hold in your head.
+
+You will learn about:
+
+* storage layout, ordered in-memory state, blocks, and SSTs;
+* read and write paths over several physical data sources;
+* compaction and its read, write, and space tradeoffs;
+* durability through manifests, write-ahead logging, and recovery; and
+* snapshots, MVCC, garbage collection, and concurrency control.
+
+Mini-LSM focuses on a database **storage engine**. It does not include a SQL parser, query optimizer, replication, or distributed consensus. Those are valuable next steps, but keeping them outside this course makes it possible to understand the storage layer end to end.
 
 ## What Is an LSM Tree, and Why Use One?
 
@@ -27,8 +52,6 @@ This architectural design creates several useful engineering properties.
 
 1. Data on persistent storage is immutable, which makes concurrency control more straightforward. Compaction can be offloaded to remote servers, and data can be stored and served directly from cloud-native storage systems such as S3.
 2. Changing the compaction algorithm lets the storage engine balance read, write, and space amplification. By tuning compaction parameters, we can optimize the LSM tree for different workloads.
-
-This course will teach you how to build an LSM-tree-based storage engine in the Rust programming language.
 
 ## Prerequisites
 

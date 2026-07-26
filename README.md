@@ -1,14 +1,37 @@
-![banner](./mini-lsm-book/src/mini-lsm-logo.png)
+![Mini-LSM: Learn database internals by building an LSM storage engine in Rust](./mini-lsm-book/src/mini-lsm-banner.svg)
 
-# LSM in a Week
+# Mini-LSM: Build a Database Storage Engine in Rust
 
 [![CI (main)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml/badge.svg)](https://github.com/skyzh/mini-lsm/actions/workflows/main.yml)
 
-Build a simple key-value storage engine in a week! And extend your LSM engine on the second + third week.
+Mini-LSM is a hands-on course in database internals for systems and backend engineers. Build an LSM-tree storage engine from memtables and SSTs through compaction, crash recovery, MVCC, and transactions.
 
-## [Book](https://skyzh.github.io/mini-lsm)
+**[Start the guided three-week course](https://skyzh.github.io/mini-lsm)** · **[Try the coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) (in progress)**
 
-The Mini-LSM book is available at [https://skyzh.github.io/mini-lsm](https://skyzh.github.io/mini-lsm). You may follow this guide and implement the Mini-LSM storage engine. We have 3 weeks (parts) of the course, each of them consists of 7 days (chapters).
+Week 1 produces a working storage engine. Weeks 2 and 3 add production-inspired compaction, durability, concurrency control, and multi-version transactions.
+
+## What You Will Build
+
+![Mini-LSM course roadmap](./mini-lsm-book/src/lsm-tutorial/00-full-overview.svg)
+
+By the end of the course, your engine will include:
+
+* an ordered in-memory write buffer and immutable SST files;
+* point lookups and range scans over merged memory and disk state;
+* multiple compaction strategies and background maintenance;
+* a manifest and write-ahead log for crash recovery; and
+* snapshots, MVCC garbage collection, optimistic concurrency control, and serializable validation for tracked keys.
+
+Mini-LSM focuses on the storage layer of a database. It does not cover SQL parsing, query optimization, replication, or distributed consensus.
+
+## Choose a Learning Path
+
+| Path | Best for | Format | Status |
+| --- | --- | --- | --- |
+| [Guided course](https://skyzh.github.io/mini-lsm/00-overview.html) | Learners who want to implement and reason through each subsystem | Three weeks, with seven chapters per week | Complete |
+| [Coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) | Learners who want an agent to handle mechanical implementation without outsourcing system design | Three planned days built around decision stops, focused code slices, and adversarial tests | Days 1–2 available |
+
+You need basic Rust, but you do not need prior knowledge of LSM trees, compaction, MVCC, or transaction isolation. The course is a good fit if you have used systems such as PostgreSQL, MySQL, Redis, or RocksDB and want to understand what happens below their APIs.
 
 ## Community
 
@@ -72,16 +95,14 @@ cargo run --bin compaction-simulator-ref
 cargo run --bin compaction-simulator-mvcc-ref
 ```
 
-## Course Structure
+## Guided Course Structure
 
-We have 3 weeks + 1 extra week (in progress) for this course.
+The guided course has three complete weeks and an open-ended collection of future optimizations.
 
 * Week 1: Storage Format + Engine Skeleton
 * Week 2: Compaction and Persistence
 * Week 3: Multi-Version Concurrency Control
-* The Extra Week / Rest of Your Life: Optimizations (unlikely to be available in 2025...)
-
-![Course Roadmap](./mini-lsm-book/src/lsm-tutorial/00-full-overview.svg)
+* The Rest of Your Life: Optional optimizations (TBD)
 
 | Week + Chapter | Topic                                                       |
 | -------------- | ----------------------------------------------------------- |

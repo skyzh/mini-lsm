@@ -2,7 +2,8 @@
 authors = ["Alex Chi Z"]
 language = "en"
 src = "src"
-title = "LSM in a Week"
+title = "Mini-LSM — Build a Database Storage Engine in Rust"
+description = "A hands-on introduction to database internals. Build an LSM storage engine with SSTables, compaction, WAL recovery, MVCC, and transactions."
 
 [preprocessor.toc]
 command = "mdbook-toc"

@@ -2,9 +2,10 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# LSM in a Week
+# Mini-LSM — Build a Database Storage Engine in Rust
 
-[Preface](./00-preface.md)
+[Learn Database Internals](./00-preface.md)
+[How to Learn Database Internals](./database-internals-learning-path.md)
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
