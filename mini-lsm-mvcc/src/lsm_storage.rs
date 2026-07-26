@@ -731,16 +731,13 @@ impl LsmStorageInner {
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
         let state_lock = self.state_lock.lock();
 
-        let flush_memtable;
-
-        {
+        let flush_memtable = {
             let guard = self.state.read();
-            flush_memtable = guard
-                .imm_memtables
-                .last()
-                .expect("no imm memtables!")
-                .clone();
-        }
+            let Some(flush_memtable) = guard.imm_memtables.last() else {
+                return Ok(());
+            };
+            flush_memtable.clone()
+        };
 
         let mut builder = SsTableBuilder::new(self.options.block_size);
         flush_memtable.flush(&mut builder)?;
