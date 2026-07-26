@@ -2,7 +2,8 @@
 authors = ["Alex Chi Z"]
 language = "en"
 src = "src"
-title = "LSM in a Week"
+title = "Mini-LSM — Build a Database Storage Engine in Rust"
+description = "A hands-on introduction to database internals. Build an LSM storage engine with SSTables, compaction, WAL recovery, MVCC, and transactions."
 
 [preprocessor.toc]
 command = "mdbook-toc"
@@ -11,3 +12,15 @@ renderer = ["html"]
 [output.html]
 additional-css = ["custom.css"]
 git-repository-url = "https://github.com/skyzh/mini-lsm"
+
+[output.html.redirect]
+"/00-v1.html" = "00-overview.html"
+"/01-block.html" = "week1-03-block.html"
+"/02-sst.html" = "week1-04-sst.html"
+"/03-memtable.html" = "week1-01-memtable.html"
+"/04-engine.html" = "week1-overview.html"
+"/05-compaction.html" = "week2-overview.html"
+"/06-recovery.html" = "week2-overview.html"
+"/07-bloom-filter.html" = "week1-07-sst-optimizations.html"
+"/08-key-compression.html" = "week1-07-sst-optimizations.html"
+"/09-whats-next.html" = "00-overview.html"
