@@ -56,6 +56,8 @@ We have not yet discussed level 0 (L0). It contains SST files produced directly 
 
 Creating an SST is computationally expensive and involves I/O. Do not hold the `state` read-write lock throughout this work: doing so could block other operations and cause large latency spikes. The `state_lock` mutex serializes operations that modify the LSM-tree state. Use both locks carefully to prevent races while keeping critical sections short.
 
+A caller can observe a non-empty immutable-memtable list before acquiring `state_lock`, then find that another flush drained the list first. Recheck the list while holding `state_lock` and return successfully when it is already empty.
+
 The test suite does not exercise all concurrent cases, so reason carefully about synchronization. The last memtable in `imm_memtables` is the oldest and therefore the one to flush.
 
 <details>
@@ -68,7 +70,10 @@ fn force_flush_next_imm_memtable(&self) -> Result<()> {
 
     let memtable_to_flush = {
         let guard = self.state.read();
-        guard.imm_memtables.last().unwrap().clone()
+        let Some(memtable) = guard.imm_memtables.last() else {
+            return Ok(());
+        };
+        memtable.clone()
     };
 
     let sst_id = memtable_to_flush.id();
