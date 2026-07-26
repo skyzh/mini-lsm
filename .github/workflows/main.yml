@@ -26,8 +26,6 @@ jobs:
           tool: mdbook-toc
       - name: install sitemap generator
         run: npm install --global static-sitemap-cli@2.2.7
-      - name: patch for gh-pages build
-        run: mv mini-lsm-book/theme/head.hbs._ mini-lsm-book/theme/head.hbs
       - name: check and build
         run: cargo x ci
       - name: check sitemap

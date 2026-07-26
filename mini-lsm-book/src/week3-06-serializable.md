@@ -123,7 +123,7 @@ Implement validation in the commit phase. Hold `commit_lock` across validation, 
 
 You will need to go through all transactions with commit timestamp within range `(read_ts, expected_commit_ts)` (both excluded bounds), and see if the read set of the current transaction overlaps with the write set of any transaction satisfying the criteria. If we can commit the transaction, submit a write batch, and insert the write set of this transaction into `self.inner.mvcc().committed_txns`, where the key is the commit timestamp.
 
-Skip validation if `write_set` is empty. The checkpoint still sends the empty batch through the common commit path; avoiding its timestamp and metadata work is the bonus below.
+Skip validation if `write_set` is empty. If the transaction's write batch is empty, return successfully without allocating a commit timestamp or retaining committed-transaction metadata.
 
 You should also modify the `put`, `delete`, and `write_batch` interface in `LsmStorageInner`. We recommend you define a helper function `write_batch_inner` that processes a write batch. If `options.serializable = true`, `put`, `delete`, and the user-facing `write_batch` should create a transaction instead of directly creating a write batch. Your write batch helper function should also return a `u64` commit timestamp so that `Transaction::Commit` can correctly store the committed transaction data into the MVCC structure.
 
@@ -163,7 +163,7 @@ Use the [Week 3 end-of-week self-check](./week3-overview.md#end-of-week-self-che
 
 ## Bonus Tasks
 
-* **Read-Only Transactions.** Return without allocating a commit timestamp or retaining an empty validation record when the write set is empty.
+* **Read-Only Fast Path.** Detect an empty transaction before acquiring `commit_lock`. The required implementation already avoids allocating a commit timestamp or retaining an empty validation record, but it may still serialize briefly with writers before discovering that the batch is empty.
 * **Precision/Predicate Locking.** The read set can be maintained using a range instead of a single key. This would be useful when a user scans the full key space. This will also enable serializable verification for scan.
 
 {{#include copyright.md}}
