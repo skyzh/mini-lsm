@@ -110,7 +110,7 @@ src/compact.rs
 
 Now update the two-level read path to use the concat iterator for L1.
 
-Change the inner iterator type of `LsmStorageIterator`. Merge the memtable and L0 iterators first, then use `TwoMergeIterator` to combine that newer stream with the L1 concat iterator.
+Change the inner iterator type of `LsmIterator`. Merge the memtable and L0 iterators first, then use `TwoMergeIterator` to combine that newer stream with the L1 concat iterator.
 
 You can also change your compaction implementation to leverage the concat iterator.
 
