@@ -41,7 +41,7 @@ You may join skyzh's Discord server and study with the mini-lsm community.
 
 **Add Your Solution**
 
-If you finished at least one full week of this course, you can add your solution to the community solution list at [SOLUTIONS.md](./SOLUTIONS.md). You can submit a pull request and we might do a quick review of your code in return of your hard work.
+If you finished at least one full week of this course, you can add your solution to the community solution list at [SOLUTIONS.md](./SOLUTIONS.md) by submitting a pull request.
 
 ## Development
 
