@@ -17,6 +17,7 @@ use std::sync::Arc;
 use bytes::Bytes;
 use tempfile::{TempDir, tempdir};
 
+use crate::block::BlockIterator;
 use crate::iterators::StorageIterator;
 use crate::key::{KeySlice, KeyVec};
 use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
@@ -75,6 +76,25 @@ fn test_sst_build_all() {
         sst.last_key().as_key_slice(),
         key_of(num_of_keys() - 1).as_key_slice()
     )
+}
+
+#[test]
+fn test_sst_block_metadata_matches_block_contents() {
+    let (_dir, sst) = generate_sst();
+    assert!(sst.num_of_blocks() > 1);
+
+    for (block_idx, meta) in sst.block_meta.iter().enumerate() {
+        let mut iter = BlockIterator::create_and_seek_to_first(sst.read_block(block_idx).unwrap());
+        let first_key = Bytes::copy_from_slice(iter.key().for_testing_key_ref());
+        let mut last_key = first_key.clone();
+        while iter.is_valid() {
+            last_key = Bytes::copy_from_slice(iter.key().for_testing_key_ref());
+            iter.next();
+        }
+
+        assert_eq!(meta.first_key.for_testing_key_ref(), first_key.as_ref());
+        assert_eq!(meta.last_key.for_testing_key_ref(), last_key.as_ref());
+    }
 }
 
 #[test]

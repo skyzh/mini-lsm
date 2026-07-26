@@ -131,6 +131,8 @@ cargo run --bin compaction-simulator simple # Your solution
 
 The simulator flushes an L0 SST, asks the controller for a task, and applies the result. After each flush, it repeatedly invokes the controller until no task remains, so your scheduling policy must converge.
 
+The simulator models SSTs in memory as IDs, key ranges, and file counts; it does not create real SST files. Its `file_list` is bookkeeping for simulated file identity and amplification statistics. Update the LSM state only through the compaction controller's result, and let the simulator update `file_list` from the returned obsolete-file IDs.
+
 Use concat iterators for sorted runs to minimize active child iterators. Merge order still determines which version of a duplicate key survives, so construct every input in newest-to-oldest priority order.
 
 Some values are zero-based vector indexes, while level numbers begin at one. Convert between them explicitly.

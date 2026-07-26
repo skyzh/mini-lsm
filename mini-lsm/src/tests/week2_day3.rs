@@ -96,3 +96,26 @@ fn test_tiered_compaction_accepts_empty_output() {
     assert!(result.levels.is_empty());
     assert_eq!(removed, vec![2, 1]);
 }
+
+#[test]
+#[should_panic(expected = "should not add l0 ssts in tiered compaction")]
+fn test_tiered_compaction_rejects_l0_ssts() {
+    let options = TieredCompactionOptions {
+        num_tiers: 2,
+        max_size_amplification_percent: 200,
+        size_ratio: 1,
+        min_merge_width: 2,
+        max_merge_width: None,
+    };
+    let controller = TieredCompactionController::new(options.clone());
+    let dir = tempdir().unwrap();
+    let storage = MiniLsm::open(
+        &dir,
+        LsmStorageOptions::default_for_week2_test(CompactionOptions::Tiered(options)),
+    )
+    .unwrap();
+    let mut snapshot = storage.inner.state.read().as_ref().clone();
+    snapshot.l0_sstables.push(1);
+
+    controller.generate_compaction_task(&snapshot);
+}
