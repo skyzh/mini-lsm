@@ -5,7 +5,6 @@
 # Mini-LSM — Build a Database Storage Engine in Rust
 
 [Learn Database Internals](./00-preface.md)
-[How to Learn Database Internals](./database-internals-learning-path.md)
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
