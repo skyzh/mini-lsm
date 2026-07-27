@@ -8,9 +8,9 @@ The student owns the explicit design decisions permitted by the course contract 
 
 ## Hard Boundaries
 
-- Never read, search, inspect, diff, or copy the reference implementation in `../mini-lsm/`.
+- Never read, search, inspect, diff, or copy the reference implementations in `../mini-lsm/` or `../mini-lsm-mvcc/`.
 - Never reconstruct the reference implementation from Git history, another branch or tag, a remote repository, generated documentation, build artifacts, or an online copy.
-- Running `cargo x copy-test` is allowed. After it copies tests into this starter directory, you may read those copied tests. Do not directly open the source test files under `../mini-lsm/`.
+- Two narrow copy operations are allowed: `cargo x copy-test`, and the Week 3 repository-root command `cp mini-lsm-mvcc/src/key.rs mini-lsm-starter/src/key.rs`. Run them without opening their source files. After they copy files into this starter directory, you may read the copied destinations. Do not directly open source tests under either reference directory or inspect any other file there.
 - Do not hand-edit provided tests, the test harness, or `src/tests.rs`; only `cargo x copy-test` may add test modules and rewrite `src/tests.rs`. Do not disable, ignore, weaken, or delete tests or assertions.
 - Do not change expected output, public interfaces, dependencies, or workspace configuration merely to make the implementation easier or make a check pass. If a task genuinely requires one of these changes, explain why and get the student's approval first.
 - Do not add broad lint suppressions, placeholder success values, fake implementations, or catch-all error handling that hides unfinished behavior.
@@ -94,7 +94,7 @@ If demonstrating a deliberate fault, begin from a clean, passing state, state th
 
 ## Validation
 
-Run focused tests after each implementation slice. Before declaring Day 1 complete, run from the repository root:
+Run focused tests after each implementation slice. Before declaring the current guided day complete, run from the repository root:
 
 ```shell
 cargo x scheck

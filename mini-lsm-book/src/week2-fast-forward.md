@@ -41,7 +41,7 @@ Week 2 has supplied tests for its original Days 1 through 6. The checksum work f
 
 With the agent running from `mini-lsm-starter`, send:
 
-> Build Day 2 with me, starting with one safe full compaction. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm`. Ask one short question at a time using a concrete set of files, keys, or crash points. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
+> Build Day 2 with me, starting with one safe full compaction. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm` or `../mini-lsm-mvcc`. Ask one short question at a time using a concrete set of files, keys, or crash points. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 
 Use the checkpoints in order unless you can explain why a different dependency order is safe. The tables are audit guides, not questionnaires to paste into the agent.
 
