@@ -63,6 +63,8 @@ cp mini-lsm-mvcc/src/key.rs mini-lsm-starter/src/key.rs
 
 After the copy, the key module is part of the permitted starter workspace. Never open its source path directly. Everything else under `mini-lsm-mvcc/`, and the entire reference implementation under `mini-lsm/`, remain prohibited except for `cargo x copy-test`.
 
+The key copy command above and every `cargo x copy-test` command in this chapter run from the repository root even though the guided agent normally works from `mini-lsm-starter`. Treat each directory change as a narrow course operation: run the command exactly as shown, then return the agent to `mini-lsm-starter` before inspecting or editing anything. Do not replace it with exploratory reads of either source directory.
+
 With the agent running from `mini-lsm-starter`, send:
 
 > Build Day 3 with me, starting with timestamped internal keys and batches. Follow the student-owned design protocol in `AGENTS.md`. Never access `../mini-lsm` or `../mini-lsm-mvcc`; only the exact key and test copy commands documented for Week 3 may read from those sources. Maintain both a decision ledger and the Day 3 guarantee ledger. Ask one short question at a time using a concrete version stream, snapshot, crash point, or transaction interleaving. Name the guarantee being tested, then mark the decision **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, connect one important line to its guarantee and ask what would break if it changed.
@@ -107,6 +109,8 @@ The checksum covers the complete body. Reject keys, values, and batch bodies tha
 
 Compaction keeps every version for now. It may split output between user keys but never between versions of one user key. Latest-state `get` and `scan` skip repeated versions after selecting the newest visible entry and treat a selected tombstone as absence rather than continuing to an older value.
 
+Reusing the merged scan path for `get` does not remove the point-read Bloom optimization. Hash only the user key and discard impossible SST probes before constructing their iterators; otherwise a correct refactor can quietly turn every point read into work across all overlapping files.
+
 Checkpoint 1 is not one edit. Use this default slice order and obtain separate authorization for each slice:
 
 1. block/SST encoding, metadata, and Bloom identity;
@@ -116,6 +120,14 @@ Checkpoint 1 is not one edit. Use this default slice order and obtain separate a
 5. implement compaction retention and output boundaries.
 
 Before approving the checkpoint, independently calculate one encoded entry, exercise all four included/excluded range endpoints, and truncate one WAL batch in its header, body, and checksum. Explain which guarantee each case checks. After focused tests pass, have the agent point to the internal-key comparison and the condition that prevents an SST split within one user key.
+
+Do not use the complete historical suite as the pass/fail gate for this intermediate state. Checkpoint 1 deliberately retains bottom-level tombstones, while the Week 2 all-tombstones test expects the pre-MVCC compactor to remove them. Run the focused Week 3 Day 1 and Day 2 tests instead:
+
+```shell
+cargo test -p mini-lsm-starter --lib week3_day
+```
+
+Classify the one legacy tombstone mismatch as expected; do not restore unsafe deletion merely to make it green. Checkpoint 2 reintroduces safe bottom-level removal using the watermark, after which `cargo x scheck` must pass again.
 
 ## Checkpoint 2: Hold a Stable Snapshot and Reclaim Safely
 
@@ -145,11 +157,13 @@ Work out these rules from concrete version streams and reader lifetimes:
 
 A transaction records `read_ts = latest_commit_ts` and registers it with the watermark before compaction can race past it. For each user key, the iterator skips versions above `read_ts`, chooses the first remaining version, suppresses it if it is a tombstone, and then skips the rest of that user's versions. `TxnIterator` owns the transaction so a partially consumed scan keeps its snapshot registered.
 
-The watermark counts readers, not merely distinct timestamps. Compaction retains every version above the watermark and the newest version at or below it. It may remove that selected version when it is a tombstone only if the task reaches the bottom and no older value can survive elsewhere.
+The watermark stores a reader count for each timestamp, not merely a set of timestamps. Dropping one of two readers at timestamp 3 must therefore leave timestamp 3 registered. The starter's diagnostic `num_retained_snapshots()` reports the number of distinct timestamp buckets (`readers.len()`), not the sum of those counts; use the watermark movement, not that diagnostic alone, to prove duplicate-reader correctness. Compaction retains every version above the watermark and the newest version at or below it. It may remove that selected version when it is a tombstone only if the task reaches the bottom and no older value can survive elsewhere.
 
 Store each SST's maximum timestamp and initialize the timestamp oracle from every live SST and recovered WAL-backed memtable. The first post-recovery batch must receive a strictly larger timestamp. This prevents reuse among recoverable versions; if a production design must never reuse a timestamp after all evidence of it has been garbage-collected, it needs an additional durable timestamp high-water mark.
 
-This checkpoint necessarily evolves public interfaces: starting a transaction must return a transaction handle, an engine scan must return an iterator that owns its transaction, and transaction operations that later reject use after commit must return an error. These are **Course rule** changes, not compiler-directed mechanics. Have the agent cite the copied tests and starter interfaces, preview the exact signatures, and obtain slice authorization before editing them.
+This checkpoint necessarily evolves some public interfaces: starting a transaction must return a transaction handle, and an engine scan must return an iterator that owns its transaction. These are **Course rule** changes, not compiler-directed mechanics. The starter already gives `Transaction::get`, `scan`, and `commit` a `Result` return type, while `put` and `delete` return `()`. Do not silently change the latter two merely to unify use-after-commit handling; that is a separate public-API choice and the supplied tests call them as non-fallible statements. Have the agent cite the copied tests and starter interfaces, preview the exact required signatures, and obtain slice authorization before editing them.
+
+The starter also already uses the final `TxnIterator` shape that merges a local iterator with the engine iterator. Before Day 5, preserve that shape by making the local side an empty, validly constructed stream. Do not simplify the struct for Day 3 and then churn it back two slices later.
 
 After snapshot reads and timestamp recovery pass their focused checks, copy the Day 4 test module, then implement the watermark and compaction-GC slice:
 
@@ -185,7 +199,7 @@ The agent should help you derive:
 | Publication order | Fail WAL append, pause after the first memtable insertion, fail freeze maintenance, and fail `sync` separately. |
 | Oversized commit | Commit a batch larger than the memtable target. |
 
-The private skiplist is the newest source for its owning transaction. Local tombstones hide both local and engine values. Mark a transaction committed before publishing its writes so repeated `get`, `scan`, `put`, `delete`, or `commit` calls fail consistently.
+The private skiplist is the newest source for its owning transaction. Local tombstones hide both local and engine values. Mark a transaction committed before publishing its writes so repeated `get`, `scan`, `put`, `delete`, or `commit` calls are all rejected under their existing contracts. Methods returning `Result` can return an error; the starter's non-fallible `put` and `delete` need a deterministic rejection such as an assertion unless the student explicitly approves changing their public signatures. Consistency here means no operation continues using the transaction, not that every method must acquire the same return type.
 
 Submit the collected workspace through the existing batch path. WAL append precedes memtable visibility. Publish the commit timestamp after the batch is accepted and before fallible freeze maintenance, so a maintenance error cannot cause timestamp reuse. Check the memtable size only after the complete batch is in one memtable and WAL.
 

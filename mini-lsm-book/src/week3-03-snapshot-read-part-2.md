@@ -93,7 +93,7 @@ LsmStorageInner::scan -> new_txn and Transaction::scan -> LsmStorageInner::scan_
 
 To create a transaction in `LsmStorageInner::scan`, we will need to provide a `Arc<LsmStorageInner>` to the transaction constructor. Therefore, we can change the signature of `scan` to take `self: &Arc<Self>` instead of simply `&self`, so that we can create a transaction with `let txn = self.mvcc().new_txn(self.clone(), /* ... */)`.
 
-Change `scan` to return a `TxnIterator`. The snapshot must remain live while the user consumes the scan, so `TxnIterator` stores the transaction object. Inside it, store a `FusedIterator<LsmIterator>` for now; Day 5 will add the transaction-local stream.
+Change `scan` to return a `TxnIterator`. The snapshot must remain live while the user consumes the scan, so `TxnIterator` stores the transaction object. The starter already exposes the final Day 5 shape, which merges a `TxnLocalIterator` with `FusedIterator<LsmIterator>`. Preserve that shape during this chapter by constructing an empty local stream; Day 5 will populate it with transaction-local writes.
 
 You do not need to implement `Transaction::put/delete` for now, and all modifications will still go through the engine.
 
