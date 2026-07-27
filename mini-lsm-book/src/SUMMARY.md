@@ -39,3 +39,4 @@
 - [Mini-LSM with Coding Agents](./agent-fast-forward-overview.md)
   - [Day 1 - Build the Storage Engine](./week1-fast-forward.md)
   - [Day 2 - Compaction and Recovery](./week2-fast-forward.md)
+  - [Day 3 - Transactions and MVCC](./week3-fast-forward.md)

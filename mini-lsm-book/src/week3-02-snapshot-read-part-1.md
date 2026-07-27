@@ -17,12 +17,12 @@ To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 2
-cargo x scheck
+cargo test -p mini-lsm-starter --lib week3_day
 ```
 
 The supplied Day 2 test covers timestamped batches, raw version order, and latest-state reads. The compaction boundary case is exercised by the Day 4 suite, once transactions can pin a watermark and keep old versions live in the completed engine.
 
-**Note:** You should also pass every checkpoint through Week 2 Day 4 after finishing this chapter.
+At this intermediate point, run the focused Week 3 Day 1 and Day 2 tests. One older expectation is intentionally incompatible: the Week 2 all-tombstones test removes bottom-level tombstones, while this chapter retains every version until a watermark exists. Do not restore the old deletion rule to satisfy that test. Day 4 adds watermark-aware garbage collection and makes the complete historical suite valid again.
 
 ## Before You Begin
 

@@ -12,7 +12,7 @@ The goal is not to finish with the fewest prompts. It is to finish able to expla
 | --- | --- | --- |
 | [Day 1](./week1-fast-forward.md) | Mini-LSM | A working storage engine with memtables, SSTs, reads, writes, and flushes. |
 | [Day 2](./week2-fast-forward.md) | Compaction and persistence | Background compaction, restart recovery, and checksummed disk formats. |
-| Day 3 | MVCC | Coming later. |
+| [Day 3](./week3-fast-forward.md) | MVCC and transactions | Stable snapshots, atomic commits, safe version reclamation, and point-key serializable validation. |
 
 The original chapters remain a reference library. This track changes the pacing and the student's role; it does not remove the need to understand ordering, representation, concurrency, and failure modes.
 
@@ -46,7 +46,7 @@ pwd
 
 The final component of `pwd` should be `mini-lsm-starter`. This matters because repository-aware agents discover the `AGENTS.md` in this directory and begin with the starter as their working scope.
 
-Starting there is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore prohibits reading, searching, diffing, or copying `../mini-lsm`, including attempts to reconstruct the solution through Git history or an online copy.
+Starting there is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore prohibits reading, searching, diffing, or copying `../mini-lsm` and `../mini-lsm-mvcc`, including attempts to reconstruct a solution through Git history or an online copy. The only Week 3 exceptions are the exact course commands that copy the provided key module and tests into the starter; the agent may read the destinations afterward, never the sources.
 
 Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. The agent may consult copied tests, starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`.
 
@@ -54,7 +54,7 @@ Do not open the whole repository as the agent's workspace if your tool lets you 
 
 Do not assume the tool discovered `AGENTS.md`. Make the first prompt a handshake that performs no implementation:
 
-> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its reference-solution boundary, test protections, and student-owned design protocol. Explain which choices require a stop and which mechanical coding choices do not. Tell me which local sources you may use, then stop without changing files.
+> Before editing anything, confirm that your working directory is `mini-lsm-starter` and read `./AGENTS.md`. Summarize its reference-solution boundaries, narrow Week 3 copy exceptions, test protections, and student-owned design protocol. Explain which choices require a stop and which mechanical coding choices do not. Tell me which local sources you may use, then stop without changing files.
 
 If the response omits the reference-solution boundary, test protection, or one-decision-at-a-time stop, correct the agent before continuing. If the tool cannot load repository instructions automatically, paste `AGENTS.md` into its persistent project instructions.
 
