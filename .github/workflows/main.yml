@@ -24,8 +24,12 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: mdbook-toc
+      - name: install sitemap generator
+        run: npm install --global static-sitemap-cli@2.2.7
       - name: check and build
         run: cargo x ci
+      - name: check sitemap
+        run: mini-lsm-book/sitemap.sh --check
       - uses: actions/upload-pages-artifact@v3
         with:
           path: mini-lsm-book/book
