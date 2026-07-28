@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ use duct::cmd;
 struct CopyTestAction {
     #[arg(long)]
     week: usize,
+    /// Copy one day; omit to copy all available days.
     #[arg(long)]
-    day: usize,
+    day: Option<usize>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -72,6 +73,14 @@ fn switch_to_starter_root() -> Result<()> {
             .join("mini-lsm-starter"),
     )?;
     Ok(())
+}
+
+fn days_to_copy(week: usize, day: Option<usize>) -> Vec<usize> {
+    match day {
+        Some(day) => vec![day],
+        None if week == 2 => (1..=6).collect(),
+        None => (1..=7).collect(),
+    }
 }
 
 fn fmt() -> Result<()> {
@@ -154,10 +163,22 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
     if !Path::new(target_dir).exists() {
         std::fs::create_dir(target_dir)?;
     }
-    let test_filename = format!("week{}_day{}.rs", test.week, test.day);
-    let src = format!("{}/{}", src_dir, test_filename);
-    let target = format!("{}/{}", target_dir, test_filename);
-    cmd!("cp", src, target).run()?;
+    for day in days_to_copy(test.week, test.day) {
+        let test_filename = format!("week{}_day{}.rs", test.week, day);
+        let src = format!("{}/{}", src_dir, test_filename);
+        let target = format!("{}/{}", target_dir, test_filename);
+        if !Path::new(&src).exists() {
+            if test.day.is_some() {
+                return Err(anyhow!(
+                    "no dedicated tests for week {} day {}",
+                    test.week,
+                    day
+                ));
+            }
+            continue;
+        }
+        cmd!("cp", src, target).run()?;
+    }
     let test_filename = "harness.rs";
     let src = format!("{}/{}", src_dir, test_filename);
     let target = format!("{}/{}", target_dir, test_filename);
@@ -242,4 +263,43 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::days_to_copy;
+
+    #[test]
+    fn copy_all_available_days_when_day_is_omitted() {
+        assert_eq!(days_to_copy(1, None), (1..=7).collect::<Vec<_>>());
+        assert_eq!(days_to_copy(2, None), (1..=6).collect::<Vec<_>>());
+        assert_eq!(days_to_copy(3, None), (1..=7).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn copy_only_the_selected_day() {
+        assert_eq!(days_to_copy(2, Some(3)), vec![3]);
+    }
+
+    #[test]
+    fn every_available_day_has_a_source_file() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        for week in 1..=3 {
+            let src_dir = if week >= 3 {
+                "mini-lsm-mvcc/src/tests"
+            } else {
+                "mini-lsm/src/tests"
+            };
+            for day in days_to_copy(week, None) {
+                assert!(
+                    root.join(src_dir)
+                        .join(format!("week{week}_day{day}.rs"))
+                        .is_file(),
+                    "missing test source for week {week} day {day}"
+                );
+            }
+        }
+    }
 }

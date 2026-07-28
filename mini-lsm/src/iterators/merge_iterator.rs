@@ -94,7 +94,7 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
 {
     type KeyType<'a> = KeySlice<'a>;
 
-    fn key(&self) -> KeySlice {
+    fn key(&self) -> KeySlice<'_> {
         self.current.as_ref().unwrap().1.key()
     }
 
@@ -144,10 +144,10 @@ impl<I: 'static + for<'a> StorageIterator<KeyType<'a> = KeySlice<'a>>> StorageIt
         }
 
         // Otherwise, compare with heap top and swap if necessary.
-        if let Some(mut inner_iter) = self.iters.peek_mut() {
-            if *current < *inner_iter {
-                std::mem::swap(&mut *inner_iter, current);
-            }
+        if let Some(mut inner_iter) = self.iters.peek_mut()
+            && *current < *inner_iter
+        {
+            std::mem::swap(&mut *inner_iter, current);
         }
 
         Ok(())

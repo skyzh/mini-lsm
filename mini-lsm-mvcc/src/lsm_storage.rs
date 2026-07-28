@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -482,6 +482,7 @@ impl LsmStorageInner {
     }
 
     pub fn sync(&self) -> Result<()> {
+        let _state_lock = self.state_lock.lock();
         self.state.read().memtable.sync_wal()
     }
 
@@ -571,6 +572,9 @@ impl LsmStorageInner {
     }
 
     pub fn write_batch_inner<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<u64> {
+        if batch.is_empty() {
+            return Ok(self.mvcc().latest_commit_ts());
+        }
         let _lck = self.mvcc().write_lock.lock();
         let ts = self.mvcc().latest_commit_ts() + 1;
         let mut batch_datas: Vec<(key::Key<&[u8]>, &[u8])> = vec![];
@@ -596,9 +600,8 @@ impl LsmStorageInner {
             guard.memtable.put_batch(&batch_datas)?;
             size = guard.memtable.approximate_size();
         }
-        self.try_freeze(size)?;
-
         self.mvcc().update_commit_ts(ts);
+        self.try_freeze(size)?;
         Ok(ts)
     }
 
@@ -711,13 +714,15 @@ impl LsmStorageInner {
             Arc::new(MemTable::create(memtable_id))
         };
 
-        self.freeze_memtable_with_memtable(memtable)?;
-
+        if self.options.enable_wal {
+            self.sync_dir()?;
+        }
         self.manifest().add_record(
             state_lock_observer,
             ManifestRecord::NewMemtable(memtable_id),
         )?;
-        self.sync_dir()?;
+
+        self.freeze_memtable_with_memtable(memtable)?;
 
         Ok(())
     }
@@ -726,16 +731,13 @@ impl LsmStorageInner {
     pub fn force_flush_next_imm_memtable(&self) -> Result<()> {
         let state_lock = self.state_lock.lock();
 
-        let flush_memtable;
-
-        {
+        let flush_memtable = {
             let guard = self.state.read();
-            flush_memtable = guard
-                .imm_memtables
-                .last()
-                .expect("no imm memtables!")
-                .clone();
-        }
+            let Some(flush_memtable) = guard.imm_memtables.last() else {
+                return Ok(());
+            };
+            flush_memtable.clone()
+        };
 
         let mut builder = SsTableBuilder::new(self.options.block_size);
         flush_memtable.flush(&mut builder)?;
@@ -745,6 +747,7 @@ impl LsmStorageInner {
             Some(self.block_cache.clone()),
             self.path_of_sst(sst_id),
         )?);
+        self.sync_dir()?;
 
         // Add the flushed L0 table to the list.
         {
@@ -767,12 +770,12 @@ impl LsmStorageInner {
             *guard = Arc::new(snapshot);
         }
 
+        self.manifest()
+            .add_record(&state_lock, ManifestRecord::Flush(sst_id))?;
+
         if self.options.enable_wal {
             std::fs::remove_file(self.path_of_wal(sst_id))?;
         }
-
-        self.manifest()
-            .add_record(&state_lock, ManifestRecord::Flush(sst_id))?;
 
         self.sync_dir()?;
 
@@ -784,11 +787,7 @@ impl LsmStorageInner {
     }
 
     /// Create an iterator over a range of keys.
-    pub fn scan<'a>(
-        self: &'a Arc<Self>,
-        lower: Bound<&[u8]>,
-        upper: Bound<&[u8]>,
-    ) -> Result<TxnIterator> {
+    pub fn scan(self: &Arc<Self>, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Result<TxnIterator> {
         let txn = self.mvcc().new_txn(self.clone(), self.options.serializable);
         txn.scan(lower, upper)
     }

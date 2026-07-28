@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ impl BlockIterator {
     }
 
     /// Returns the key of the current entry.
-    pub fn key(&self) -> KeySlice {
+    pub fn key(&self) -> KeySlice<'_> {
         debug_assert!(!self.key.is_empty(), "invalid iterator");
         self.key.as_key_slice()
     }

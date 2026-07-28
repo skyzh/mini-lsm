@@ -5,6 +5,7 @@ resolver = "3"
 [workspace.package]
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.97.1"
 homepage = "https://github.com/skyzh/mini-lsm"
 keywords = ["storage", "database", "tutorial", "course"]
 license = "Apache-2.0"

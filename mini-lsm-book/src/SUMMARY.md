@@ -1,10 +1,10 @@
 <!--
-  mini-lsm-book © 2022-2025 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
+  mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# LSM in a Week
+# Mini-LSM — Build a Database Storage Engine in Rust
 
-[Preface](./00-preface.md)
+[Learn Database Internals](./00-preface.md)
 [Mini-LSM Overview](./00-overview.md)
 [Environment Setup](./00-get-started.md)
 
@@ -31,22 +31,12 @@
   - [Snapshots - Memtables and Timestamps](./week3-02-snapshot-read-part-1.md)
   - [Snapshots - Transaction API](./week3-03-snapshot-read-part-2.md)
   - [Watermark and GC](./week3-04-watermark.md)
-  - [Transaction and OCC](./week3-05-txn-occ.md)
-  - [Serializable Snapshot Isolation](./week3-06-serializable.md)
+  - [Transaction Workspace and Atomic Commit](./week3-05-txn-occ.md)
+  - [Serializable Validation](./week3-06-serializable.md)
   - [Snack Time: Compaction Filters](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
 
----
-
-# DEPRECATED Mini-LSM v1
-
-- [Overview](./00-v1.md)
-  - [Store key-value pairs in little blocks](./01-block.md)
-  - [And make them into an SST](./02-sst.md)
-  - [Now it's time to merge everything](./03-memtable.md)
-  - [The engine is on fire](./04-engine.md)
-  - [Let's do something in the background](./05-compaction.md)
-  - [Be careful when the system crashes](./06-recovery.md)
-  - [A good bloom filter makes life easier](./07-bloom-filter.md)
-  - [Save some space, hopefully](./08-key-compression.md)
-  - [What's next](./09-whats-next.md)
+- [Mini-LSM with Coding Agents](./agent-fast-forward-overview.md)
+  - [Day 1 - Build the Storage Engine](./week1-fast-forward.md)
+  - [Day 2 - Compaction and Recovery](./week2-fast-forward.md)
+  - [Day 3 - Transactions and MVCC](./week3-fast-forward.md)

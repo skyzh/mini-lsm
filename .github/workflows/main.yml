@@ -15,12 +15,21 @@ jobs:
       - uses: actions/checkout@v2
       - name: setup rust toolchain
         run: rustup update && rustup toolchain install
-      - uses: taiki-e/install-action@nextest
-      - uses: taiki-e/install-action@mdbook
-      - name: patch for gh-pages build
-        run: mv mini-lsm-book/theme/head.hbs._ mini-lsm-book/theme/head.hbs
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook-toc
+      - name: install sitemap generator
+        run: npm install --global static-sitemap-cli@2.2.7
       - name: check and build
         run: cargo x ci
+      - name: check sitemap
+        run: mini-lsm-book/sitemap.sh --check
       - uses: actions/upload-pages-artifact@v3
         with:
           path: mini-lsm-book/book

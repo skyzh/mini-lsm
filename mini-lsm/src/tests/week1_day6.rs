@@ -26,6 +26,19 @@ use crate::{
 };
 
 #[test]
+fn test_force_flush_empty_imm_memtable() {
+    let dir = tempdir().unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
+
+    storage.force_flush_next_imm_memtable().unwrap();
+
+    let state = storage.state.read();
+    assert!(state.imm_memtables.is_empty());
+    assert!(state.l0_sstables.is_empty());
+}
+
+#[test]
 fn test_task1_storage_scan() {
     let dir = tempdir().unwrap();
     let storage =

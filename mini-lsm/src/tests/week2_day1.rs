@@ -28,6 +28,23 @@ use crate::{
 };
 
 #[test]
+fn test_task1_full_compaction_all_tombstones() {
+    let dir = tempdir().unwrap();
+    let storage =
+        Arc::new(LsmStorageInner::open(&dir, LsmStorageOptions::default_for_week1_test()).unwrap());
+
+    storage.delete(b"key").unwrap();
+    sync(&storage);
+
+    assert_eq!(storage.state.read().l0_sstables.len(), 1);
+    storage.force_full_compaction().unwrap();
+
+    let state = storage.state.read();
+    assert!(state.l0_sstables.is_empty());
+    assert!(state.levels[0].1.is_empty());
+}
+
+#[test]
 fn test_task1_full_compaction() {
     // We do not use LSM iterator in this test because it's implemented as part of task 3
     let dir = tempdir().unwrap();

@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -112,7 +112,7 @@ impl MemTable {
     ///
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
-    /// In week 3, day 5, modify the function to use the batch API.
+    /// In week 3, day 5, route this through the batch WAL implementation.
     pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         let estimated_size = _key.len() + _value.len();
         self.map
@@ -125,7 +125,7 @@ impl MemTable {
         Ok(())
     }
 
-    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
+    /// Implement this in week 3, day 5.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
@@ -207,7 +207,7 @@ impl StorageIterator for MemTableIterator {
         &self.borrow_item().1[..]
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&self) -> KeySlice<'_> {
         KeySlice::from_slice(&self.borrow_item().0[..])
     }
 

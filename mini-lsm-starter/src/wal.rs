@@ -1,5 +1,5 @@
 // REMOVE THIS LINE after fully implementing this functionality
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ impl Wal {
         Ok(())
     }
 
-    /// Implement this in week 3, day 5; if you want to implement this earlier, use `&[u8]` as the key type.
+    /// Implement this in week 3, day 5.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }

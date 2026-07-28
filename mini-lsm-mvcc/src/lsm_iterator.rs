@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,8 +51,20 @@ impl LsmIterator {
             read_ts,
             prev_key: Vec::new(),
         };
+        iter.check_end_bound();
         iter.move_to_key()?;
         Ok(iter)
+    }
+
+    fn check_end_bound(&mut self) {
+        if !self.is_valid {
+            return;
+        }
+        match self.end_bound.as_ref() {
+            Bound::Unbounded => {}
+            Bound::Included(key) => self.is_valid = self.inner.key().key_ref() <= key.as_ref(),
+            Bound::Excluded(key) => self.is_valid = self.inner.key().key_ref() < key.as_ref(),
+        }
     }
 
     fn next_inner(&mut self) -> Result<()> {
@@ -61,11 +73,7 @@ impl LsmIterator {
             self.is_valid = false;
             return Ok(());
         }
-        match self.end_bound.as_ref() {
-            Bound::Unbounded => {}
-            Bound::Included(key) => self.is_valid = self.inner.key().key_ref() <= key.as_ref(),
-            Bound::Excluded(key) => self.is_valid = self.inner.key().key_ref() < key.as_ref(),
-        }
+        self.check_end_bound();
         Ok(())
     }
 
@@ -171,11 +179,11 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
         if self.has_errored {
             bail!("the iterator is tainted");
         }
-        if self.iter.is_valid() {
-            if let Err(e) = self.iter.next() {
-                self.has_errored = true;
-                return Err(e);
-            }
+        if self.iter.is_valid()
+            && let Err(e) = self.iter.next()
+        {
+            self.has_errored = true;
+            return Err(e);
         }
         Ok(())
     }

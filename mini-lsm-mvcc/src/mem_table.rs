@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -152,13 +152,17 @@ impl MemTable {
     ///
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
-    /// In week 3, day 5, modify the function to use the batch API.
+    /// In week 3, day 5, route single-record writes through the batch WAL implementation.
     pub fn put(&self, key: KeySlice, value: &[u8]) -> Result<()> {
         self.put_batch(&[(key, value)])
     }
 
     /// Implement this in week 3, day 5.
     pub fn put_batch(&self, data: &[(KeySlice, &[u8])]) -> Result<()> {
+        if let Some(ref wal) = self.wal {
+            wal.put_batch(data)?;
+        }
+
         let mut estimated_size = 0;
         for (key, value) in data {
             estimated_size += key.raw_len() + value.len();
@@ -169,9 +173,6 @@ impl MemTable {
         }
         self.approximate_size
             .fetch_add(estimated_size, std::sync::atomic::Ordering::Relaxed);
-        if let Some(ref wal) = self.wal {
-            wal.put_batch(data)?;
-        }
         Ok(())
     }
 
@@ -257,7 +258,7 @@ impl StorageIterator for MemTableIterator {
         &self.borrow_item().1[..]
     }
 
-    fn key(&self) -> KeySlice {
+    fn key(&self) -> KeySlice<'_> {
         self.borrow_item().0.as_key_slice()
     }
 

@@ -65,37 +65,37 @@ impl StorageIterator for MockIterator {
         if self.index < self.data.len() {
             self.index += 1;
         }
-        if let Some(error_when) = self.error_when {
-            if self.index == error_when {
-                bail!("fake error!");
-            }
+        if let Some(error_when) = self.error_when
+            && self.index == error_when
+        {
+            bail!("fake error!");
         }
         Ok(())
     }
 
-    fn key(&self) -> KeySlice {
-        if let Some(error_when) = self.error_when {
-            if self.index >= error_when {
-                panic!("invalid access after next returns an error!");
-            }
+    fn key(&self) -> KeySlice<'_> {
+        if let Some(error_when) = self.error_when
+            && self.index >= error_when
+        {
+            panic!("invalid access after next returns an error!");
         }
         KeySlice::for_testing_from_slice_no_ts(self.data[self.index].0.as_ref())
     }
 
     fn value(&self) -> &[u8] {
-        if let Some(error_when) = self.error_when {
-            if self.index >= error_when {
-                panic!("invalid access after next returns an error!");
-            }
+        if let Some(error_when) = self.error_when
+            && self.index >= error_when
+        {
+            panic!("invalid access after next returns an error!");
         }
         self.data[self.index].1.as_ref()
     }
 
     fn is_valid(&self) -> bool {
-        if let Some(error_when) = self.error_when {
-            if self.index >= error_when {
-                panic!("invalid access after next returns an error!");
-            }
+        if let Some(error_when) = self.error_when
+            && self.index >= error_when
+        {
+            panic!("invalid access after next returns an error!");
         }
         self.index < self.data.len()
     }

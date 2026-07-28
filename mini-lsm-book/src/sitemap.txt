@@ -12,6 +12,7 @@ https://skyzh.github.io/mini-lsm/06-recovery
 https://skyzh.github.io/mini-lsm/07-bloom-filter
 https://skyzh.github.io/mini-lsm/08-key-compression
 https://skyzh.github.io/mini-lsm/09-whats-next
+https://skyzh.github.io/mini-lsm/agent-fast-forward-overview
 https://skyzh.github.io/mini-lsm/week1-01-memtable
 https://skyzh.github.io/mini-lsm/week1-02-merge-iterator
 https://skyzh.github.io/mini-lsm/week1-03-block
@@ -19,6 +20,7 @@ https://skyzh.github.io/mini-lsm/week1-04-sst
 https://skyzh.github.io/mini-lsm/week1-05-read-path
 https://skyzh.github.io/mini-lsm/week1-06-write-path
 https://skyzh.github.io/mini-lsm/week1-07-sst-optimizations
+https://skyzh.github.io/mini-lsm/week1-fast-forward
 https://skyzh.github.io/mini-lsm/week1-overview
 https://skyzh.github.io/mini-lsm/week2-01-compaction
 https://skyzh.github.io/mini-lsm/week2-02-simple
@@ -27,6 +29,7 @@ https://skyzh.github.io/mini-lsm/week2-04-leveled
 https://skyzh.github.io/mini-lsm/week2-05-manifest
 https://skyzh.github.io/mini-lsm/week2-06-wal
 https://skyzh.github.io/mini-lsm/week2-07-snacks
+https://skyzh.github.io/mini-lsm/week2-fast-forward
 https://skyzh.github.io/mini-lsm/week2-overview
 https://skyzh.github.io/mini-lsm/week3-01-ts-key-refactor
 https://skyzh.github.io/mini-lsm/week3-02-snapshot-read-part-1
@@ -35,5 +38,6 @@ https://skyzh.github.io/mini-lsm/week3-04-watermark
 https://skyzh.github.io/mini-lsm/week3-05-txn-occ
 https://skyzh.github.io/mini-lsm/week3-06-serializable
 https://skyzh.github.io/mini-lsm/week3-07-compaction-filter
+https://skyzh.github.io/mini-lsm/week3-fast-forward
 https://skyzh.github.io/mini-lsm/week3-overview
 https://skyzh.github.io/mini-lsm/week4-overview

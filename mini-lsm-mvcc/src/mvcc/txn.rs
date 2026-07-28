@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 Alex Chi Z
+// Copyright (c) 2022-2026 Alex Chi Z
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,8 +74,7 @@ impl Transaction {
             item: (Bytes::new(), Bytes::new()),
         }
         .build();
-        let entry = local_iter.with_iter_mut(|iter| TxnLocalIterator::entry_to_item(iter.next()));
-        local_iter.with_mut(|x| *x.item = entry);
+        local_iter.next()?;
 
         TxnIterator::create(
             self.clone(),
@@ -150,6 +149,9 @@ impl Transaction {
                 }
             })
             .collect::<Vec<_>>();
+        if batch.is_empty() {
+            return Ok(());
+        }
         let ts = self.inner.write_batch_inner(&batch)?;
         if serializability_check {
             let mut committed_txns = self.inner.mvcc().committed_txns.lock();
