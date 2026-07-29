@@ -23,9 +23,9 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Result, ensure};
 pub use builder::SsTableBuilder;
-use bytes::Buf;
+use bytes::{Buf, BufMut};
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -48,17 +48,57 @@ impl BlockMeta {
     /// Encode block meta to a buffer.
     /// You may add extra fields to the buffer,
     /// in order to help keep track of `first_key` when decoding from the same buffer in the future.
-    pub fn encode_block_meta(
-        block_meta: &[BlockMeta],
-        #[allow(clippy::ptr_arg)] // remove this allow after you finish
-        buf: &mut Vec<u8>,
-    ) {
-        unimplemented!()
+    pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
+        assert!(block_meta.len() <= u32::MAX as usize);
+        buf.put_u32(block_meta.len() as u32);
+        for meta in block_meta {
+            assert!(meta.offset <= u32::MAX as usize);
+            assert!(meta.first_key.len() <= u16::MAX as usize);
+            assert!(meta.last_key.len() <= u16::MAX as usize);
+            buf.put_u32(meta.offset as u32);
+            buf.put_u16(meta.first_key.len() as u16);
+            buf.extend_from_slice(meta.first_key.raw_ref());
+            buf.put_u16(meta.last_key.len() as u16);
+            buf.extend_from_slice(meta.last_key.raw_ref());
+        }
     }
 
     /// Decode block meta from a buffer.
     pub fn decode_block_meta(buf: impl Buf) -> Vec<BlockMeta> {
-        unimplemented!()
+        Self::decode_block_meta_checked(buf).expect("invalid block metadata")
+    }
+
+    fn decode_block_meta_checked(mut buf: impl Buf) -> Result<Vec<BlockMeta>> {
+        ensure!(buf.remaining() >= 4, "block metadata count is missing");
+        let count = buf.get_u32() as usize;
+        ensure!(
+            count <= buf.remaining() / 8,
+            "block metadata count exceeds the available bytes"
+        );
+        let mut block_meta = Vec::with_capacity(count);
+        for _ in 0..count {
+            ensure!(buf.remaining() >= 6, "truncated block metadata record");
+            let offset = buf.get_u32() as usize;
+            let first_key_len = buf.get_u16() as usize;
+            ensure!(
+                buf.remaining() >= first_key_len + 2,
+                "truncated first key in block metadata"
+            );
+            let first_key = KeyBytes::from_bytes(buf.copy_to_bytes(first_key_len));
+            let last_key_len = buf.get_u16() as usize;
+            ensure!(
+                buf.remaining() >= last_key_len,
+                "truncated last key in block metadata"
+            );
+            let last_key = KeyBytes::from_bytes(buf.copy_to_bytes(last_key_len));
+            block_meta.push(BlockMeta {
+                offset,
+                first_key,
+                last_key,
+            });
+        }
+        ensure!(buf.remaining() == 0, "trailing block metadata bytes");
+        Ok(block_meta)
     }
 }
 
@@ -122,7 +162,55 @@ impl SsTable {
 
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
-        unimplemented!()
+        let file_size = usize::try_from(file.size())?;
+        ensure!(file_size >= 8, "SST is too short for its trailer");
+
+        let bloom_offset_bytes = file.read((file_size - 4) as u64, 4)?;
+        let bloom_offset = u32::from_be_bytes(bloom_offset_bytes.try_into().unwrap()) as usize;
+        ensure!(
+            bloom_offset >= 4 && bloom_offset < file_size - 4,
+            "invalid Bloom section offset"
+        );
+
+        let meta_offset_bytes = file.read((bloom_offset - 4) as u64, 4)?;
+        let block_meta_offset = u32::from_be_bytes(meta_offset_bytes.try_into().unwrap()) as usize;
+        ensure!(
+            block_meta_offset < bloom_offset - 4,
+            "invalid metadata section ordering"
+        );
+
+        let meta_len = bloom_offset - 4 - block_meta_offset;
+        let meta_bytes = file.read(block_meta_offset as u64, meta_len as u64)?;
+        let block_meta = BlockMeta::decode_block_meta_checked(meta_bytes.as_slice())?;
+        ensure!(!block_meta.is_empty(), "SST contains no block metadata");
+        ensure!(
+            block_meta[0].offset == 0
+                && block_meta
+                    .windows(2)
+                    .all(|pair| pair[0].offset < pair[1].offset)
+                && block_meta
+                    .iter()
+                    .all(|meta| meta.offset < block_meta_offset),
+            "invalid data block offsets"
+        );
+
+        let bloom_bytes = file.read(bloom_offset as u64, (file_size - 4 - bloom_offset) as u64)?;
+        ensure!(!bloom_bytes.is_empty(), "Bloom section is empty");
+        let bloom = Bloom::decode(&bloom_bytes)?;
+        let first_key = block_meta.first().unwrap().first_key.clone();
+        let last_key = block_meta.last().unwrap().last_key.clone();
+
+        Ok(Self {
+            file,
+            block_meta,
+            block_meta_offset,
+            id,
+            block_cache,
+            first_key,
+            last_key,
+            bloom: Some(bloom),
+            max_ts: 0,
+        })
     }
 
     /// Create a mock SST with only first key + last key metadata
@@ -147,19 +235,37 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        ensure!(
+            block_idx < self.block_meta.len(),
+            "block index out of bounds"
+        );
+        let offset = self.block_meta[block_idx].offset;
+        let end = if block_idx + 1 < self.block_meta.len() {
+            self.block_meta[block_idx + 1].offset
+        } else {
+            self.block_meta_offset
+        };
+        ensure!(offset < end, "invalid block byte range");
+        let encoded = self.file.read(offset as u64, (end - offset) as u64)?;
+        Ok(Arc::new(Block::decode(&encoded)))
     }
 
     /// Read a block from disk, with block cache. (Day 4)
     pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        let Some(cache) = &self.block_cache else {
+            return self.read_block(block_idx);
+        };
+        cache
+            .try_get_with((self.id, block_idx), || self.read_block(block_idx))
+            .map_err(|error| anyhow::anyhow!(error.to_string()))
     }
 
     /// Find the block that may contain `key`.
     /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
     /// You may also assume the key-value pairs stored in each consecutive block are sorted.
     pub fn find_block_idx(&self, key: KeySlice) -> usize {
-        unimplemented!()
+        self.block_meta
+            .partition_point(|meta| meta.last_key.as_key_slice() < key)
     }
 
     /// Get number of data blocks.

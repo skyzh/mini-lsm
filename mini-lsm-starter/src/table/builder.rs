@@ -19,8 +19,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
+use bytes::BufMut;
 
-use super::{BlockMeta, SsTable};
+use super::{BlockMeta, FileObject, SsTable, bloom::Bloom};
 use crate::{block::BlockBuilder, key::KeySlice, lsm_storage::BlockCache};
 
 /// Builds an SSTable from key-value pairs.
@@ -31,12 +32,21 @@ pub struct SsTableBuilder {
     data: Vec<u8>,
     pub(crate) meta: Vec<BlockMeta>,
     block_size: usize,
+    key_hashes: Vec<u32>,
 }
 
 impl SsTableBuilder {
     /// Create a builder based on target block size.
     pub fn new(block_size: usize) -> Self {
-        unimplemented!()
+        Self {
+            builder: BlockBuilder::new(block_size),
+            first_key: Vec::new(),
+            last_key: Vec::new(),
+            data: Vec::new(),
+            meta: Vec::new(),
+            block_size,
+            key_hashes: Vec::new(),
+        }
     }
 
     /// Adds a key-value pair to SSTable.
@@ -44,7 +54,23 @@ impl SsTableBuilder {
     /// Note: You should split a new block when the current block is full.(`std::mem::replace` may
     /// be helpful here)
     pub fn add(&mut self, key: KeySlice, value: &[u8]) {
-        unimplemented!()
+        if !self.builder.add(key, value) {
+            assert!(
+                !self.builder.is_empty(),
+                "key-value pair is not representable in a block"
+            );
+            self.finish_block();
+            assert!(
+                self.builder.add(key, value),
+                "key-value pair is not representable in a block"
+            );
+        }
+        if self.first_key.is_empty() {
+            self.first_key.extend_from_slice(key.raw_ref());
+        }
+        self.last_key.clear();
+        self.last_key.extend_from_slice(key.raw_ref());
+        self.key_hashes.push(farmhash::fingerprint32(key.raw_ref()));
     }
 
     /// Get the estimated size of the SSTable.
@@ -52,21 +78,60 @@ impl SsTableBuilder {
     /// Since the data blocks contain much more data than meta blocks, just return the size of data
     /// blocks here.
     pub fn estimated_size(&self) -> usize {
-        unimplemented!()
+        self.data.len()
     }
 
     /// Builds the SSTable and writes it to the given path. Use the `FileObject` structure to manipulate the disk objects.
     pub fn build(
-        #[allow(unused_mut)] mut self,
+        mut self,
         id: usize,
         block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
-        unimplemented!()
+        assert!(!self.builder.is_empty(), "cannot build an empty SST");
+        self.finish_block();
+
+        let block_meta_offset = self.data.len();
+        BlockMeta::encode_block_meta(&self.meta, &mut self.data);
+        self.data.put_u32(block_meta_offset as u32);
+
+        let bits_per_key = Bloom::bloom_bits_per_key(self.key_hashes.len(), 0.01);
+        let bloom = Bloom::build_from_key_hashes(&self.key_hashes, bits_per_key);
+        let bloom_offset = self.data.len();
+        bloom.encode(&mut self.data);
+        self.data.put_u32(bloom_offset as u32);
+
+        let first_key = self.meta.first().unwrap().first_key.clone();
+        let last_key = self.meta.last().unwrap().last_key.clone();
+        let file = FileObject::create(path.as_ref(), self.data)?;
+        Ok(SsTable {
+            file,
+            block_meta: self.meta,
+            block_meta_offset,
+            id,
+            block_cache,
+            first_key,
+            last_key,
+            bloom: Some(bloom),
+            max_ts: 0,
+        })
     }
 
     #[cfg(test)]
     pub(crate) fn build_for_test(self, path: impl AsRef<Path>) -> Result<SsTable> {
         self.build(0, None, path)
+    }
+
+    fn finish_block(&mut self) {
+        let builder = std::mem::replace(&mut self.builder, BlockBuilder::new(self.block_size));
+        let encoded = builder.build().encode();
+        self.meta.push(BlockMeta {
+            offset: self.data.len(),
+            first_key: crate::key::KeyBytes::from_bytes(self.first_key.clone().into()),
+            last_key: crate::key::KeyBytes::from_bytes(self.last_key.clone().into()),
+        });
+        self.data.extend_from_slice(&encoded);
+        self.first_key.clear();
+        self.last_key.clear();
     }
 }

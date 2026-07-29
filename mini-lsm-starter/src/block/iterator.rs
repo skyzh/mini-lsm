@@ -48,44 +48,103 @@ impl BlockIterator {
 
     /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
-        unimplemented!()
+        let mut iter = Self::new(block);
+        iter.seek_to_first();
+        iter
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
     pub fn create_and_seek_to_key(block: Arc<Block>, key: KeySlice) -> Self {
-        unimplemented!()
+        let mut iter = Self::new(block);
+        iter.seek_to_key(key);
+        iter
     }
 
     /// Returns the key of the current entry.
     pub fn key(&self) -> KeySlice<'_> {
-        unimplemented!()
+        self.key.as_key_slice()
     }
 
     /// Returns the value of the current entry.
     pub fn value(&self) -> &[u8] {
-        unimplemented!()
+        &self.block.data[self.value_range.0..self.value_range.1]
     }
 
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
-        unimplemented!()
+        !self.key.is_empty()
     }
 
     /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
-        unimplemented!()
+        self.first_key.clear();
+        self.seek_to_idx(0);
     }
 
     /// Move to the next key in the block.
     pub fn next(&mut self) {
-        unimplemented!()
+        self.seek_to_idx(self.idx.saturating_add(1));
     }
 
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by
     /// callers.
     pub fn seek_to_key(&mut self, key: KeySlice) {
-        unimplemented!()
+        self.seek_to_first();
+        let mut low = 0;
+        let mut high = self.block.offsets.len();
+        while low < high {
+            let mid = low + (high - low) / 2;
+            self.seek_to_idx(mid);
+            if self.key() < key {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        self.seek_to_idx(low);
+    }
+
+    fn seek_to_idx(&mut self, idx: usize) {
+        self.idx = idx;
+        if idx >= self.block.offsets.len() {
+            self.key.clear();
+            self.value_range = (0, 0);
+            return;
+        }
+
+        let data = &self.block.data;
+        let entry_start = self.block.offsets[idx] as usize;
+        assert!(entry_start + 4 <= data.len(), "truncated block key header");
+        let overlap =
+            u16::from_be_bytes(data[entry_start..entry_start + 2].try_into().unwrap()) as usize;
+        let rest_len =
+            u16::from_be_bytes(data[entry_start + 2..entry_start + 4].try_into().unwrap()) as usize;
+        let rest_start = entry_start + 4;
+        let rest_end = rest_start
+            .checked_add(rest_len)
+            .expect("block key length overflow");
+        assert!(rest_end + 2 <= data.len(), "truncated block key");
+        assert!(
+            overlap <= self.first_key.len(),
+            "key overlap exceeds first key"
+        );
+        let value_len =
+            u16::from_be_bytes(data[rest_end..rest_end + 2].try_into().unwrap()) as usize;
+        let value_start = rest_end + 2;
+        let value_end = value_start
+            .checked_add(value_len)
+            .expect("block value length overflow");
+        assert!(value_end <= data.len(), "truncated block value");
+
+        self.key.clear();
+        self.key.append(&self.first_key.raw_ref()[..overlap]);
+        self.key.append(&data[rest_start..rest_end]);
+        if idx == 0 {
+            assert_eq!(overlap, 0, "first block key must have zero overlap");
+            self.first_key.set_from_slice(self.key.as_key_slice());
+        }
+        self.value_range = (value_start, value_end);
     }
 }
