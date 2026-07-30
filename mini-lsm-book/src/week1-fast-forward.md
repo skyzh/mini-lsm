@@ -25,16 +25,15 @@ At the end of this path:
 
 The tests are evidence, not the specification. Generated code remains untrusted until you can connect it to a decision and an invariant and try to falsify it.
 
-## Copy the Complete Test Suite
+## Begin Without the Supplied Tests
 
-Complete the repository and agent preparation in the [track overview](./agent-fast-forward-overview.md#prepare-the-repository-and-the-agent). Leave the agent at the instruction-handshake stop, then run these commands from the repository root:
+Complete the repository and agent preparation in the [track overview](./agent-fast-forward-overview.md#prepare-the-repository-and-the-agent). Leave the agent at the instruction-handshake stop. From the repository root, verify that the untouched starter compiles without copying any supplied tests:
 
 ```shell
-cargo x copy-test --week 1
-cargo x scheck
+cargo check -p mini-lsm-starter --lib
 ```
 
-The initial check should fail because the starter contains unfinished code. Record the first failure as a reproducible baseline. Do not ask the agent to make it disappear by changing the tests.
+Do not run `cargo x copy-test --week 1` yet. Each checkpoint begins from the book, starter interfaces, and your accepted decisions. Only after the checkpoint has a compiling first-pass implementation should you reveal its test modules. This gives the tests an independent role: they challenge the implementation instead of quietly specifying it assertion by assertion.
 
 ## Start Day 1
 
@@ -67,7 +66,16 @@ The agent should use concrete examples to help you work out at least these cours
 
 One critical outcome is that an ordinary write retains the `state` read guard until insertion into the mutable memtable completes. Writing through a cloned snapshot after releasing the guard permits a concurrent freeze to make that memtable immutable before the write occurs.
 
-Once the representation and ordering rules are settled, authorize the smallest coherent slice. After its focused test passes, have the agent point to the exact comparison that resolves duplicate keys. Explain in your own words what that line is trying to do and why changing `>` to `>=`, or reversing input order, changes the visible value.
+Once the representation and ordering rules are settled, authorize the checkpoint's coherent implementation slices. After the complete checkpoint has a compiling first pass, reveal and run its tests from the repository root:
+
+```shell
+cargo x copy-test --week 1 --day 1
+cargo x copy-test --week 1 --day 2
+cargo test -p mini-lsm-starter week1_day1
+cargo test -p mini-lsm-starter week1_day2
+```
+
+After they pass, have the agent point to the exact comparison that resolves duplicate keys. Explain in your own words what that line is trying to do and why changing `>` to `>=`, or reversing input order, changes the visible value.
 
 ## Checkpoint 2: Durable Representation
 
@@ -120,7 +128,20 @@ Treat the writer and reader as two parties implementing a protocol. A round-trip
 
 </details>
 
-The example begins with an operation the student can picture and names the concept afterward. A real implementation stop must still preview the files and focused test, wait for authorization, report actual evidence, and stop before beginning the next slice. An unexpected test failure either reveals a mechanical bug or reopens one specific decision.
+The example begins with an operation the student can picture and names the concept afterward. A real implementation stop must still preview the files and later validation target, wait for authorization, complete the checkpoint's first pass before revealing tests, report actual evidence, and stop before beginning the next slice.
+
+After the durable-representation checkpoint has a compiling first pass, reveal and run its tests:
+
+```shell
+cargo x copy-test --week 1 --day 3
+cargo x copy-test --week 1 --day 4
+cargo x copy-test --week 1 --day 7
+cargo test -p mini-lsm-starter week1_day3
+cargo test -p mini-lsm-starter week1_day4
+cargo test -p mini-lsm-starter week1_day7
+```
+
+If a newly revealed test fails, the agent should explain the entries, bounds, or bytes the test supplies, the expected and observed result, and the challenged invariant. It must then ask you to diagnose the implementation. It should not search for the faulty line or suggest a repair before your attempt. Failures in the test command, dependency setup, or harness itself are exceptions that the agent may investigate directly.
 
 Before approving the completed checkpoint, decode three keys by hand: one with no shared prefix, one with a long shared prefix, and one with an empty value. Confirm that a seek returns the first key greater than or equal to its target and that a Bloom-filter negative can never hide a present key.
 
@@ -157,6 +178,15 @@ Expensive SST construction and I/O should happen outside the `state` read-write 
 For Day 1, the lifecycle contract is fixed: `close` stops and joins the existing worker threads and is harmless when called again after their handles have already been taken. It does not implicitly flush the remaining mutable memtable. Treat a different contract as an explicit scope change, not an ordinary implementation preference.
 
 Before approving this checkpoint, construct one key that appears in the mutable memtable, an immutable memtable, and an L0 SST. Predict `get` and `scan` when the newest entry is first a value and then a tombstone. Also exercise included, excluded, and unbounded scan endpoints.
+
+After this checkpoint has a compiling first pass, reveal and run its tests:
+
+```shell
+cargo x copy-test --week 1 --day 5
+cargo x copy-test --week 1 --day 6
+cargo test -p mini-lsm-starter week1_day5
+cargo test -p mini-lsm-starter week1_day6
+```
 
 ## Audit the Finished Engine
 

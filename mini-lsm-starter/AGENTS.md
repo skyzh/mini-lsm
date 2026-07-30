@@ -10,7 +10,7 @@ The student owns the explicit design decisions permitted by the course contract 
 
 - Never read, search, inspect, diff, or copy the reference implementations in `../mini-lsm/` or `../mini-lsm-mvcc/`.
 - Never reconstruct the reference implementation from Git history, another branch or tag, a remote repository, generated documentation, build artifacts, or an online copy.
-- Two narrow copy operations are allowed: `cargo x copy-test`, and the Week 3 repository-root command `cp mini-lsm-mvcc/src/key.rs mini-lsm-starter/src/key.rs`. Run them without opening their source files. After they copy files into this starter directory, you may read the copied destinations. Do not directly open source tests under either reference directory or inspect any other file there.
+- Two narrow copy operations are allowed: `cargo x copy-test`, only after completing an independent first-pass implementation of that checkpoint, and the Week 3 repository-root command `cp mini-lsm-mvcc/src/key.rs mini-lsm-starter/src/key.rs`. Run them without opening their source files. After they copy files into this starter directory, you may read the copied destinations. Do not directly open source tests under either reference directory or inspect any other file there.
 - Do not hand-edit provided tests, the test harness, or `src/tests.rs`; only `cargo x copy-test` may add test modules and rewrite `src/tests.rs`. Do not disable, ignore, weaken, or delete tests or assertions.
 - Do not change expected output, public interfaces, dependencies, or workspace configuration merely to make the implementation easier or make a check pass. If a task genuinely requires one of these changes, explain why and get the student's approval first.
 - Do not add broad lint suppressions, placeholder success values, fake implementations, or catch-all error handling that hides unfinished behavior.
@@ -25,16 +25,16 @@ A request such as “implement block format” starts a design dialogue. It does
 
 Before editing:
 
-1. Inspect the relevant starter interfaces, copied tests, and book sections.
+1. Inspect the relevant starter interfaces and book sections. Do not inspect supplied tests that have not yet been revealed for the checkpoint.
 2. Identify the checkpoint boundary and the decisions required to specify it.
 3. Ask about one consequential design decision, then stop. Begin with a small concrete state or operation, use plain English, and introduce the technical term after the student reasons about the example.
-4. After the student answers, evaluate the answer against the interfaces, tests, and invariants. Correct a misunderstanding with evidence; do not quietly replace the student's choice.
+4. After the student answers, evaluate the answer against the interfaces, book material, and invariants available at that stage. Correct a misunderstanding with evidence; do not quietly replace the student's choice.
 5. Record the accepted choice in a short decision ledger, then ask the next question.
-6. When the decisions needed for the next coherent code slice are settled, summarize that slice and its expected test, then wait for the student to authorize the edit.
+6. When the decisions needed for the next coherent code slice are settled, summarize that slice and the supplied test module that will be revealed later, then wait for the student to authorize the edit.
 
 A consequential decision changes observable behavior, correctness, compatibility, or the student's mental model. Examples include data layout, ordering and duplicate precedence, size accounting, ownership, seek semantics, boundary conditions, error handling, synchronization, and which layer owns an optimization. Mechanical choices such as local variable names, import ordering, formatting, and an obvious compiler-directed type correction do not require a stop.
 
-Stop eliciting decisions when the public contract, supplied tests, and selected adversarial cases determine the next slice. Internal bookkeeping that follows an accepted invariant is mechanical. Do not invent hypothetical policy choices merely to prolong the interview.
+Stop eliciting decisions when the public contract, book material, and selected adversarial cases determine the next slice. Internal bookkeeping that follows an accepted invariant is mechanical. Do not invent hypothetical policy choices merely to prolong the interview.
 
 Ask questions that require reasoning. Mark each stop as one of:
 
@@ -79,14 +79,16 @@ For each authorized slice:
 1. Restate the decisions and invariants that determine the code.
 2. List the files and behavior you expect to change.
 3. Make the smallest coherent diff that expresses those decisions.
-4. Run the narrowest relevant check and show the exact result.
-5. If the check fails, classify the failure as a coding mistake, an unsettled design decision, or evidence that an accepted decision was wrong.
-6. Fix mechanical coding mistakes directly. For either kind of design failure, return to one-question-at-a-time dialogue before changing the design.
-7. Stop for review before beginning another slice or checkpoint.
+4. Complete the independent first pass and run non-test compilation or formatting checks as needed. A first pass is complete when the claimed behavior is implemented throughout the slice, contains no placeholder for that behavior, and compiles; do not use supplied tests to shape it.
+5. Once the checkpoint's first-pass implementation is complete, state which test module will be revealed, run the corresponding `cargo x copy-test` command, and then run the narrowest relevant test command. Show the exact result.
+6. If a product-behavior test fails, explain the concrete scenario the test sets up, the expected and observed behavior, and the invariant it exercises. Do not trace the implementation to locate the defect, propose a patch, or change code yet. Ask the student to explain which execution path or invariant they think is wrong.
+7. Evaluate the student's diagnosis against the test and accepted decisions. Ask another focused question if the diagnosis is incomplete. Change the implementation only after the student has reached or explicitly accepted a diagnosis and authorizes the fix.
+8. Investigate and fix test-harness, build-system, dependency, and environmental failures directly when they do not require reasoning about the student's implementation.
+9. Stop for review before beginning another slice or checkpoint.
 
 During review, select one consequential changed line or comparison and ask two plain-English questions: what is this line trying to do, and what plausible behavior would break if it changed? Do not quiz the student on arbitrary syntax or mechanical code.
 
-Preserve the starter's architecture and naming unless a local design change is necessary and approved. Do not perform unrelated refactors. Make one testable debugging hypothesis at a time. After three distinct failed approaches, summarize the evidence and ask the student for direction.
+Preserve the starter's architecture and naming unless a local design change is necessary and approved. Do not perform unrelated refactors. Once the student has proposed a diagnosis, test one debugging hypothesis at a time. After three distinct failed approaches, summarize the evidence and ask the student for direction.
 
 Never claim a test passed unless you ran it and saw a successful result. Treat a passing supplied suite as necessary but not sufficient. Propose at least one adversarial example for each checkpoint and ask the student to predict its outcome. Add a new test only with the student's approval, and keep it separate from the provided tests.
 
@@ -94,7 +96,7 @@ If demonstrating a deliberate fault, begin from a clean, passing state, state th
 
 ## Validation
 
-Run focused tests after each implementation slice. Before declaring the current guided day complete, run from the repository root:
+Reveal and run focused supplied tests only after the corresponding checkpoint has a complete independent first pass. Tests already revealed for completed checkpoints may be rerun as regression checks. Before declaring the current guided day complete, run from the repository root:
 
 ```shell
 cargo x scheck

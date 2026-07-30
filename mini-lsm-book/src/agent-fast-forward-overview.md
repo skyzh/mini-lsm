@@ -48,7 +48,7 @@ The final component of `pwd` should be `mini-lsm-starter`. This matters because 
 
 Starting there is not a security sandbox: an agent can still traverse to a parent directory if instructed. The local `AGENTS.md` therefore prohibits reading, searching, diffing, or copying `../mini-lsm` and `../mini-lsm-mvcc`, including attempts to reconstruct a solution through Git history or an online copy. The only Week 3 exceptions are the exact course commands that copy the provided key module and tests into the starter; the agent may read the destinations afterward, never the sources.
 
-Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. The agent may consult copied tests, starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`.
+Do not open the whole repository as the agent's workspace if your tool lets you choose a directory. The agent may consult starter interfaces, Rust documentation, and course chapters under `../mini-lsm-book/src/`. It may consult a copied test only after finishing an independent first-pass implementation of that test's checkpoint.
 
 ### 3. Verify the Instructions Before Coding
 
@@ -70,11 +70,12 @@ Repeat this loop:
 
 1. **Agent gives one short stop.** It starts with a concrete example, labels the question **Course rule** or **Your choice**, and asks you to choose or predict in plain English.
 2. **Student reasons.** State a choice and why. A prediction is useful even when you are uncertain.
-3. **Agent checks the reasoning.** It connects the answer to interfaces, prose, or tests. If the answer violates a constraint, it shows the evidence and asks again instead of silently overriding you.
+3. **Agent checks the reasoning.** It connects the answer to interfaces, prose, or already-revealed tests. If the answer violates a constraint, it shows the evidence and asks again instead of silently overriding you.
 4. **Agent records the choice.** The accepted answer enters a short decision ledger.
-5. **Agent implements one slice.** Once enough decisions specify a coherent slice, it previews the files, behavior, and focused test and waits for your authorization.
-6. **Tests produce evidence.** A coding mistake can be fixed directly. A failure that exposes an unsettled or incorrect design returns to the dialogue.
-7. **Student reviews.** Inspect the diff and test output before authorizing the next slice.
+5. **Agent implements one slice independently.** Once enough decisions specify a coherent slice, it previews the files, behavior, and later validation target and waits for your authorization. It completes a compiling first pass without copying or inspecting the supplied tests.
+6. **Reveal tests after the checkpoint.** Once the checkpoint's first pass is complete, copy its test module and run the focused check. The implementation comes from the specification and accepted decisions; the test is new evidence rather than a design source.
+7. **Student diagnoses product failures.** The agent explains the test's setup, expected result, observed result, and implicated invariant, then asks you to identify the likely bad execution path. It does not investigate the implementation or propose a fix before your attempt. Test-harness and environmental failures remain the agent's responsibility.
+8. **Student reviews.** Inspect the diff and test output before authorizing a diagnosed fix or the next slice.
 
 The agent must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek behavior, errors, synchronization, and where an optimization belongs. Some answers are course rules to derive; others are genuine choices. It need not interrupt you over a local variable name, import order, formatting, or an obvious compiler-directed repair.
 
@@ -121,7 +122,11 @@ Before each edit, the agent should state:
 
 - which accepted decisions determine the slice;
 - which files and observable behavior will change; and
-- which focused check it expects to exercise that behavior.
+- which supplied test module will be revealed after the independent first pass.
+
+Non-test compiler and formatter feedback may be used during implementation. Do not run, copy, or inspect the supplied behavioral tests until the checkpoint is implemented end to end. This prevents the agent from reconstructing the implementation one assertion at a time while still making the tests available as independent evidence.
+
+When a newly revealed product-behavior test fails, the agent may read the test and report what it does. It should not trace the implementation, identify the faulty line, propose a patch, or silently repair the failure. First ask the student to connect the failure to the decision ledger and propose a diagnosis. After the student reaches or accepts a diagnosis, the agent may implement an authorized fix and rerun the test. The agent should handle broken test commands, missing tools, dependency problems, and other harness failures directly.
 
 After the edit, require the exact command and result, then ask:
 
