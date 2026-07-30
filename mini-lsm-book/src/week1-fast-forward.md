@@ -39,7 +39,7 @@ Do not run `cargo x copy-test --week 1` yet. Each checkpoint begins from the boo
 
 With the agent running from `mini-lsm-starter`, the instruction handshake complete, and the tests copied, send:
 
-> Build Day 1 with me, starting with ordered in-memory state. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm`. Before coding, ask one short question at a time using a concrete example. Use plain English and introduce technical terms after I answer. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
+> Build Day 1 with me, starting with ordered in-memory state. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm` or `../mini-lsm-mvcc`. Before coding, ask one short question at a time using a concrete example. Use plain English and introduce technical terms after I answer. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 
 The first useful response is a concrete question about ordered state, not an architecture essay or a patch. Starting with Checkpoint 1 gives you one predictable path through the day. You may reorder checkpoints if you already understand their dependencies.
 

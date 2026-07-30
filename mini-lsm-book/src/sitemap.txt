@@ -38,5 +38,6 @@ https://skyzh.github.io/mini-lsm/week3-04-watermark
 https://skyzh.github.io/mini-lsm/week3-05-txn-occ
 https://skyzh.github.io/mini-lsm/week3-06-serializable
 https://skyzh.github.io/mini-lsm/week3-07-compaction-filter
+https://skyzh.github.io/mini-lsm/week3-fast-forward
 https://skyzh.github.io/mini-lsm/week3-overview
 https://skyzh.github.io/mini-lsm/week4-overview

@@ -62,7 +62,7 @@ In this task, you will need to modify:
 src/mvcc/txn.rs
 ```
 
-We assume that a transaction is used from one thread. As it enters commit, atomically mark it committed so later `put`, `delete`, `scan`, `get`, or repeated `commit` calls fail.
+We assume that a transaction is used from one thread. As it enters commit, atomically mark it committed so later `put`, `delete`, `scan`, `get`, or repeated `commit` calls fail. Preserve the starter's method contracts unless you explicitly choose an API change: `get`, `scan`, and `commit` can return an error, while the provided `put` and `delete` signatures return `()` and therefore need a deterministic rejection such as an assertion. Do not change those two signatures merely for uniformity; supplied tests call them as non-fallible statements.
 
 Your commit implementation should simply collect all key-value pairs from the local storage and submit a write batch to the storage engine.
 
