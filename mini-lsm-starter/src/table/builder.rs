@@ -131,6 +131,7 @@ impl SsTableBuilder {
             last_key: crate::key::KeyBytes::from_bytes(self.last_key.clone().into()),
         });
         self.data.extend_from_slice(&encoded);
+        self.data.put_u32(crc32fast::hash(&encoded));
         self.first_key.clear();
         self.last_key.clear();
     }

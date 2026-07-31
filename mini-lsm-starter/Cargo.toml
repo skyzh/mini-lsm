@@ -17,6 +17,7 @@ moka = { version = "0.12", features = ["sync"] }
 clap = { version = "4", features = ["derive"] }
 rand = "0.10"
 crossbeam-channel = "0.5"
+crc32fast = "1"
 serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 farmhash = "1"

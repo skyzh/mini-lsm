@@ -50,6 +50,7 @@ impl BlockMeta {
     /// in order to help keep track of `first_key` when decoding from the same buffer in the future.
     pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
         assert!(block_meta.len() <= u32::MAX as usize);
+        let metadata_start = buf.len();
         buf.put_u32(block_meta.len() as u32);
         for meta in block_meta {
             assert!(meta.offset <= u32::MAX as usize);
@@ -61,6 +62,8 @@ impl BlockMeta {
             buf.put_u16(meta.last_key.len() as u16);
             buf.extend_from_slice(meta.last_key.raw_ref());
         }
+        let checksum = crc32fast::hash(&buf[metadata_start..]);
+        buf.put_u32(checksum);
     }
 
     /// Decode block meta from a buffer.
@@ -69,35 +72,46 @@ impl BlockMeta {
     }
 
     fn decode_block_meta_checked(mut buf: impl Buf) -> Result<Vec<BlockMeta>> {
-        ensure!(buf.remaining() >= 4, "block metadata count is missing");
-        let count = buf.get_u32() as usize;
+        ensure!(buf.remaining() >= 4, "block metadata checksum is missing");
+        let mut encoded = vec![0; buf.remaining()];
+        buf.copy_to_slice(&mut encoded);
+        let payload_end = encoded.len() - 4;
+        let stored_checksum = u32::from_be_bytes(encoded[payload_end..].try_into().unwrap());
         ensure!(
-            count <= buf.remaining() / 8,
+            crc32fast::hash(&encoded[..payload_end]) == stored_checksum,
+            "block metadata checksum mismatch"
+        );
+
+        let mut payload = &encoded[..payload_end];
+        ensure!(payload.remaining() >= 4, "block metadata count is missing");
+        let count = payload.get_u32() as usize;
+        ensure!(
+            count <= payload.remaining() / 8,
             "block metadata count exceeds the available bytes"
         );
         let mut block_meta = Vec::with_capacity(count);
         for _ in 0..count {
-            ensure!(buf.remaining() >= 6, "truncated block metadata record");
-            let offset = buf.get_u32() as usize;
-            let first_key_len = buf.get_u16() as usize;
+            ensure!(payload.remaining() >= 6, "truncated block metadata record");
+            let offset = payload.get_u32() as usize;
+            let first_key_len = payload.get_u16() as usize;
             ensure!(
-                buf.remaining() >= first_key_len + 2,
+                payload.remaining() >= first_key_len + 2,
                 "truncated first key in block metadata"
             );
-            let first_key = KeyBytes::from_bytes(buf.copy_to_bytes(first_key_len));
-            let last_key_len = buf.get_u16() as usize;
+            let first_key = KeyBytes::from_bytes(payload.copy_to_bytes(first_key_len));
+            let last_key_len = payload.get_u16() as usize;
             ensure!(
-                buf.remaining() >= last_key_len,
+                payload.remaining() >= last_key_len,
                 "truncated last key in block metadata"
             );
-            let last_key = KeyBytes::from_bytes(buf.copy_to_bytes(last_key_len));
+            let last_key = KeyBytes::from_bytes(payload.copy_to_bytes(last_key_len));
             block_meta.push(BlockMeta {
                 offset,
                 first_key,
                 last_key,
             });
         }
-        ensure!(buf.remaining() == 0, "trailing block metadata bytes");
+        ensure!(payload.remaining() == 0, "trailing block metadata bytes");
         Ok(block_meta)
     }
 }
@@ -247,7 +261,14 @@ impl SsTable {
         };
         ensure!(offset < end, "invalid block byte range");
         let encoded = self.file.read(offset as u64, (end - offset) as u64)?;
-        Ok(Arc::new(Block::decode(&encoded)))
+        ensure!(encoded.len() >= 4, "data block checksum is missing");
+        let content_end = encoded.len() - 4;
+        let stored_checksum = u32::from_be_bytes(encoded[content_end..].try_into().unwrap());
+        ensure!(
+            crc32fast::hash(&encoded[..content_end]) == stored_checksum,
+            "data block checksum mismatch"
+        );
+        Ok(Arc::new(Block::decode(&encoded[..content_end])))
     }
 
     /// Read a block from disk, with block cache. (Day 4)

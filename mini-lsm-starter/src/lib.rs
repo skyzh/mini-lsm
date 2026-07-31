@@ -26,4 +26,7 @@ pub mod table;
 pub mod wal;
 
 #[cfg(test)]
+mod checkpoint4_tests;
+
+#[cfg(test)]
 mod tests;

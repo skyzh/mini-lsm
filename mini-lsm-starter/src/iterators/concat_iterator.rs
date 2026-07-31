@@ -35,11 +35,30 @@ pub struct SstConcatIterator {
 
 impl SstConcatIterator {
     pub fn create_and_seek_to_first(sstables: Vec<Arc<SsTable>>) -> Result<Self> {
-        unimplemented!()
+        let current = sstables
+            .first()
+            .map(|sst| SsTableIterator::create_and_seek_to_first(sst.clone()))
+            .transpose()?;
+        let next_sst_idx = usize::from(current.is_some());
+        Ok(Self {
+            current,
+            next_sst_idx,
+            sstables,
+        })
     }
 
     pub fn create_and_seek_to_key(sstables: Vec<Arc<SsTable>>, key: KeySlice) -> Result<Self> {
-        unimplemented!()
+        let current_sst_idx = sstables.partition_point(|sst| sst.last_key().as_key_slice() < key);
+        let current = sstables
+            .get(current_sst_idx)
+            .map(|sst| SsTableIterator::create_and_seek_to_key(sst.clone(), key))
+            .transpose()?;
+        let next_sst_idx = current_sst_idx + usize::from(current.is_some());
+        Ok(Self {
+            current,
+            next_sst_idx,
+            sstables,
+        })
     }
 }
 
@@ -47,19 +66,33 @@ impl StorageIterator for SstConcatIterator {
     type KeyType<'a> = KeySlice<'a>;
 
     fn key(&self) -> KeySlice<'_> {
-        unimplemented!()
+        self.current.as_ref().unwrap().key()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.current.as_ref().unwrap().value()
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        self.current.as_ref().is_some_and(StorageIterator::is_valid)
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        let Some(current) = &mut self.current else {
+            return Ok(());
+        };
+        current.next()?;
+        if current.is_valid() {
+            return Ok(());
+        }
+
+        self.current = self
+            .sstables
+            .get(self.next_sst_idx)
+            .map(|sst| SsTableIterator::create_and_seek_to_first(sst.clone()))
+            .transpose()?;
+        self.next_sst_idx += usize::from(self.current.is_some());
+        Ok(())
     }
 
     fn num_active_iterators(&self) -> usize {
