@@ -149,15 +149,14 @@ fn test_task4_wal_batch_round_trip() {
 }
 
 #[test]
-fn test_task4_wal_rejects_truncated_or_corrupt_batch_without_applying_it() {
+fn test_task4_wal_ignores_and_truncates_incomplete_final_batch() {
     let dir = tempdir().unwrap();
     let path = dir.path().join("test.wal");
     let wal = Wal::create(&path).unwrap();
-    wal.put_batch(&[
-        (KeySlice::from_slice(b"a", 2), b"1"),
-        (KeySlice::from_slice(b"b", 2), b"2"),
-    ])
-    .unwrap();
+    let a = KeyBytes::from_bytes_with_ts(Bytes::from_static(b"a"), 2);
+    let b = KeyBytes::from_bytes_with_ts(Bytes::from_static(b"b"), 2);
+    wal.put_batch(&[(a.as_key_slice(), b"1"), (b.as_key_slice(), b"2")])
+        .unwrap();
     wal.sync().unwrap();
     drop(wal);
 
@@ -169,18 +168,115 @@ fn test_task4_wal_rejects_truncated_or_corrupt_batch_without_applying_it() {
         let truncated_path = dir.path().join(format!("truncated-{idx}.wal"));
         std::fs::write(&truncated_path, &encoded[..cutoff]).unwrap();
         let map = SkipMap::<KeyBytes, Bytes>::new();
-        assert!(Wal::recover(&truncated_path, &map).is_err());
+        drop(Wal::recover(&truncated_path, &map).unwrap());
         assert!(map.is_empty());
+        assert_eq!(std::fs::metadata(&truncated_path).unwrap().len(), 0);
     }
+}
+
+#[test]
+fn test_task4_wal_rejects_corrupt_batch_without_applying_it() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("test.wal");
+    let wal = Wal::create(&path).unwrap();
+    wal.put_batch(&[
+        (KeySlice::from_slice(b"a", 2), b"1"),
+        (KeySlice::from_slice(b"b", 2), b"2"),
+    ])
+    .unwrap();
+    wal.sync().unwrap();
+    drop(wal);
 
     let corrupt_path = dir.path().join("corrupt.wal");
-    let mut corrupt = encoded;
+    let mut corrupt = std::fs::read(&path).unwrap();
     let checksum_byte = corrupt.last_mut().unwrap();
     *checksum_byte ^= 0xff;
     std::fs::write(&corrupt_path, corrupt).unwrap();
     let map = SkipMap::<KeyBytes, Bytes>::new();
     assert!(Wal::recover(&corrupt_path, &map).is_err());
     assert!(map.is_empty());
+}
+
+#[test]
+fn test_task4_wal_recovery_is_atomic_across_frames() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("test.wal");
+    let wal = Wal::create(&path).unwrap();
+    let first_key = KeyBytes::from_bytes_with_ts(Bytes::from_static(b"first"), 1);
+    wal.put_batch(&[(first_key.as_key_slice(), b"committed")])
+        .unwrap();
+    wal.sync().unwrap();
+    let first_frame_len = std::fs::read(&path).unwrap().len();
+
+    let second_key = KeyBytes::from_bytes_with_ts(Bytes::from_static(b"second"), 2);
+    wal.put_batch(&[(second_key.as_key_slice(), b"torn")])
+        .unwrap();
+    wal.sync().unwrap();
+    drop(wal);
+
+    let encoded = std::fs::read(&path).unwrap();
+    assert!(encoded.len() > first_frame_len + std::mem::size_of::<u32>());
+
+    for (idx, cutoff) in [
+        first_frame_len + 1,
+        first_frame_len + std::mem::size_of::<u32>() + 1,
+        encoded.len() - 1,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let truncated_path = dir.path().join(format!("two-frame-truncated-{idx}.wal"));
+        std::fs::write(&truncated_path, &encoded[..cutoff]).unwrap();
+        let map = SkipMap::<KeyBytes, Bytes>::new();
+        drop(Wal::recover(&truncated_path, &map).unwrap());
+        assert_eq!(map.len(), 1);
+        assert_eq!(
+            map.get(&first_key).unwrap().value(),
+            &Bytes::from_static(b"committed")
+        );
+        assert!(map.get(&second_key).is_none());
+        assert_eq!(
+            std::fs::metadata(&truncated_path).unwrap().len(),
+            first_frame_len as u64
+        );
+    }
+
+    let corrupt_path = dir.path().join("two-frame-corrupt.wal");
+    let mut corrupt = encoded;
+    *corrupt.last_mut().unwrap() ^= 0xff;
+    std::fs::write(&corrupt_path, corrupt).unwrap();
+    let map = SkipMap::<KeyBytes, Bytes>::new();
+    assert!(Wal::recover(&corrupt_path, &map).is_err());
+    assert_eq!(map.len(), 1);
+    assert_eq!(
+        map.get(&first_key).unwrap().value(),
+        &Bytes::from_static(b"committed")
+    );
+    assert!(map.get(&second_key).is_none());
+
+    let invalid_length_path = dir.path().join("two-frame-invalid-length.wal");
+    let mut invalid_length = std::fs::read(&path).unwrap();
+    let second_batch_size = u32::from_be_bytes(
+        invalid_length[first_frame_len..first_frame_len + std::mem::size_of::<u32>()]
+            .try_into()
+            .unwrap(),
+    ) as usize;
+    let second_batch_start = first_frame_len + std::mem::size_of::<u32>();
+    invalid_length[second_batch_start..second_batch_start + std::mem::size_of::<u16>()]
+        .copy_from_slice(&u16::MAX.to_be_bytes());
+    let second_checksum_start = second_batch_start + second_batch_size;
+    let checksum = crc32fast::hash(&invalid_length[second_batch_start..second_checksum_start]);
+    invalid_length[second_checksum_start..second_checksum_start + std::mem::size_of::<u32>()]
+        .copy_from_slice(&checksum.to_be_bytes());
+    std::fs::write(&invalid_length_path, invalid_length).unwrap();
+    let map = SkipMap::<KeyBytes, Bytes>::new();
+    assert!(Wal::recover(&invalid_length_path, &map).is_err());
+    assert_eq!(map.len(), 1);
+    assert_eq!(
+        map.get(&first_key).unwrap().value(),
+        &Bytes::from_static(b"committed")
+    );
+    assert!(map.get(&second_key).is_none());
 }
 
 #[test]

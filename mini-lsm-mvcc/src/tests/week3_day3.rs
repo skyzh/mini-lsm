@@ -25,6 +25,43 @@ use crate::{
     tests::harness::check_lsm_iter_result_by_key,
 };
 
+fn check_all_range_bound_combinations(storage: &MiniLsm) {
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"a"), Bound::Included(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("a"), Bytes::from("1")),
+            (Bytes::from("b"), Bytes::from("2")),
+            (Bytes::from("c"), Bytes::from("3")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("a"), Bytes::from("1")),
+            (Bytes::from("b"), Bytes::from("2")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Excluded(b"a"), Bound::Included(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("b"), Bytes::from("2")),
+            (Bytes::from("c"), Bytes::from("3")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![(Bytes::from("b"), Bytes::from("2"))],
+    );
+}
+
 #[test]
 fn test_task2_memtable_mvcc() {
     let dir = tempdir().unwrap();
@@ -327,6 +364,32 @@ fn test_task2_lsm_iterator_mvcc() {
             .unwrap(),
         vec![],
     );
+}
+
+#[test]
+fn test_task2_all_range_bounds_across_l0_and_level_ssts() {
+    let dir = tempdir().unwrap();
+    let options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
+    let storage = MiniLsm::open(&dir, options).unwrap();
+    storage.put(b"a", b"1").unwrap();
+    storage.put(b"b", b"2").unwrap();
+    storage.put(b"c", b"3").unwrap();
+
+    storage.force_flush().unwrap();
+    {
+        let state = storage.inner.state.read();
+        assert!(!state.l0_sstables.is_empty());
+        assert!(state.levels[0].1.is_empty());
+    }
+    check_all_range_bound_combinations(&storage);
+
+    storage.force_full_compaction().unwrap();
+    {
+        let state = storage.inner.state.read();
+        assert!(state.l0_sstables.is_empty());
+        assert!(!state.levels[0].1.is_empty());
+    }
+    check_all_range_bound_combinations(&storage);
 }
 
 #[test]
