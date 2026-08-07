@@ -500,13 +500,13 @@ impl LsmStorageInner {
 
         let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
         memtable_iters.push(Box::new(snapshot.memtable.scan(
-            Bound::Included(KeySlice::from_slice(key, key::TS_RANGE_BEGIN)),
-            Bound::Included(KeySlice::from_slice(key, key::TS_RANGE_END)),
+            Bound::Included(KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN)),
+            Bound::Included(KeySlice::from_slice_with_ts(key, key::TS_RANGE_END)),
         )));
         for memtable in snapshot.imm_memtables.iter() {
             memtable_iters.push(Box::new(memtable.scan(
-                Bound::Included(KeySlice::from_slice(key, key::TS_RANGE_BEGIN)),
-                Bound::Included(KeySlice::from_slice(key, key::TS_RANGE_END)),
+                Bound::Included(KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN)),
+                Bound::Included(KeySlice::from_slice_with_ts(key, key::TS_RANGE_END)),
             )));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
@@ -535,7 +535,7 @@ impl LsmStorageInner {
             if keep_table(key, &table) {
                 l0_iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
                     table,
-                    KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                    KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
                 )?));
             }
         }
@@ -551,7 +551,7 @@ impl LsmStorageInner {
             }
             let level_iter = SstConcatIterator::create_and_seek_to_key(
                 level_ssts,
-                KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
             )?;
             level_iters.push(Box::new(level_iter));
         }
@@ -584,14 +584,14 @@ impl LsmStorageInner {
                 WriteBatchRecord::Del(key) => {
                     let key = key.as_ref();
                     assert!(!key.is_empty(), "key cannot be empty");
-                    batch_datas.push((KeySlice::from_slice(key, ts), b""));
+                    batch_datas.push((KeySlice::from_slice_with_ts(key, ts), b""));
                 }
                 WriteBatchRecord::Put(key, value) => {
                     let key = key.as_ref();
                     let value = value.as_ref();
                     assert!(!key.is_empty(), "key cannot be empty");
                     assert!(!value.is_empty(), "value cannot be empty");
-                    batch_datas.push((KeySlice::from_slice(key, ts), value));
+                    batch_datas.push((KeySlice::from_slice_with_ts(key, ts), value));
                 }
             }
         }
@@ -823,12 +823,12 @@ impl LsmStorageInner {
                 let iter = match lower {
                     Bound::Included(key) => SsTableIterator::create_and_seek_to_key(
                         table,
-                        KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                        KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
                     )?,
                     Bound::Excluded(key) => {
                         let mut iter = SsTableIterator::create_and_seek_to_key(
                             table,
-                            KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                            KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
                         )?;
                         // TODO: we can implement `key.next()` so that we can directly seek to the
                         // right place in the previous line.
@@ -863,12 +863,12 @@ impl LsmStorageInner {
             let level_iter = match lower {
                 Bound::Included(key) => SstConcatIterator::create_and_seek_to_key(
                     level_ssts,
-                    KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                    KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
                 )?,
                 Bound::Excluded(key) => {
                     let mut iter = SstConcatIterator::create_and_seek_to_key(
                         level_ssts,
-                        KeySlice::from_slice(key, key::TS_RANGE_BEGIN),
+                        KeySlice::from_slice_with_ts(key, key::TS_RANGE_BEGIN),
                     )?;
                     while iter.is_valid() && iter.key().key_ref() == key {
                         iter.next()?;

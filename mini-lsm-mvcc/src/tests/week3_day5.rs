@@ -108,11 +108,11 @@ fn test_task4_batch_uses_one_memtable_and_timestamp() {
     let state = storage.state.read();
     assert_eq!(state.imm_memtables.len(), 1);
     assert_eq!(
-        state.imm_memtables[0].get(KeySlice::from_slice(b"a", commit_ts)),
+        state.imm_memtables[0].get(KeySlice::from_slice_with_ts(b"a", commit_ts)),
         Some(Bytes::from_static(b"1"))
     );
     assert_eq!(
-        state.imm_memtables[0].get(KeySlice::from_slice(b"b", commit_ts)),
+        state.imm_memtables[0].get(KeySlice::from_slice_with_ts(b"b", commit_ts)),
         Some(Bytes::from_static(b"2"))
     );
 }
@@ -123,8 +123,8 @@ fn test_task4_wal_batch_round_trip() {
     let path = dir.path().join("test.wal");
     let wal = Wal::create(&path).unwrap();
     wal.put_batch(&[
-        (KeySlice::from_slice(b"a", 2), b"1"),
-        (KeySlice::from_slice(b"b", 2), b""),
+        (KeySlice::from_slice_with_ts(b"a", 2), b"1"),
+        (KeySlice::from_slice_with_ts(b"b", 2), b""),
     ])
     .unwrap();
     wal.sync().unwrap();
@@ -180,8 +180,8 @@ fn test_task4_wal_rejects_corrupt_batch_without_applying_it() {
     let path = dir.path().join("test.wal");
     let wal = Wal::create(&path).unwrap();
     wal.put_batch(&[
-        (KeySlice::from_slice(b"a", 2), b"1"),
-        (KeySlice::from_slice(b"b", 2), b"2"),
+        (KeySlice::from_slice_with_ts(b"a", 2), b"1"),
+        (KeySlice::from_slice_with_ts(b"b", 2), b"2"),
     ])
     .unwrap();
     wal.sync().unwrap();
@@ -286,7 +286,10 @@ fn test_task4_wal_rejects_oversized_fields() {
     let wal = Wal::create(&path).unwrap();
     let oversized_value = vec![0; usize::from(u16::MAX) + 1];
     assert!(
-        wal.put_batch(&[(KeySlice::from_slice(b"key", 1), oversized_value.as_slice(),)])
-            .is_err()
+        wal.put_batch(&[(
+            KeySlice::from_slice_with_ts(b"key", 1),
+            oversized_value.as_slice(),
+        )])
+        .is_err()
     );
 }

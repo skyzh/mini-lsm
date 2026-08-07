@@ -71,8 +71,8 @@ pub(crate) fn map_key_bound_plus_ts<'a>(
 ) -> (Bound<KeySlice<'a>>, Bound<KeySlice<'a>>) {
     (
         match lower {
-            Bound::Included(x) => Bound::Included(KeySlice::from_slice(x, ts)),
-            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, TS_RANGE_END)),
+            Bound::Included(x) => Bound::Included(KeySlice::from_slice_with_ts(x, ts)),
+            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice_with_ts(x, TS_RANGE_END)),
             Bound::Unbounded => Bound::Unbounded,
         },
         match upper {
@@ -80,9 +80,9 @@ pub(crate) fn map_key_bound_plus_ts<'a>(
                 // Note that we order the ts descending, but for a MVCC scan, we need all the history
                 // so that we can access the latest key in case it is not updated in the current ts.
                 // Therefore, we need to scan all the way to ts 0.
-                Bound::Included(KeySlice::from_slice(x, TS_RANGE_END))
+                Bound::Included(KeySlice::from_slice_with_ts(x, TS_RANGE_END))
             }
-            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice(x, TS_RANGE_BEGIN)),
+            Bound::Excluded(x) => Bound::Excluded(KeySlice::from_slice_with_ts(x, TS_RANGE_BEGIN)),
             Bound::Unbounded => Bound::Unbounded,
         },
     )
@@ -130,11 +130,11 @@ impl MemTable {
     }
 
     pub fn for_testing_put_slice(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.put(KeySlice::from_slice(key, TS_DEFAULT), value)
+        self.put(KeySlice::from_slice_with_ts(key, TS_DEFAULT), value)
     }
 
     pub fn for_testing_get_slice(&self, key: &[u8]) -> Option<Bytes> {
-        self.get(KeySlice::from_slice(key, TS_DEFAULT))
+        self.get(KeySlice::from_slice_with_ts(key, TS_DEFAULT))
     }
 
     pub fn for_testing_scan_slice(
@@ -143,8 +143,8 @@ impl MemTable {
         upper: Bound<&[u8]>,
     ) -> MemTableIterator {
         self.scan(
-            lower.map(|x| KeySlice::from_slice(x, TS_DEFAULT)),
-            upper.map(|x| KeySlice::from_slice(x, TS_DEFAULT)),
+            lower.map(|x| KeySlice::from_slice_with_ts(x, TS_DEFAULT)),
+            upper.map(|x| KeySlice::from_slice_with_ts(x, TS_DEFAULT)),
         )
     }
 
