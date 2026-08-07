@@ -1,34 +1,26 @@
-# Week 2 Agent Walkthrough
+# Week 2 Student–Apprentice Walkthrough
 
-## Learner/coordinator transcript
+## Setup
 
-### Coordinator
+### Student
 
-> Work as the learner-facing coding agent for the Mini-LSM Agent Fast-Forward Week 2 experiment in /private/tmp/mini-lsm-week2-agent-walkthrough/mini-lsm-starter. Begin by reading that directory's AGENTS.md completely, then read only allowed Mini-LSM book chapters and starter code needed for Week 2. Never read, search, inspect, diff, or reconstruct /private/tmp/mini-lsm-week2-agent-walkthrough/mini-lsm, /private/tmp/mini-lsm-week2-agent-walkthrough/mini-lsm-mvcc, unrevealed supplied tests, Git history, other branches/tags/remotes, build artifacts that expose a solution, or online Mini-LSM implementations. Do not commit or push.
->
-> Build Day 2 with me, starting with Checkpoint 1: one safe full compaction. Follow the student-owned design protocol in AGENTS.md exactly. Ask one short question at a time using a concrete set of files, keys, or crash points. Mark each question Course rule or Your choice. I may reply simpler, example, hint, or choose for me. Do not edit until my answers specify one small, coherent slice and I explicitly authorize it. After completing an independent compiling first pass for the checkpoint, stop and ask me to authorize the corresponding cargo x copy-test command; do not reveal tests early. After each slice, show one important line and ask what it does and what would break if it changed.
->
-> Maintain /private/tmp/mini-lsm-week2-agent-walkthrough/mini-lsm-starter/WEEK2_AGENT_WALKTHROUGH.md as a faithful transcript of our learner/coordinator messages plus exact commands and observed outcomes. Do not include hidden chain-of-thought. Start with the initial prompt above, then ask only the first Checkpoint 1 decision question and stop.
+> Continue the fast-forward course in an isolated `mini-lsm-starter` workspace, beginning with one safe full compaction. Follow the student-owned design protocol, use only learner-visible sources, ask one concrete decision question at a time, and wait for authorization before each coherent slice. Reveal each supplied test module only after its checkpoint has a complete compiling first pass.
 
-### Agent
+### Apprentice
 
-> I’ll first read the starter’s local instructions and the minimum Week 2 material they permit. I’ll record this opening exchange in the walkthrough, then ask exactly one Checkpoint 1 decision question and pause.
+> Understood. I will keep the reference implementations and unrevealed tests off-limits, record exact commands and outcomes, and stop for the Student's diagnosis before changing product behavior after a test failure.
 
-### Agent
-
-> The Week 2 guide makes the first required decision a course constraint: equal-key source priority. I’m recording the permitted reads and their outcomes now; no implementation file is being edited.
-
-### Agent — Checkpoint 1, decision 1
+### Apprentice — Checkpoint 1, decision 1
 
 **Course rule:** L0 file 5 was flushed after L1 file 1. Both contain `k`: file 5 has `k -> new`, while file 1 has `k -> old`. `MergeIterator` keeps the equal key from the smaller input index. Which file should get the smaller index, and why?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > File 5 from L0 should get the smaller input index because L0 is newer than L1. When both iterators expose `k`, the merge must keep `k -> new` from file 5 and suppress the older `k -> old` from file 1.
 
-### Agent
+### Apprentice
 
 > That is correct. L0 file 5 is the newer source, and the existing `MergeIterator` gives an equal key to the smaller input index. Putting file 5 first therefore preserves `k -> new` and advances past file 1's stale copy.
 
@@ -38,15 +30,15 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- | --- |
 | Equal-key source order | Give newer L0 file 5 the smaller merge-input index | L0 is newer than L1; `MergeIterator` favors smaller indexes | `k -> new` survives and `k -> old` is suppressed |
 
-### Agent — Checkpoint 1, decision 2
+### Apprentice — Checkpoint 1, decision 2
 
 **Course rule:** L0 file 5 contains a tombstone for `k`, and bottom-level L1 file 1 contains `k -> old`. This full compaction includes every L0 and L1 file. Should its output contain the tombstone, `k -> old`, or no `k` at all—and what fact makes that safe?
 
-### Coordinator
+### Student
 
 > The output should contain no `k`. The newer L0 tombstone suppresses `k -> old`, and because this full compaction reaches the bottom and includes every possible older version, the tombstone itself can be discarded without allowing an older value to reappear later.
 
-### Agent
+### Apprentice
 
 > Correct. Reaching the bottom is the proof that dropping the winning tombstone cannot uncover another stored version later. In a partial compaction that leaves an older level untouched, the tombstone would need to remain.
 
@@ -56,15 +48,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Bottom-level tombstone handling | Emit neither the winning tombstone nor its older value | Full compaction includes every possible older version | Deleted `k` cannot be resurrected after the tombstone is dropped |
 
-### Agent — Checkpoint 1, decision 3
+### Apprentice — Checkpoint 1, decision 3
 
 **Course rule:** A task captures L0 `[5, 4]` and L1 `[1, 2]`. While it writes replacement SSTs, a flush adds file 6, making current L0 `[6, 5, 4]`. When the result is installed, which IDs should remain in L0, and should installation modify the captured snapshot or the latest state?
 
-### Coordinator
+### Student
 
 > L0 should retain only file 6. Installation must clone and modify the latest state, remove exactly the captured IDs 5 and 4, and leave the concurrently flushed file 6 untouched; replacing current L0 with the captured snapshot would lose concurrent work.
 
-### Agent
+### Apprentice
 
 > Exactly. Result installation is a transformation of the latest state: the captured IDs form the removal set, while file 6 was never part of the task and must survive.
 
@@ -74,15 +66,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Concurrent result installation | Clone the latest state and remove exactly captured L0 IDs 5 and 4 | Compaction output is built without `state_lock`; file 6 may flush meanwhile | Current L0 becomes `[6]`, so concurrent work is retained |
 
-### Agent — Checkpoint 1, decision 4
+### Apprentice — Checkpoint 1, decision 4
 
 **Course rule:** Suppose every newest entry in the captured files is a tombstone. After bottom-level compaction discards them, the builder has received no entries, and `SsTableBuilder::build` rejects an empty table. Should compaction return no output SSTs or try to install an empty L1 SST, and what should L1 contain afterward?
 
-### Coordinator
+### Student
 
 > Compaction should return no output SSTs rather than attempting to build an invalid empty table. After installing this full task, the captured L0 and L1 inputs are removed and L1 contains no SSTs (apart from any newer state that was not part of the captured task, if such state can exist in that position).
 
-### Agent
+### Apprentice
 
 > Yes—zero surviving entries means zero outputs. At this checkpoint only a flush may race with full compaction, so the new L1 is specifically empty; any concurrent file is retained in L0.
 
@@ -92,15 +84,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Empty compaction output | Return zero SSTs; do not build an empty table | All winners were removable tombstones; `SsTableBuilder::build` rejects empty input | Captured inputs disappear, L1 is empty, and any concurrent flush remains in L0 |
 
-### Agent — Checkpoint 1, decision 5
+### Apprentice — Checkpoint 1, decision 5
 
 **Course rule:** Output entries arrive in order as `a`, `b`, `c`. Adding `b` makes the builder reach or cross `target_sst_size`. Should `b` remain in the current SST and that SST be sealed before `c`, or should `b` be moved to the next SST? Explain how your choice keeps the output files ordered and non-overlapping.
 
-### Coordinator
+### Student
 
 > Keep `b` in the current SST, then seal it before adding `c`. The target is an approximate post-add threshold, so the entry that crosses it stays with the builder that accepted it. The split falls between `b` and `c`, leaving each output sorted and the SST key ranges ordered and non-overlapping.
 
-### Agent
+### Apprentice
 
 > Correct. The threshold-triggering entry stays in the current builder; the next entry starts the next file, so the split preserves global key order.
 
@@ -110,15 +102,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Output split boundary | Keep threshold-crossing `b` in the current SST; seal before `c` | The target is approximate and checked after adding an entry | Consecutive output ranges remain ordered and non-overlapping |
 
-### Agent — Checkpoint 1, decision 6
+### Apprentice — Checkpoint 1, decision 6
 
 **Course rule:** SST A covers `a..m` and SST B covers `n..z`. A concat iterator reads one whole file and then the next. What ordering and range conditions must its input vector satisfy, and what goes wrong if the vector is `[B, A]` or the two ranges overlap?
 
-### Coordinator
+### Student
 
 > The vector must be ordered by increasing key range and adjacent ranges must not overlap: for `[A, B]`, `A.last_key < B.first_key`. `[B, A]` makes iteration jump backward from `z`-side keys to `a`-side keys, while overlapping ranges can emit duplicates or out-of-order keys and make seek's file selection ambiguous.
 
-### Agent
+### Apprentice
 
 > Exactly. Concatenation is valid only when each file's entire range is strictly before the next one; otherwise it cannot provide one sorted, duplicate-free stream.
 
@@ -128,15 +120,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Concat input precondition | Sort SSTs by increasing key range and require `previous.last_key < next.first_key` | Concat visits complete files sequentially | Iteration remains globally sorted and seek chooses an unambiguous file |
 
-### Agent — Checkpoint 1, decision 7
+### Apprentice — Checkpoint 1, decision 7
 
 **Course rule:** L1 has SSTs A=`a..m`, B=`n..t`, and C=`u..z`; a scan seeks to `p`, inside B. Should the concat iterator create child iterators for A, B, and C immediately, or open only B and create C only after B is exhausted? What should `num_active_iterators()` report?
 
-### Coordinator
+### Student
 
 > Open only B for the seek to `p`, then create C only when B is exhausted; A is skipped entirely. `num_active_iterators()` should report 1 while a child SST iterator is active (and 0 after the concat iterator is exhausted), so the number does not grow with the run's file count.
 
-### Agent
+### Apprentice
 
 > The lazy-open part is right: A is skipped, B is the only initially opened child, and C opens only after B is exhausted. One checkpoint-specific detail needs correction. The allowed chapter explicitly says, “For this exercise, it should always report one active iterator,” so returning 0 after exhaustion would violate the required instrumentation contract.
 
@@ -146,15 +138,15 @@ The accepted part enters the ledger; the count remains open:
 | --- | --- | --- | --- |
 | Lazy concat child creation | Open only B for a seek to `p`; skip A; open C after B ends | A sorted run needs only its current child iterator | Initial seek reads at most one SST's active block path |
 
-### Agent — Checkpoint 1, decision 7 correction
+### Apprentice — Checkpoint 1, decision 7 correction
 
 **Course rule:** Given the chapter's explicit “always one” requirement, would you revise `num_active_iterators()` to return 1 even when the concat iterator is exhausted? In this exercise, what is that fixed count measuring?
 
-### Coordinator
+### Student
 
 > Yes—I revise it to return 1 even when exhausted. In this exercise the fixed count measures the concat iterator's one-child design/resource slot, not whether its current child is presently valid; the course explicitly uses it as evidence that the run does not eagerly instantiate one iterator per SST.
 
-### Agent
+### Apprentice
 
 > Accepted. Here the metric is deliberately structural: one concat layer accounts for one active child slot regardless of validity, proving it does not scale with the SST count.
 
@@ -164,15 +156,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Concat active-iterator metric | Always return 1, even after exhaustion | The chapter defines a fixed structural count for this exercise | Instrumentation demonstrates one-child behavior instead of counting all run files |
 
-### Agent — Checkpoint 1, decision 8
+### Apprentice — Checkpoint 1, decision 8
 
 **Course rule:** A scan clones the old state and holds `Arc<SsTable>` for input file 5. Compaction installs new L1 files and unlinks `00005.sst` while that scan is still running. On a Unix-like filesystem, can the scan finish, and which ownership detail makes that possible? What would break if the reader kept only the pathname?
 
-### Coordinator
+### Student
 
 > Yes. The scan's old state owns an `Arc<SsTable>`, and the table owns the already-open file handle; unlinking the directory entry does not invalidate that open handle on Unix, so the scan can finish. If it kept only the pathname and tried to reopen later, the unlink would make the old snapshot unreadable.
 
-### Agent
+### Apprentice
 
 > That is the required lifetime argument: the snapshot retains the table object and its open descriptor, so pathname removal affects future opens, not the existing reader.
 
@@ -182,7 +174,7 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Reader lifetime after unlink | Readers retain `Arc<SsTable>` and its open handle | Unix unlink removes a name but open handles remain usable | Old snapshots can finish; retaining only paths would break them |
 
-### Agent — Slice 1 authorization
+### Apprentice — Slice 1 authorization
 
 The core compaction slice is now specified:
 
@@ -206,19 +198,19 @@ No supplied test will be revealed in this slice. I will run formatting and `carg
 
 **Your choice (edit authorization):** Do you authorize this Slice 1 implementation?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Slice 1 exactly as summarized in `src/compact.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, do not reveal Week 2 tests, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing only the full-compaction core in `src/compact.rs`; I’ll compile it independently, record exact outcomes, and stop at the required changed-line review without exposing Week 2 tests.
 
-### Agent
+### Apprentice
 
 > The format check found one mechanical line-wrap difference in `src/compact.rs`, so compilation did not run in that combined command. I’m applying the formatter and rerunning the library check now.
 
-### Agent — Slice 1 review
+### Apprentice — Slice 1 review
 
 Slice 1 is implemented and independently compiles. No supplied test module was copied, opened, or run.
 
@@ -237,7 +229,7 @@ Changed files and behavior:
 
 - `src/compact.rs`: `compact` now handles a `ForceFullCompaction` task, merges L0 before L1, drops bottom-level tombstones, splits ordered output, and avoids building an empty table.
 - `src/compact.rs`: `force_full_compaction` captures input IDs, builds outside `state_lock`, installs into the latest state, retains uncaptured L0 files, and unlinks captured inputs after installation.
-- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/coordinator exchange and command evidence.
+- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/Student exchange and command evidence.
 
 The code relies on L0 IDs being newest-to-oldest, L1 being one ordered non-overlapping run, only one compaction running at a time, and Unix open-handle semantics after unlink. A boundary case not established by any revealed supplied test is a filesystem unlink failure after state installation: the logical state is already on the new files, but an obsolete input may remain on disk and the call returns an error.
 
@@ -249,23 +241,23 @@ Important line (`src/compact.rs:205`):
 
 **Course rule (review):** What is this line trying to do, and what plausible concurrent behavior would break if it were replaced with `snapshot.l0_sstables.clear()`?
 
-### Coordinator
+### Student
 
 > It removes exactly the L0 SST IDs captured by the compaction task from the latest cloned state. Replacing it with `snapshot.l0_sstables.clear()` would also erase a concurrently flushed file such as 6 that appeared after task capture, so the new file would disappear from the installed read state and its data would be lost logically.
 
-### Agent
+### Apprentice
 
 > Exactly. The line applies the task's removal set to the latest state; clearing L0 would turn a legal concurrent flush into logical data loss. Slice 1 review is complete.
 
-### Agent — Checkpoint 1, decision 9
+### Apprentice — Checkpoint 1, decision 9
 
 **Course rule:** A sorted run has SST A=`a..m` and SST B=`p..z`, leaving a gap. A seek asks for `n`, which is after A but before B. Which SST should the concat iterator open, and at which key should it become valid? What should happen for a seek beyond `z`?
 
-### Coordinator
+### Student
 
 > It should open B, the first SST whose range could contain a key at or after `n`; seeking B to `n` should make the iterator valid at `p`. A seek beyond `z` should produce an invalid/exhausted concat iterator without opening an earlier SST.
 
-### Agent
+### Apprentice
 
 > Correct. The selection rule is “first SST whose last key is at least the seek key”; that lands a gap seek on B at `p`, while a key beyond the final last key yields an exhausted iterator.
 
@@ -275,7 +267,7 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Concat lower-bound seek | Choose the first SST with `last_key >= seek_key`; exhaust beyond the final range | SST inputs are range-ordered and non-overlapping | Gap seek `n` opens B and becomes valid at `p` |
 
-### Agent — Slice 2 authorization
+### Apprentice — Slice 2 authorization
 
 The concat-iterator slice is now specified:
 
@@ -298,15 +290,15 @@ No supplied test will be revealed. I will run `cargo fmt --all` and `cargo check
 
 **Your choice (edit authorization):** Do you authorize this Slice 2 implementation?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Slice 2 exactly as summarized in `src/iterators/concat_iterator.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Week 2 tests, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing just the one-child concat iterator, then I’ll format, compile, record outcomes, and stop before any Week 2 test reveal.
 
-### Agent — Slice 2 review
+### Apprentice — Slice 2 review
 
 Slice 2 is implemented and independently compiles. No supplied test module was copied, opened, or run.
 
@@ -322,7 +314,7 @@ Decision ledger for the implemented behavior:
 Changed files and behavior:
 
 - `src/iterators/concat_iterator.rs`: implements seek-to-first, lower-bound range selection, delegation to one current child, lazy transition to the next SST, exhausted behavior, and the fixed active-iterator metric.
-- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/coordinator exchange and command evidence.
+- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/Student exchange and command evidence.
 
 The code relies on the caller supplying non-empty SSTs in strictly increasing, non-overlapping range order. A boundary case not established by any revealed supplied test is a malformed input vector: the iterator deliberately does not validate the precondition, so overlapping or reversed ranges can make seek or iteration incorrect.
 
@@ -334,23 +326,23 @@ let current_sst_idx = sstables.partition_point(|sst| sst.last_key().as_key_slice
 
 **Course rule (review):** What is this line trying to find, and what exact-key behavior would break if `< key` changed to `<= key`?
 
-### Coordinator
+### Student
 
 > It finds the first SST whose last key is not less than the seek key, i.e. the first range that can still contain that key or a later one. Changing the predicate to `<= key` would skip an SST whose last key equals the requested key, so an exact match at that SST's upper boundary could be missed.
 
-### Agent
+### Apprentice
 
 > Correct. The strict `<` keeps the SST whose upper boundary equals the target eligible, preserving an exact match at that boundary. Slice 2 review is complete.
 
-### Agent — Checkpoint 1, decision 10
+### Apprentice — Checkpoint 1, decision 10
 
 **Course rule:** The current memtable has `k -> mem`, newer L0 file 6 has `k -> l0`, and L1 has `k -> old`. For a scan, which sources should be combined into the newer stream first, and which stream should be the older side of the final two-way merge, so only `k -> mem` is visible?
 
-### Coordinator
+### Student
 
 > Build the newer stream from the current memtable first, then immutable memtables newest-to-oldest, then L0 SSTs newest-to-oldest, preserving that priority in their merge indexes. Use the L1 concat iterator as the older side of the final `TwoMergeIterator`. Equal-key suppression then leaves only `k -> mem`.
 
-### Agent
+### Apprentice
 
 > That priority is correct. In the existing types, it becomes a memtable merge and an L0 merge joined as the newer `TwoMergeIterator`, then that whole stream is joined over the older L1 concat stream.
 
@@ -360,15 +352,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Scan stream shape | Merge memtables newest-first and L0 newest-first, join them as newer, then join over L1 concat | `TwoMergeIterator` gives its first stream equal-key priority | `k -> mem` suppresses both L0 and L1 copies |
 
-### Agent — Checkpoint 1, decision 11
+### Apprentice — Checkpoint 1, decision 11
 
 **Course rule:** L0 file 6 has a tombstone for `k`, while L1 has `k -> old`. During `get(k)`, should the code fall through to L1 after seeing the L0 tombstone, or should the combined SST stream return the tombstone as the winner and translate it to `None`? What stale-value failure follows from the other behavior?
 
-### Coordinator
+### Student
 
 > The combined SST stream must let the newer L0 tombstone win, then translate that winning empty value to `None`. Falling through to L1 after seeing the tombstone would resurrect the stale `k -> old` value that the deletion is meant to hide.
 
-### Agent
+### Apprentice
 
 > Correct. A tombstone is an observable winning version even though the public result is `None`; probing the older stream afterward would undo the deletion.
 
@@ -378,15 +370,15 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Point-read tombstone | Let the combined L0-over-L1 stream select the tombstone, then return `None` | Deletion is newer than the L1 value | `get(k)` cannot resurrect `k -> old` |
 
-### Agent — Checkpoint 1, decision 12
+### Apprentice — Checkpoint 1, decision 12
 
 **Course rule:** L1 contains keys `b` and `d`, and `scan((Excluded(b)), Unbounded)` makes the concat iterator seek to `b`. Should the L1 child remain at `b`, or advance once before it enters the merge? What incorrect first result appears if it is not advanced?
 
-### Coordinator
+### Student
 
 > It should advance once when the seek lands exactly on excluded `b`, so the L1 child enters the merge at `d`. If it is not advanced, the scan can incorrectly return `b` as its first result even though the lower bound excludes it.
 
-### Agent
+### Apprentice
 
 > Correct. Excluded lower bounds require one exact-key advance before the L1 stream joins the merge; otherwise the new path violates the existing scan contract.
 
@@ -396,7 +388,7 @@ The decision ledger gains this entry:
 | --- | --- | --- | --- |
 | Excluded scan lower bound | Advance L1 once when seek lands exactly on the excluded key | Lower-bound exclusion applies to every source stream | Scan begins at `d`, not forbidden `b` |
 
-### Agent — Slice 3 authorization
+### Apprentice — Slice 3 authorization
 
 The two-level read-path slice is now specified:
 
@@ -417,15 +409,15 @@ No supplied test will be revealed during the edit. I will run `cargo fmt --all` 
 
 **Your choice (edit authorization):** Do you authorize this Slice 3 implementation?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Slice 3 exactly as summarized in `src/lsm_iterator.rs` and `src/lsm_storage.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Week 2 tests, then stop for review and separate test-copy authorization.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing only the nested two-level read path in the two approved files, then I’ll format, compile, record the independent first-pass evidence, and stop before copying any tests.
 
-### Agent — Slice 3 review
+### Apprentice — Slice 3 review
 
 Slice 3 is implemented and independently compiles. This completes Checkpoint 1's independent first pass. No supplied Week 2 test module was copied, opened, or run.
 
@@ -441,7 +433,7 @@ Changed files and behavior:
 
 - `src/lsm_iterator.rs`: its inner stream is now memtables-over-L0, with that combined newer stream merged over one lazy L1 concat iterator.
 - `src/lsm_storage.rs`: `get` now resolves L0 over L1 before converting tombstones to `None`; `scan` now includes L1 and applies excluded-lower-bound handling to it.
-- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/coordinator exchange and command evidence.
+- `WEEK2_AGENT_WALKTHROUGH.md`: records this learner/Student exchange and command evidence.
 
 The code relies on memtables and L0 being ordered newest-first, `TwoMergeIterator` preferring its first argument for equal keys, and L1 satisfying concat's sorted-run precondition. A boundary case not established by any revealed supplied test is L1 point-read I/O: `get` seeks the selected L1 SST without first consulting its Bloom filter, which preserves correctness but may read a block for an absent key.
 
@@ -453,15 +445,15 @@ let inner = TwoMergeIterator::create(memtable_l0_iter, l1_iter)?;
 
 **Course rule (review):** What is this line trying to guarantee, and what stale-value or deletion behavior would break if its two arguments were reversed?
 
-### Coordinator
+### Student
 
 > It makes the current/immutable memtables plus L0 the newer side and L1 the older side, so equal keys resolve to the newest value or tombstone. Reversing the arguments would let an older L1 value beat a newer write, and could let that old value appear despite a newer L0 tombstone.
 
-### Agent
+### Apprentice
 
 > Exactly. The argument order is the version-order proof for scans: reversing it would allow old L1 data to defeat both newer values and newer tombstones. The independent first pass is complete.
 
-### Agent — Checkpoint 1 test-reveal authorization
+### Apprentice — Checkpoint 1 test-reveal authorization
 
 Consolidated decision ledger:
 
@@ -493,19 +485,19 @@ The first command is the sole permitted test reveal; only after it copies the mo
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 1` followed by the focused `week2_day1` test command?
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 1 with `cargo x copy-test --week 2 --day 1`, run `cargo test -p mini-lsm-starter week2_day1`, report the exact result, and do not inspect or reveal later Week 2 tests.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll reveal only Week 2 Day 1, run its focused test target, and record the exact output. Later Week 2 tests remain untouched.
 
-### Agent
+### Apprentice
 
 > The authorized focused suite passed: 4 Week 2 Day 1 tests passed, with 0 failures, 0 ignored, and 46 filtered out. I’m recording the exact result and checking only the copied-file names—not opening any later tests—before the checkpoint’s required adversarial prediction.
 
-### Agent — Checkpoint 1 adversarial prediction
+### Apprentice — Checkpoint 1 adversarial prediction
 
 The focused test command completed with exit status 0:
 
@@ -523,11 +515,11 @@ No later Week 2 test was copied, opened, or run.
 
 **Course rule:** L0 file 5 and L1 file 1 both contain `k`. Predict the post-compaction output and `get(k)` in two cases: (A) file 5 has `k -> new` and file 1 has `k -> old`; (B) file 5 has a tombstone and file 1 has `k -> old`.
 
-### Coordinator
+### Student
 
 > With `k -> new` in L0, the compacted output contains `k -> new` and `get(k)` returns `new`. With a newer L0 tombstone, the old L1 value is suppressed and the bottom-reaching compaction drops the tombstone, so no output entry for `k` remains and `get(k)` returns `None`.
 
-### Agent — Checkpoint 1 handoff
+### Apprentice — Checkpoint 1 handoff
 
 > Correct in both cases: the newer L0 version wins; a live value is emitted, while a bottom-level tombstone and every older copy disappear. That completes Checkpoint 1. I will not begin another checkpoint without direction.
 
@@ -555,7 +547,7 @@ Files and behavior changed:
 - `src/lsm_iterator.rs`: nested memtable/L0-over-L1 iterator shape.
 - `src/lsm_storage.rs`: L1-aware `get` and `scan` with correct priority and excluded-bound handling.
 - `src/tests/week2_day1.rs` and `src/tests.rs`: added/rewritten only by the authorized `cargo x copy-test --week 2 --day 1` command; not hand-edited.
-- `WEEK2_AGENT_WALKTHROUGH.md`: learner/coordinator transcript and exact command outcomes.
+- `WEEK2_AGENT_WALKTHROUGH.md`: learner/Student transcript and exact command outcomes.
 
 Key invariants:
 
@@ -577,29 +569,29 @@ Boundaries not established by the supplied suite include behavior when an obsole
 
 Checkpoint 2 has not been selected or authorized. No later Week 2 test was copied, opened, or run, and `cargo x scheck` remains the required whole-day validation rather than a Checkpoint 1 command.
 
-### Coordinator
+### Student
 
 > Continue the Week 2 experiment with Checkpoint 2, simple leveled compaction only. Read the allowed Week 2 simple-leveled chapter and relevant starter interfaces, preserve the transcript, ask one short design question at a time, and do not edit until I authorize a coherent slice. Do not reveal Week 2 Day 2 tests until the simple-policy first pass compiles and I separately authorize `cargo x copy-test --week 2 --day 2`. Ask the first simple-leveled decision question now.
 
-### Agent
+### Apprentice
 
 > I’m continuing with Checkpoint 2's simple-leveled policy only. I’ll read the permitted chapter and controller/simulator interfaces, record those exact reads, then ask one course-rule decision and stop without editing implementation code.
 
-### Agent
+### Apprentice
 
 > The simple-leveled chapter makes the L0 threshold the first scheduling rule. I’ve confirmed the controller is still stubbed and the simulator repeatedly schedules until convergence; I’m recording that permitted read before asking the threshold case.
 
-### Agent — Checkpoint 2 (simple leveled), decision 1
+### Apprentice — Checkpoint 2 (simple leveled), decision 1
 
 **Course rule:** The L0 trigger is 2. L0 first contains `[5]`, then a flush makes it `[6, 5]`; L1 contains `[1, 2]`. At which state does a task first become eligible, and should that task capture all current L0 files or only enough to meet the threshold?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > The task first becomes eligible when L0 reaches `[6, 5]`, because its file count is now at the trigger. It should capture all current L0 files, not merely a threshold-sized subset; for simple leveled compaction that task also pairs them with the complete destination level.
 
-### Agent
+### Apprentice
 
 > Correct. Equality reaches the trigger, and simple leveled compaction consumes the complete L0 and complete L1 run.
 
@@ -609,15 +601,15 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- | --- |
 | L0 trigger and width | Schedule at `len(L0) >= trigger`; capture all L0 and all L1 files | Simple leveled tasks rewrite complete source and destination runs | `[6, 5]` becomes eligible at trigger 2; no L0 input is left behind from the snapshot |
 
-### Agent — Checkpoint 2 (simple leveled), decision 2
+### Apprentice — Checkpoint 2 (simple leveled), decision 2
 
 **Course rule:** L0 is below its trigger, `size_ratio_percent = 200`, and the file counts are L1=2, L2=3, L3=8. For each adjacent pair, which ratio must be compared with 200, and which pair should the controller select first?
 
-### Coordinator
+### Student
 
 > Compare `lower_count / upper_count * 100` with 200 for each adjacent pair. L1→L2 is `3 / 2 * 100 = 150%`, so it is under 200 and eligible; L2→L3 is `8 / 3 * 100 ≈ 267%`, so it is not. The controller should select L1 and L2 first.
 
-### Agent
+### Apprentice
 
 > Correct: the lower-to-upper ratio is 150% for L1→L2, making that first adjacent pair eligible; reversing the operands would miss it.
 
@@ -627,15 +619,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Adjacent-level ratio | Compare `lower_count / upper_count * 100` with the target; select the first ratio below it | Lower levels should have at least the configured fanout over their upper levels | L1=2 and L2=3 triggers L1→L2 at 150% when the target is 200% |
 
-### Agent — Checkpoint 2 (simple leveled), decision 3
+### Apprentice — Checkpoint 2 (simple leveled), decision 3
 
 **Course rule:** L0 is below its trigger, L1 has 0 files, and L2 has 4. Should the controller schedule an L1→L2 task, or skip that empty upper level? Why does this matter for convergence as well as division by zero?
 
-### Coordinator
+### Student
 
 > Skip the empty L1 upper level. There is nothing to move, so scheduling L1→L2 would both risk division by zero and create a no-op task that remains eligible forever, preventing the simulator and background worker from converging to `None`.
 
-### Agent
+### Apprentice
 
 > Exactly. Empty upper levels are skipped: they provide no work and otherwise can create a permanently eligible no-op.
 
@@ -645,15 +637,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Empty upper level | Skip it rather than divide or schedule | A task needs source files and the scheduler must converge | No division by zero or endlessly repeated no-op task |
 
-### Agent — Checkpoint 2 (simple leveled), decision 4
+### Apprentice — Checkpoint 2 (simple leveled), decision 4
 
 **Course rule:** With `max_levels = 3`, compare an L1→L2 task with an L2→L3 task. Which task should set `is_lower_level_bottom_level = true`, and which one must preserve a winning tombstone in its output?
 
-### Coordinator
+### Student
 
 > Only L2→L3 sets `is_lower_level_bottom_level = true`, because L3 is the configured bottom level. L1→L2 must preserve a winning tombstone so it can continue suppressing any older value that may still exist in L3.
 
-### Agent
+### Apprentice
 
 > Correct. Only a task whose destination is L3 reaches the bottom; earlier tasks must carry the deletion marker forward.
 
@@ -663,15 +655,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Bottom-level flag | True only when the lower level equals `max_levels` | Older versions may remain below every non-bottom destination | L1→L2 preserves tombstones; L2→L3 may discard them |
 
-### Agent — Checkpoint 2 (simple leveled), decision 5
+### Apprentice — Checkpoint 2 (simple leveled), decision 5
 
 **Course rule:** An L0→L1 task captured L0 `[5, 4]` and L1 `[1, 2]`, then file 6 flushed so the latest L0 is `[6, 5, 4]`. Applying output `[7, 8]`, what should the new L0 and L1 be, and which input IDs should the controller report as obsolete?
 
-### Coordinator
+### Student
 
 > The new state should be L0 `[6]` and L1 `[7, 8]`. The controller should report exactly the captured inputs `[5, 4, 1, 2]` as obsolete; file 6 is newer concurrent work and must remain live.
 
-### Agent
+### Apprentice
 
 > Correct. Applying the controller result removes exactly the captured L0 IDs, replaces the captured destination run, and returns all captured inputs as obsolete.
 
@@ -681,15 +673,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | L0-task application | Remove captured `[5, 4]` from latest L0, set L1 to `[7, 8]`, report `[5, 4, 1, 2]` obsolete | Only named inputs belong to the task | Concurrent file 6 remains live in L0 |
 
-### Agent — Checkpoint 2 (simple leveled), decision 6
+### Apprentice — Checkpoint 2 (simple leveled), decision 6
 
 **Course rule:** An L1→L2 task captured L1 `[3, 4]` and L2 `[1, 2]`. At installation, the latest state unexpectedly has L1 `[9]`. With only one compaction thread and flushes going only to L0, should result application overwrite `[9]`, or reject this mismatch as an invariant violation? Why?
 
-### Coordinator
+### Student
 
 > Reject it as an invariant violation. With one compaction thread and flushes entering only L0, no valid concurrent operation should replace L1 while this L1→L2 task runs. Overwriting `[9]` would silently discard unexplained live state; checking that the captured lower-level inputs still match makes the concurrency assumption explicit.
 
-### Agent
+### Apprentice
 
 > Correct. A non-L0 mismatch cannot be explained by a legal flush, so overwriting it would hide lost state; application should assert the captured upper and lower runs still match.
 
@@ -699,15 +691,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Non-L0 application sanity | Reject captured/current upper or lower run mismatches | One compactor owns non-L0 changes; flushes enter only L0 | Unexpected live state is not silently overwritten |
 
-### Agent — Checkpoint 2 (simple leveled), decision 7
+### Apprentice — Checkpoint 2 (simple leveled), decision 7
 
 **Course rule:** Both conditions are true: L0 has reached its trigger, and L1=2/L2=0 also violates the 200% ratio. Which task should `generate_compaction_task` return first—L0→L1 or L1→L2—and why does that ordering matter?
 
-### Coordinator
+### Student
 
 > Return the L0→L1 task first. The policy gives the L0 file-count trigger priority before examining lower-level ratios, so overlapping L0 files are drained promptly instead of allowing the read-amplifying newest level to keep growing while lower-level reshaping runs.
 
-### Agent
+### Apprentice
 
 > Correct. L0→L1 has explicit precedence, draining overlapping files before lower-level ratio work.
 
@@ -717,7 +709,7 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Scheduling precedence | Check the L0 trigger before adjacent-level ratios | L0 overlaps and is the policy's first trigger | Eligible L0 work is selected before L1→L2 reshaping |
 
-### Agent — Simple leveled Slice 1 authorization
+### Apprentice — Simple leveled Slice 1 authorization
 
 The controller/simulator slice is now specified:
 
@@ -743,15 +735,15 @@ No supplied Day 2 test will be revealed. I will run `cargo fmt --all`, `cargo ch
 
 **Your choice (edit authorization):** Do you authorize this simple-leveled controller slice?
 
-### Coordinator
+### Student
 
 > Authorized. Implement the simple-leveled controller slice exactly as summarized in `src/compact/simple_leveled.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, then run a short simple simulator trace and annotate each selected task. Reveal no Week 2 Day 2 tests and stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing only `simple_leveled.rs`, then I’ll format, compile, run the short simulator trace, annotate every task, and stop before any Day 2 test reveal.
 
-### Agent — Simple leveled Slice 1 review
+### Apprentice — Simple leveled Slice 1 review
 
 The controller slice is implemented, formats, compiles, and converges in the four-iteration simulator trace. No Week 2 Day 2 test was copied, opened, or run.
 
@@ -795,23 +787,23 @@ let ratio_below_target = (lower_level_sst_ids.len() as u128) * 100
 
 **Course rule (review):** What is this comparison deciding, and what policy behavior would break if `<` became `<=` when an upper level has 2 files, its lower level has 4, and the target is 200%?
 
-### Coordinator
+### Student
 
 > It decides whether the lower-to-upper file-count ratio is strictly below the configured target. With upper=2, lower=4, and target=200%, the ratio is exactly 200%, so `<` correctly returns no task. Changing it to `<=` would schedule an unnecessary compaction at the boundary and violate the policy's strict trigger rule.
 
-### Agent
+### Apprentice
 
 > Correct. Equality satisfies the target, so `<=` would add unnecessary rewrites and violate the strict trigger. The controller slice review is complete.
 
-### Agent — Checkpoint 2 (simple leveled), decision 8
+### Apprentice — Checkpoint 2 (simple leveled), decision 8
 
 **Course rule:** A scheduled L1→L2 task sees `k -> new` in L1 and `k -> old` in L2. Both levels are sorted runs. Which run must be the first side of the two-way merge, and what stale result appears if they are reversed?
 
-### Coordinator
+### Student
 
 > L1, the upper and newer run, must be the first side of the two-way merge so `k -> new` wins. Reversing them would let the older L2 value suppress the newer version and write `k -> old` into the compaction result.
 
-### Agent
+### Apprentice
 
 > Correct. The upper run is newer and must occupy the priority side, or compaction permanently materializes stale data.
 
@@ -821,15 +813,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Adjacent-run merge priority | Put the upper/newer run first | `TwoMergeIterator` favors its first side on equal keys | L1 `k -> new` suppresses L2 `k -> old` |
 
-### Agent — Checkpoint 2 (simple leveled), decision 9
+### Apprentice — Checkpoint 2 (simple leveled), decision 9
 
 **Course rule:** An L0→L1 task captures overlapping L0 files `[6, 5]` newest-to-oldest and ordered L1 files `[1, 2]`. Should the upper side concatenate files 6 then 5, or merge their individual iterators while the lower side uses concat? What key-order failure makes the other choice unsafe?
 
-### Coordinator
+### Student
 
 > Merge individual iterators for L0 files 6 then 5, preserving that newest-to-oldest priority; use concat only for the ordered, non-overlapping L1 run. Concatenating overlapping L0 files can move backward in key order at a file boundary and emit duplicate keys instead of resolving them by recency.
 
-### Agent
+### Apprentice
 
 > Correct. L0 needs a merge because it overlaps; concat is safe only for the lower sorted run.
 
@@ -839,15 +831,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | L0-task iterator shape | Merge individual L0 iterators newest-first; concat the ordered L1 run | L0 may overlap, L1 may not | Output remains sorted and duplicate keys honor recency |
 
-### Agent — Checkpoint 2 (simple leveled), decision 10
+### Apprentice — Checkpoint 2 (simple leveled), decision 10
 
 **Course rule:** On a 50 ms background tick, `generate_compaction_task` returns `None`. Should `trigger_compaction` return `Ok(())`, return an error, or immediately keep polling in a tight loop? Why?
 
-### Coordinator
+### Student
 
 > Return `Ok(())`. No eligible task is normal convergence, not an error; the background thread's 50 ms cadence will ask again later. Tight-loop polling would waste CPU and ignore the intended worker schedule.
 
-### Agent
+### Apprentice
 
 > Correct. `None` is a normal idle tick; returning successfully preserves the worker cadence without wasting CPU.
 
@@ -857,15 +849,15 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Idle background tick | Return `Ok(())` when no task is eligible | Scheduler convergence is normal; the worker ticks every 50 ms | No false errors or tight-loop CPU use |
 
-### Agent — Checkpoint 2 (simple leveled), decision 11
+### Apprentice — Checkpoint 2 (simple leveled), decision 11
 
 **Course rule:** An L0→L1 task is writing large output files while a flush wants to install file 6. Should `state_lock` be held during the merge/write, or only while applying the finished result to the latest state? What foreground behavior breaks if the lock covers the whole merge?
 
-### Coordinator
+### Student
 
 > Hold `state_lock` only while applying the finished outputs to the latest state. The merge and SST writes must happen outside it; otherwise a large compaction would block concurrent freeze/flush state installation—and potentially foreground writes that need that transition—for the entire I/O-heavy merge.
 
-### Agent
+### Apprentice
 
 > Correct. Compaction I/O remains outside `state_lock`; only latest-state application is serialized, so a flush can complete while outputs are being built.
 
@@ -875,7 +867,7 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Scheduled-compaction lock scope | Merge/write outside `state_lock`; lock only for latest-state application | Compaction I/O is long-running and controller application preserves concurrent L0 | Flush/freeze installation is not blocked for the whole compaction |
 
-### Agent — Simple leveled Slice 2 authorization
+### Apprentice — Simple leveled Slice 2 authorization
 
 The scheduled-compaction engine slice is now specified:
 
@@ -900,15 +892,15 @@ No Day 2 test will be revealed. I will run `cargo fmt --all` and `cargo check -p
 
 **Your choice (edit authorization):** Do you authorize this scheduled-compaction Slice 2?
 
-### Coordinator
+### Student
 
 > Authorized. Implement this scheduled-compaction engine slice exactly as summarized in `src/compact.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Week 2 Day 2 tests, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m refactoring only the shared compaction-output loop and adding simple-task execution/installation in `src/compact.rs`; tiered, dynamic leveled, and Day 2 tests remain untouched.
 
-### Agent — Simple leveled Slice 2 review
+### Apprentice — Simple leveled Slice 2 review
 
 The scheduled-compaction engine slice is implemented, formatted, and independently compiles. No Week 2 Day 2 test was copied, opened, or run.
 
@@ -941,23 +933,23 @@ This is the snapshot passed to `apply_compaction_result` after output constructi
 
 **Course rule (review):** What is this line trying to guarantee, and what concurrent-flush behavior would break if result application instead used the old snapshot captured when the task was generated?
 
-### Coordinator
+### Student
 
 > It guarantees that result application transforms the latest state while removing only the task's captured inputs. Using the old task-generation snapshot would omit a file flushed during output construction, so installing the compaction result could make that concurrent file—and its data—disappear from the live L0 state.
 
-### Agent
+### Apprentice
 
 > Exactly. The current state contains any flush that completed during compaction; the controller then removes only captured IDs. Slice 2 review is complete.
 
-### Agent — Checkpoint 2 (simple leveled), decision 12
+### Apprentice — Checkpoint 2 (simple leveled), decision 12
 
 **Course rule:** The same key `k` appears as `k -> v1` in L1, `k -> v2` in L2, and `k -> v3` in L3. When building one concat iterator per level and merging those level iterators, in what order should they enter the merge so `v1` wins? What breaks if the order is reversed?
 
-### Coordinator
+### Student
 
 > Enter the level concat iterators as L1, then L2, then L3, so smaller merge indexes correspond to newer levels and `v1` wins. Reversing them would give oldest L3 priority and expose `v3`, suppressing newer updates or tombstones in upper levels.
 
-### Agent
+### Apprentice
 
 > Correct. Lower-level concat iterators enter the merge from L1 to L3 so merge indexes encode recency; reversing them would resurrect older values or bypass newer tombstones.
 
@@ -967,7 +959,7 @@ The simple-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Lower-level read priority | Merge level concat iterators in L1, L2, L3 order | `MergeIterator` favors smaller indexes; upper levels are newer | L1 values/tombstones suppress older copies in L2/L3 |
 
-### Agent — Simple leveled Slice 3 authorization
+### Apprentice — Simple leveled Slice 3 authorization
 
 The multi-level read slice is now specified:
 
@@ -989,15 +981,15 @@ No Day 2 test will be revealed. I will run `cargo fmt --all` and `cargo check -p
 
 **Your choice (edit authorization):** Do you authorize this multi-level read Slice 3?
 
-### Coordinator
+### Student
 
 > Authorized. Implement the multi-level read and remaining simple-policy integration slice exactly as summarized in `src/lsm_iterator.rs` and `src/lsm_storage.rs`, including the intended background compaction path if its scaffold is in those files. Run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Day 2 tests, then stop for review and separate test-copy authorization.
 
-### Agent
+### Apprentice
 
 > Authorization received. The background compaction scaffold is in `src/compact.rs` and was completed in the prior authorized slice, so this edit remains confined to the two read-path files and adds every configured level beneath memtables/L0.
 
-### Agent — Simple leveled Slice 3 review
+### Apprentice — Simple leveled Slice 3 review
 
 The multi-level read slice is implemented, formatted, and independently compiles. Together with the controller simulator trace and scheduled-compaction slice, this completes the simple-policy independent first pass. No Week 2 Day 2 test was copied, opened, or run.
 
@@ -1029,15 +1021,15 @@ The loop order becomes the input-index priority of `MergeIterator::create(level_
 
 **Course rule (review):** What is this line trying to preserve, and what stale-value or tombstone behavior would break if it iterated `snapshot.levels` in reverse?
 
-### Coordinator
+### Student
 
 > It preserves the state's L1-to-bottom ordering as newest-to-oldest merge priority. Reversing the levels would let an older lower-level value beat a newer upper-level value or tombstone, exposing stale data or resurrecting a deleted key.
 
-### Agent
+### Apprentice
 
 > Correct. L1-to-bottom iteration makes merge indexes encode recency; reversing it would let older levels defeat newer values and deletions. The simple-policy first pass is complete.
 
-### Agent — Simple leveled test-reveal authorization
+### Apprentice — Simple leveled test-reveal authorization
 
 The independent first pass now includes:
 
@@ -1058,19 +1050,17 @@ The copy command will be the sole new test reveal. No Day 3 or later Week 2 test
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 2` followed by the focused `week2_day2` test command?
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 2 with `cargo x copy-test --week 2 --day 2`, run `cargo test -p mini-lsm-starter week2_day2`, report the exact result, and do not inspect or reveal Day 3 or later tests.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll reveal only Week 2 Day 2, run the focused simple-leveled tests, and record the exact outcome. Day 3 and later remain untouched.
 
-### Agent
+### Apprentice
 
-> The authorized Day 2 suite passed: 2 passed, 0 failed, 0 ignored, and 50 filtered out. Cargo also emitted non-fatal `xcrun`/Xcode cache-path warnings; they did not affect the exit status. I’m confirming only the Day 2 module was added before the required threshold-variation prediction.
-
-### Agent — Simple leveled threshold prediction
+### Apprentice — Simple leveled threshold prediction
 
 The focused test command completed with exit status 0:
 
@@ -1086,15 +1076,15 @@ No Day 3 or later Week 2 test was copied, opened, or run.
 
 **Course rule:** Change only `level0_file_num_compaction_trigger` from 2 to 3, keep `max_levels=3` and the ratio target at 200%, and start empty. After the first, second, and third flushes, when does the first task fire and which task is it? Predict the cascade that follows before the simulator returns `None`.
 
-### Coordinator
+### Student
 
 > No task fires after flushes one or two. The third flush makes L0 reach 3, so L0→L1 captures all three files. Then the empty-lower-level ratios cause L1→L2 and bottom-reaching L2→L3 in sequence. With L0/L1/L2 empty and the three files represented in L3, the scheduler returns `None`.
 
-### Agent
+### Apprentice
 
 > That prediction follows the policy exactly: the higher trigger delays work until the third flush, then the same empty-lower cascade moves the run to L3. I’m rerunning the simulator with only that threshold changed to verify the trace.
 
-### Agent — Simple leveled checkpoint handoff
+### Apprentice — Simple leveled checkpoint handoff
 
 The altered-threshold trace matched the prediction exactly: no tasks at L0 counts 1 and 2; at count 3 the simulator ran L0→L1, L1→L2, and bottom-reaching L2→L3, ending at `Levels: 0 0 0 3` and converging.
 
@@ -1124,7 +1114,7 @@ Files and behavior changed for simple leveled compaction:
 - `src/lsm_iterator.rs`: lower levels represented as a merge of concat iterators.
 - `src/lsm_storage.rs`: point and range reads across every configured level.
 - `src/tests/week2_day2.rs` and `src/tests.rs`: added/rewritten only by the authorized Day 2 copy command; not hand-edited.
-- `WEEK2_AGENT_WALKTHROUGH.md`: complete learner/coordinator transcript and command outcomes.
+- `WEEK2_AGENT_WALKTHROUGH.md`: complete learner/Student transcript and command outcomes.
 
 Validation evidence:
 
@@ -1138,29 +1128,29 @@ Boundaries not fully established by the supplied suite and simulator include cle
 
 Simple leveled compaction is complete. Tiered and dynamic leveled compaction have not been selected or authorized, and Day 3 or later Week 2 tests were not copied, opened, or run. Whole-day `cargo x scheck` remains pending until the guided Day 2 work is declared complete.
 
-### Coordinator
+### Student
 
 > Continue Checkpoint 2 with tiered compaction only. Read the allowed tiered chapter and relevant starter interfaces, preserve the transcript, ask one short design question at a time, and do not edit until I authorize a coherent slice. Do not reveal Week 2 Day 3 tests until the tiered-policy first pass compiles and I separately authorize the copy-test command. Ask the first tiered decision question now.
 
-### Agent
+### Apprentice
 
 > I’m continuing Checkpoint 2 with tiered compaction only. I’ll read the permitted tiered chapter and controller/flush interfaces, record those exact reads, then ask one course-rule decision and stop without editing.
 
-### Agent
+### Apprentice
 
 > The tiered chapter makes the minimum tier count a hard gate before any ratio trigger. I’ve confirmed the controller is still stubbed and tiered flushes must bypass L0; I’m recording the permitted read before asking that gate case.
 
-### Agent — Checkpoint 2 (tiered), decision 1
+### Apprentice — Checkpoint 2 (tiered), decision 1
 
 **Course rule:** `num_tiers = 4`. The newest-to-oldest tier sizes are first `[1, 1, 20]`, then a flush makes them `[1, 1, 1, 20]`. At which state may the controller first consider any compaction trigger, even if the earlier three-tier state already has a large size-amplification ratio?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Only after the flush creates four tiers `[1, 1, 1, 20]`. Before `levels.len() >= num_tiers`, the controller must return no task even if a ratio would otherwise look large.
 
-### Agent
+### Apprentice
 
 > Correct. The tier count is a hard scheduling gate: ratios are ignored until the fourth tier exists.
 
@@ -1170,15 +1160,15 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- | --- |
 | Minimum-tier gate | Return no task while `levels.len() < num_tiers` | The chapter makes tier count the precondition for all triggers | Three tiers stay idle when `num_tiers=4`; four tiers enable trigger evaluation |
 
-### Agent — Checkpoint 2 (tiered), decision 2
+### Apprentice — Checkpoint 2 (tiered), decision 2
 
 **Course rule:** Let `num_tiers = 3` and `max_size_amplification_percent = 200`. Tier sizes are `[1, 1, 1]` newest-to-oldest. Does the space-amplification trigger fire at exactly this boundary, which tiers does it select, and should `bottom_tier_included` be true?
 
-### Coordinator
+### Student
 
 > Yes. The newer tiers total 2 and the bottom is 1, so amplification is exactly 200%, and the trigger uses `>=`. It selects all three tiers, including the oldest bottom tier, so `bottom_tier_included` is true.
 
-### Agent
+### Apprentice
 
 > Correct. Space amplification uses an inclusive threshold and selects the complete tier set, so the task reaches the bottom.
 
@@ -1188,15 +1178,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Space-amplification trigger | Fire when `sum(newer) / bottom * 100 >= max`; select all tiers | The bottom approximates logical data and the threshold is inclusive | `[1,1,1]` at 200% produces a bottom-including full-tier task |
 
-### Agent — Checkpoint 2 (tiered), decision 3
+### Apprentice — Checkpoint 2 (tiered), decision 3
 
 **Course rule:** Space amplification is below its threshold. With `size_ratio = 1`, `min_merge_width = 2`, and tier sizes `[1, 1, 3, 20]` newest-to-oldest, where does the size-ratio scan first find a large-enough jump, which tiers should the task select, and does it include the bottom?
 
-### Coordinator
+### Student
 
 > At the third tier: its size 3 divided by the newer-prefix total 2 is 150%, above 101%, and that newer prefix has the required two tiers. The task selects only the two newer `[1, 1]` tiers and excludes the triggering size-3 tier. It does not include the bottom tier, so `bottom_tier_included` is false.
 
-### Agent
+### Apprentice
 
 > Correct. The triggering size-3 tier is the boundary, not an input: the task compacts the two-tier newer prefix and therefore cannot drop tombstones.
 
@@ -1206,15 +1196,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Size-ratio trigger | At first `next_size / newer_prefix_sum > (100+size_ratio)%`, compact the newer prefix if wide enough | The tier exposing the jump is excluded | `[1,1,3,20]` selects the first two tiers and preserves tombstones |
 
-### Agent — Checkpoint 2 (tiered), decision 4
+### Apprentice — Checkpoint 2 (tiered), decision 4
 
 **Course rule:** With `size_ratio = 1`, `min_merge_width = 2`, and sizes `[1, 2, 4, 20]`, the size-2 tier is already 200% of the one-tier newer prefix. Should the controller compact that single tier, stop scanning, or keep accumulating? What prefix is selected at the next comparison?
 
-### Coordinator
+### Student
 
 > Do not compact the single newer tier and do not stop scanning; keep accumulating because the prefix has not reached `min_merge_width`. At the next comparison, `4 / (1 + 2) ≈ 133%` exceeds 101% with a two-tier prefix, so select the first two tiers `[1, 2]` and exclude the size-4 tier.
 
-### Agent
+### Apprentice
 
 > Correct. A one-tier rewrite would not reduce run count, so the scan continues; the next qualifying comparison selects the two-tier prefix.
 
@@ -1224,15 +1214,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Minimum merge width during ratio scan | Continue scanning when a jump appears before the prefix is wide enough | Rewriting one tier cannot reduce sorted-run count | `[1,2,4,20]` selects `[1,2]` at the next qualifying jump |
 
-### Agent — Checkpoint 2 (tiered), decision 5
+### Apprentice — Checkpoint 2 (tiered), decision 5
 
 **Course rule:** Four tiers remain after both ratio triggers decline, and `max_merge_width = 2`. Which tiers should the reduce-sorted-runs fallback select, where should its output be placed relative to the two older tiers, and should it mark the bottom included?
 
-### Coordinator
+### Student
 
 > Select the first two newest tiers. Replace that prefix with the compacted output tier at the same front position, ahead of the two untouched older tiers. Because the oldest tier remains outside the task, `bottom_tier_included` is false.
 
-### Agent
+### Apprentice
 
 > Correct. A capped fallback replaces only the newest prefix and leaves its output ahead of untouched older tiers; the bottom flag stays false.
 
@@ -1242,15 +1232,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Capped reduce-runs fallback | Select the first `max_merge_width` newest tiers and replace that prefix in place | A task is a contiguous newest prefix | Older tiers remain behind the output and tombstones must survive |
 
-### Agent — Checkpoint 2 (tiered), decision 6
+### Apprentice — Checkpoint 2 (tiered), decision 6
 
 **Course rule:** In the same four-tier fallback case, `max_merge_width` is `None`. Which tiers are selected now, and how does that change `bottom_tier_included` and tombstone removal?
 
-### Coordinator
+### Student
 
 > Select all four tiers. The task now includes the oldest tier, so `bottom_tier_included` is true and winning tombstones may be discarded because no older run remains outside the compaction.
 
-### Agent
+### Apprentice
 
 > Correct. An uncapped fallback reaches the oldest tier, so the newest tombstone can be dropped safely.
 
@@ -1260,15 +1250,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Uncapped reduce-runs fallback | Select every tier | No older tier remains outside the task | Bottom flag is true and winning tombstones may be discarded |
 
-### Agent — Checkpoint 2 (tiered), decision 7
+### Apprentice — Checkpoint 2 (tiered), decision 7
 
 **Course rule:** A task captures newest tier IDs `[5, 4]` from `[5, 4, 3, 2]`. While it builds output SSTs `[7, 8]`, a flush inserts new tier 6, so the latest order is `[6, 5, 4, 3, 2]`. Where should the output tier be inserted, what tier ID should name it, and which tiers remain afterward?
 
-### Coordinator
+### Student
 
 > Keep tier 6 at the front, insert the compacted output immediately after it and before untouched tier 3, and name the new tier with the first output SST ID, 7. The resulting tier order is `[6, 7, 3, 2]`, where tier 7 contains SSTs `[7, 8]`.
 
-### Agent
+### Apprentice
 
 > Correct. Application finds the captured prefix in the latest tier order, leaves newer tier 6 untouched, and inserts the new tier—named by output SST 7—at the captured prefix boundary.
 
@@ -1278,15 +1268,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Concurrent tier application | Preserve newer tiers, replace captured prefix at its latest-state boundary, name output tier with first output SST ID | Flushes insert at the front while task tiers remain contiguous | `[6,5,4,3,2]` plus output `[7,8]` becomes tier order `[6,7,3,2]` |
 
-### Agent — Checkpoint 2 (tiered), decision 8
+### Apprentice — Checkpoint 2 (tiered), decision 8
 
 **Course rule:** A bottom-including task selects every tier, but all winning entries are tombstones and compaction returns no output SSTs. What should `levels` contain after application, and should the controller try to create an output tier without a first SST ID?
 
-### Coordinator
+### Student
 
 > Remove the selected captured tiers and create no output tier; with no concurrent flush, `levels` becomes empty. If a newer tier was flushed after capture, it remains. The controller must not invent a tier ID when the output list is empty.
 
-### Agent
+### Apprentice
 
 > Correct. Empty output means the captured tiers simply disappear; no synthetic tier ID is valid, and any concurrently flushed newer tier remains.
 
@@ -1296,7 +1286,7 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Empty tiered output | Remove captured tiers and insert no replacement tier | A tier is named by its first output SST ID | Bottom all-tombstone compaction may leave no tiers except concurrent newer flushes |
 
-### Agent — Tiered Slice 1 authorization
+### Apprentice — Tiered Slice 1 authorization
 
 The controller/simulator slice is now specified:
 
@@ -1323,15 +1313,15 @@ No Day 3 test will be revealed. I will run `cargo fmt --all`, `cargo check -p mi
 
 **Your choice (edit authorization):** Do you authorize this tiered controller slice?
 
-### Coordinator
+### Student
 
 > Authorized. Implement the tiered controller slice exactly as summarized in `src/compact/tiered.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, then run and annotate default and capped-fallback tiered simulator traces. Reveal no Week 2 Day 3 tests and stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing only `tiered.rs`, then I’ll format, compile, run the two authorized simulator traces, annotate every selected trigger, and stop before any Day 3 reveal.
 
-### Agent — Tiered Slice 1 review
+### Apprentice — Tiered Slice 1 review
 
 The tiered controller slice is implemented, formatted, compiles, and converges in both simulator traces. No Week 2 Day 3 test was copied, opened, or run.
 
@@ -1374,23 +1364,23 @@ Important expression (`src/compact/tiered.rs:107`):
 
 **Course rule (review):** What is this lookup trying to find in the latest state, and what concurrent-flush behavior would break if application always assumed the captured prefix still began at index 0?
 
-### Coordinator
+### Student
 
 > It locates the first captured tier inside the latest state after any newer tiers have been prepended concurrently. Assuming the captured prefix still starts at index 0 would treat a new flush tier as task input, potentially remove it and place the output ahead of or instead of live concurrent data.
 
-### Agent
+### Apprentice
 
 > Correct. The lookup skips concurrently prepended tiers and replaces only the captured run; assuming index 0 could delete a fresh flush. The controller review is complete.
 
-### Agent — Checkpoint 2 (tiered), decision 9
+### Apprentice — Checkpoint 2 (tiered), decision 9
 
 **Course rule:** Tiered state has newest-to-oldest tier IDs `[5, 4]`, and memtable 6 is flushed to SST 6. Should SST 6 be inserted into L0, appended as the oldest tier, or inserted as a new `(tier_id=6, SSTs=[6])` tier at `levels[0]`? What should L0 contain afterward?
 
-### Coordinator
+### Student
 
 > It should become a new one-SST tier `(tier_id=6, SSTs=[6])` at `levels[0]`, ahead of tiers 5 and 4. Tiered mode does not use L0, so L0 remains empty.
 
-### Agent
+### Apprentice
 
 > Correct. Tiered mode flushes directly into a newest one-SST tier and never populates L0.
 
@@ -1400,15 +1390,15 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Tiered flush destination | Insert `(sst_id, [sst_id])` at `levels[0]`; leave L0 empty | Each flush is the newest sorted run in tiered mode | Flushing SST 6 changes tier order to `[6,5,4]` |
 
-### Agent — Checkpoint 2 (tiered), decision 10
+### Apprentice — Checkpoint 2 (tiered), decision 10
 
 **Course rule:** A task selects tiers 6, 5, and 4 newest-to-oldest; each tier is an internally sorted run. How should their iterators be constructed and ordered so a duplicate `k` in tier 6 beats copies in tiers 5 and 4?
 
-### Coordinator
+### Student
 
 > Construct one concat iterator per internally ordered tier, then feed those tier iterators to the merge in tier order 6, 5, 4. The smaller merge index for tier 6 gives its `k` priority over the older copies.
 
-### Agent
+### Apprentice
 
 > Correct. Each tier uses concat, and the tier iterators enter `MergeIterator` newest-first so smaller indexes encode recency. The existing multi-level read path already follows `levels` order, so the remaining tiered engine slice is now specified.
 
@@ -1418,7 +1408,7 @@ The tiered ledger gains this entry:
 | --- | --- | --- | --- |
 | Tiered compaction iterator shape | One concat iterator per selected tier, merged in task order newest-to-oldest | Tier interiors are sorted; `MergeIterator` favors smaller indexes | Tier 6's `k` suppresses copies in tiers 5 and 4 |
 
-### Agent — Tiered Slice 2 authorization
+### Apprentice — Tiered Slice 2 authorization
 
 The tiered engine integration slice is now specified:
 
@@ -1441,15 +1431,15 @@ No Day 3 test will be revealed. I will run `cargo fmt --all` and `cargo check -p
 
 **Your choice (edit authorization):** Do you authorize this tiered engine Slice 2?
 
-### Coordinator
+### Student
 
 > Authorized. Implement the tiered engine slice exactly as summarized in `src/compact.rs` and `src/lsm_storage.rs`, run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Week 2 Day 3 tests, then stop for review and separate test-copy authorization.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m adding only tier-task iterator construction and policy-directed flush placement; the existing read path and controller application remain unchanged.
 
-### Agent — Tiered Slice 2 review
+### Apprentice — Tiered Slice 2 review
 
 The tiered engine slice is implemented, formatted, and independently compiles. Together with the controller traces, this completes the tiered-policy independent first pass. No Week 2 Day 3 test was copied, opened, or run.
 
@@ -1480,15 +1470,15 @@ if self.compaction_controller.flush_to_l0() {
 
 **Course rule (review):** What is this branch deciding, and what tier ordering/read behavior would break if every policy always inserted the flushed SST into L0?
 
-### Coordinator
+### Student
 
 > It selects the flush layout required by the active compaction policy: leveled policies append to L0, while tiered mode prepends a new one-SST tier. Always using L0 would violate tiered's empty-L0/newest-tier invariant, keep new runs out of the tier scheduler, and make tier ordering/read-amplification accounting incorrect even if the generic L0 read path could still find some values.
 
-### Agent
+### Apprentice
 
 > Correct. The branch routes each flush into the structure its scheduler and read-amplification model understand; always using L0 would strand tiered data outside the tier policy. The tiered first pass is complete.
 
-### Agent — Tiered test-reveal authorization
+### Apprentice — Tiered test-reveal authorization
 
 The independent first pass now includes:
 
@@ -1510,19 +1500,19 @@ The copy command will be the sole new test reveal. Day 4 or later Week 2 tests w
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 3` followed by the focused `week2_day3` test command?
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 3 with `cargo x copy-test --week 2 --day 3`, run `cargo test -p mini-lsm-starter week2_day3`, report the exact result, and do not inspect or reveal Day 4 or later tests.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll reveal only Week 2 Day 3, run the focused tiered tests, and record the exact result. Day 4 and later remain untouched.
 
-### Agent
+### Apprentice
 
 > The focused suite found one product-invariant failure: 3 tests passed and the “tiered compaction rejects L0 SSTs” `should_panic` case did not panic. I’m reading only that now-authorized Day 3 test case to describe its exact setup; I will not trace implementation or propose a fix before your diagnosis.
 
-### Agent — Tiered Day 3 failure diagnosis
+### Apprentice — Tiered Day 3 failure diagnosis
 
 The focused command exited 101:
 
@@ -1542,15 +1532,15 @@ This exercises the invariant that tiered mode never uses L0 and must reject a ma
 
 **Course rule (diagnosis):** Which state invariant is missing from the execution path, and at which controller boundary should that malformed `l0_sstables=[1]` snapshot be rejected before scheduling logic continues?
 
-### Coordinator
+### Student
 
 > Tiered state must never contain any L0 SSTs; every flush belongs in a front tier. `TieredCompactionController::generate_compaction_task` should reject a non-empty `snapshot.l0_sstables` immediately, before the minimum-tier gate or any trigger calculation, because even returning `None` would silently accept an invalid layout. I accept the test's required panic text and authorize adding that focused invariant check, then rerunning only the Day 3 suite.
 
-### Agent
+### Apprentice
 
 > Diagnosis accepted. The malformed state must fail at the controller entry point, before an early `None` can hide it. I’ll add only that assertion with the required message, format/check, and rerun only the already-revealed Day 3 suite.
 
-### Agent — Tiered focused-fix review
+### Apprentice — Tiered focused-fix review
 
 The focused invariant check is implemented. Formatting and library compilation pass, and the already-revealed Day 3 suite now passes:
 
@@ -1581,11 +1571,11 @@ assert!(
 
 **Course rule (review):** What is this assertion protecting, and what exact malformed-state behavior would return silently if the assertion were moved below the `levels.len() < num_tiers` early return?
 
-### Coordinator
+### Student
 
 > It protects the policy boundary that tiered state has no L0 files at all. If placed after the minimum-tier early return, a snapshot with non-empty L0 but fewer than `num_tiers` tiers would silently return `None`, allowing malformed state to persist instead of failing immediately.
 
-### Agent — Tiered checkpoint handoff
+### Apprentice — Tiered checkpoint handoff
 
 > Correct. The assertion must precede the idle gate so every malformed tiered snapshot fails, even when too few tiers exist to schedule work. Tiered compaction is now complete; I will not begin dynamic leveled compaction without authorization.
 
@@ -1627,29 +1617,29 @@ Boundaries not fully established include actual runtime timing of a concurrent t
 
 Tiered compaction is complete. Dynamic leveled compaction has not been selected or authorized, and Day 4 or later Week 2 tests were not copied, opened, or run. Whole-day `cargo x scheck` remains pending until the guided Day 2 work is declared complete.
 
-### Coordinator
+### Student
 
 > Continue Checkpoint 2 with dynamic leveled compaction only. Read the allowed leveled chapter and relevant starter interfaces, preserve the transcript, ask one short design question at a time, and do not edit until I authorize a coherent slice. Do not reveal Week 2 Day 4 tests until the dynamic-leveled first pass compiles and I separately authorize the copy-test command. Ask the first dynamic-leveled decision question now.
 
-### Agent
+### Apprentice
 
 > I’m continuing Checkpoint 2 with dynamic leveled compaction only. I’ll read the permitted leveled chapter and controller/simulator interfaces, record those exact reads, then ask one course-rule decision and stop without editing.
 
-### Agent
+### Apprentice
 
 > The dynamic-leveled chapter makes target-size computation the first controller decision. I’ve confirmed the controller and overlap helper are still stubbed while generic installation already supports an `in_recovery` flag; I’m recording the permitted read before asking the target calculation.
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 1
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 1
 
 **Course rule:** There are six levels below L0, `base_level_size_mb = 200`, `level_size_multiplier = 10`, and the current bottom level contains 300 MB. What target sizes should L1 through L6 receive, and which level is the base level for an L0 task?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > The targets are L1–L6 = `[0, 0, 0, 0, 30 MB, 300 MB]`. Working upward from the 300 MB bottom and dividing by 10 yields 30 MB at L5; the next value would be below the 200 MB base threshold after a positive sub-base target has already been assigned, so earlier levels remain zero. L5 is the first positive target and therefore the base level for L0 compaction.
 
-### Agent
+### Apprentice
 
 > Correct. The one allowed sub-base positive target is 30 MB at L5; all earlier targets stay zero, so L0 skips directly to L5.
 
@@ -1659,15 +1649,15 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- | --- |
 | Targets above base-size bottom | Work upward by multiplier and keep at most one positive sub-base target | Dynamic levels avoid populating negligible intermediate targets | 300 MB bottom yields `[0,0,0,0,30,300]`; L5 is base |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 2
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 2
 
 **Course rule:** Keep the same six levels and 200 MB base size, but let the bottom currently contain either 0 MB or 100 MB. What targets should the levels receive, and which level is the base in both cases?
 
-### Coordinator
+### Student
 
 > In both cases use targets `[0, 0, 0, 0, 0, 200 MB]`. Until the actual bottom exceeds the configured base size, only L6 has a positive target, so L6 is the base level.
 
-### Agent
+### Apprentice
 
 > Correct. The bottom target is floored at the configured 200 MB base, leaving L6 as the only positive target for a small database.
 
@@ -1677,15 +1667,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Small-bottom targets | Use only the configured base target at the bottom | Intermediate levels stay empty until the bottom grows beyond base size | 0 or 100 MB bottom yields `[0,0,0,0,0,200]`; L6 is base |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 3
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 3
 
 **Course rule:** Targets are `[0, 0, 20, 200]`, so L3 is the base. L0 has reached its file-count trigger, while L3 is also ten times over its own target. Which task must be selected first, and which lower level should the L0 task target?
 
-### Coordinator
+### Student
 
 > Select the L0 task first despite L3's larger size score. L0 compacts directly into the first positive-target level, L3, rather than passing through L1 or L2.
 
-### Agent
+### Apprentice
 
 > Correct. L0 has explicit priority and goes straight to L3, avoiding rewrites through zero-target levels.
 
@@ -1695,15 +1685,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | L0 precedence and destination | Select L0 first and target the first positive-target level | L0 is checked before size scores; base is first positive target | L0 goes directly to L3 and skips empty L1/L2 |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 4
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 4
 
 **Course rule:** L3 is 200 MB with a 20 MB target, L4 is 202 MB with a 200 MB target, and L5 is 1.9 GB with a 2 GB target. Which levels are eligible, what are their scores, and which upper level should be chosen?
 
-### Coordinator
+### Student
 
 > L3 is eligible with score `200/20 = 10.0`; L4 is eligible with score `202/200 = 1.01`; L5 is not eligible because `1.9/2.0 = 0.95`. Choose the highest score, L3, for an L3→L4 task.
 
-### Agent
+### Apprentice
 
 > Correct. Only scores strictly above 1 are eligible, and L3's score 10 wins over L4's 1.01. The selected upper level contributes exactly one file: its oldest SST.
 
@@ -1713,15 +1703,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Non-L0 priority | Consider only `current_size/target_size > 1` and choose highest score | Dynamic leveled prioritizes most overfull eligible upper level | L3 score 10 beats L4 score 1.01; L5 score 0.95 is ineligible |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 5
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 5
 
 **Course rule:** The chosen upper level contains SST IDs `[40, 12, 30]` in first-key order. Which single SST should the task compact, and why is vector position not the age rule?
 
-### Coordinator
+### Student
 
 > Select SST 12, the smallest ID and therefore the oldest file under monotonic ID allocation. The vector position reflects first-key ordering within a non-overlapping level, not creation age.
 
-### Agent
+### Apprentice
 
 > Correct. SST 12 is oldest by monotonic ID, while its vector slot only encodes key-range order. Next is inclusive overlap selection in the lower level.
 
@@ -1731,15 +1721,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Upper SST selection | Choose the minimum SST ID | IDs increase with creation time; level vector is sorted by first key | ID 12 is selected from `[40,12,30]` |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 6
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 6
 
 **Course rule:** The selected upper SST covers inclusive range `[100, 200]`. Lower SST ranges are `[50, 99]`, `[100, 150]`, `[151, 250]`, and `[251, 300]`. Which lower SSTs must the task include, and why do endpoint comparisons need to be inclusive?
 
-### Coordinator
+### Student
 
 > Include `[100, 150]` and `[151, 250]`; exclude `[50, 99]` and `[251, 300]`. Overlap is inclusive because a key equal to either endpoint can exist in both upper and lower SSTs and must be merged so the newer version wins.
 
-### Agent
+### Apprentice
 
 > Correct. The middle two ranges overlap the selected inclusive interval; treating endpoint equality as disjoint could leave duplicate versions in separate runs. Next is how application combines outputs with untouched lower files.
 
@@ -1749,15 +1739,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Lower overlap selection | Include every lower SST whose inclusive range intersects the selected upper range | Endpoint keys can be duplicated across levels | `[100,150]` and `[151,250]` join upper `[100,200]` |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 7
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 7
 
 **Course rule:** Lower L4 is `[1:[0,99], 2:[100,150], 3:[151,250], 4:[251,300]]`. A task removes IDs 2 and 3 and creates `7:[100,180]`, `8:[181,250]`. What should the new L4 order be, and why is simply appending outputs to untouched files unsafe?
 
-### Coordinator
+### Student
 
 > The new L4 order should be `[1, 7, 8, 4]`, sorted by first key after removing 2 and 3 and inserting the outputs. Simply appending would produce `[1, 4, 7, 8]`, breaking the level's ordered non-overlapping run and therefore concat iteration and seek selection.
 
-### Agent
+### Apprentice
 
 > Correct. Normal application must merge untouched and output IDs, then sort by first key to restore the concat precondition. Manifest replay cannot perform that sort yet because table metadata is unavailable.
 
@@ -1767,15 +1757,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Normal lower-level application | Remove selected lower IDs, add outputs, sort all remaining IDs by SST first key | Each level must be one ordered non-overlapping run | Example becomes `[1,7,8,4]`; concat/seek remain valid |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 8
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 8
 
 **Course rule:** The same compaction record is replayed with `in_recovery = true`, before `snapshot.sstables` contains opened SST objects or key ranges. Should result application try to sort IDs by first key then, or defer sorting? At what later point can ordering be restored safely?
 
-### Coordinator
+### Student
 
 > Defer sorting during manifest replay because the SST objects and first-key metadata are not available yet. After recovery has identified and opened all live SSTs, restore each level's first-key order using those loaded table ranges before serving reads.
 
-### Agent
+### Apprentice
 
 > Correct. Recovery defers key-based sorting until live SSTs are opened, then restores level order before reads. One overlap boundary remains for an L0 task whose selected files have a gap but may be emitted as one wide output SST.
 
@@ -1785,15 +1775,15 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Recovery result ordering | Defer first-key sorting while SST metadata is unavailable; sort after opening live SSTs | Manifest replay initially has IDs but not table ranges | Recovery does not access missing metadata and reads begin only after order is restored |
 
-### Agent — Checkpoint 2 (dynamic leveled), decision 9
+### Apprentice — Checkpoint 2 (dynamic leveled), decision 9
 
 **Course rule:** An L0 task captures SST ranges `[0,10]` and `[90,100]`. The base level has an SST `[20,30]`, and the target size is large enough that compaction may emit one output whose metadata range is `[0,100]`. Must `[20,30]` join the task even though it contains no key in either L0 input range? Why?
 
-### Coordinator
+### Student
 
 > Yes. The task must include `[20,30]` because the selected L0 inputs collectively define an output envelope `[0,100]`; leaving that base SST untouched could let a new output span overlap it, violating the base level's non-overlapping run. L0 overlap selection therefore covers every lower SST intersecting the combined min-first to max-last range.
 
-### Agent
+### Apprentice
 
 > Correct. L0 overlap uses the combined key envelope because output splitting may create an SST spanning the gap; including `[20,30]` preserves the base level's non-overlap invariant.
 
@@ -1803,7 +1793,7 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Multi-file L0 overlap envelope | Use minimum selected first key through maximum selected last key | One output SST may span gaps between L0 inputs | Lower `[20,30]` joins `[0,10]`/`[90,100]` task, preserving non-overlap |
 
-### Agent — Dynamic leveled Slice 1 authorization
+### Apprentice — Dynamic leveled Slice 1 authorization
 
 The controller/simulator slice is now specified:
 
@@ -1831,23 +1821,23 @@ No Day 4 test will be revealed. I will run `cargo fmt --all`, `cargo check -p mi
 
 **Your choice (edit authorization):** Do you authorize this dynamic-leveled controller slice?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Dynamic Leveled Slice 1 in `src/compact/leveled.rs` with the specified target-size computation, base-level L0 priority, highest-score lower-level selection, oldest-upper-SST rule, inclusive lower overlap (including the L0 output envelope), exact result application, normal-run first-key sorting, and recovery-time sort deferral. Run formatting, `cargo check -p mini-lsm-starter --lib`, and a short annotated leveled simulator trace; reveal no Week 2 Day 4 tests, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll implement only the dynamic-leveled controller slice, record the exact work in the walkthrough, then run formatting, the library check, and a short size-only simulator trace—without copying or opening Day 4 tests.
 
-### Agent
+### Apprentice
 
 > The controller logic is in place. The key invariants are explicit: target propagation stops once it reaches the base-size boundary, L0 is checked before size scores, score comparison uses integer cross-multiplication, and lower overlap uses inclusive endpoints over the full selected-key envelope. I’m compiling this slice now.
 
-### Agent
+### Apprentice
 
 > The six-iteration trace matches the chosen model. With four levels, a 128 MiB base, multiplier 2, and 32 MiB SSTs, the bottom remains at or below 128 MiB during task selection, so targets stay `[0, 0, 0, 128]`: L4 is the base, L0 compacts directly there whenever its two-file trigger fires, and no non-bottom level has a positive score yet. I’m recording this evidence and the review line now.
 
-### Agent — Dynamic leveled Slice 1 review
+### Apprentice — Dynamic leveled Slice 1 review
 
 The dynamic-leveled controller slice is implemented, formatted, compiles, and completes the short simulator trace. No Week 2 Day 4 test was copied, opened, or run.
 
@@ -1879,11 +1869,11 @@ sst.first_key().raw_ref() <= last_key && sst.last_key().raw_ref() >= first_key
 
 **Course rule (review):** Why are both overlap comparisons inclusive, and which lower SST would be missed if either equality became strict?
 
-### Coordinator
+### Student
 
 > They are inclusive because equal endpoint keys overlap and may carry competing versions that must be merged. Making the first comparison strict would miss a lower SST whose first key equals the selected range’s last key; making the second strict would miss one whose last key equals the selected range’s first key.
 
-### Agent
+### Apprentice
 
 > Correct. Endpoint equality means the ranges share a key, so both files must participate or an older value can escape the merge. The controller Slice 1 review is complete.
 
@@ -1893,17 +1883,17 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Inclusive overlap review | Include a lower SST when either endpoint equals the selected envelope endpoint | Equal endpoint keys may hold competing versions | Neither a `lower.first == selected.last` nor a `lower.last == selected.first` file is missed |
 
-### Agent — Checkpoint 2 (dynamic leveled), engine decision 1
+### Apprentice — Checkpoint 2 (dynamic leveled), engine decision 1
 
 **Course rule:** An L0-to-L3 task captures L0 `[9, 8]` newest first and sorted, non-overlapping L3 `[2, 3]`. Which iterator should represent each side, and which side must be the first input to the final two-way merge so a duplicate key keeps the newest value?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Represent L0 with a merge iterator over individual SST iterators in `[9, 8]` recency order, because L0 files may overlap. Represent ordered non-overlapping L3 with one concat iterator over `[2, 3]`. Feed the L0 merge as the first/newer side of the final two-way merge so its duplicate wins.
 
-### Agent
+### Apprentice
 
 > Exactly. L0 needs a recency-ordered merge because its ranges may overlap; L3 can be concatenated because its ranges are ordered and disjoint. L0 remains the newer first side.
 
@@ -1913,17 +1903,17 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | L0-task iterator shape | Merge individual L0 SST iterators in `[9,8]` recency order; concat ordered L3 `[2,3]`; pass L0 first | L0 may overlap and the two-way merge favors its first/newer input | Duplicate keys keep the newest L0 value while L3 stays one sorted stream |
 
-### Agent — Checkpoint 2 (dynamic leveled), engine decision 2
+### Apprentice — Checkpoint 2 (dynamic leveled), engine decision 2
 
 **Course rule:** A non-L0 task selects exactly upper L2 SST 9 and overlapping, ordered L3 SSTs `[2, 3]`. What iterator shape should represent each side, and which side must be first when both contain `k`?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Use a single `SsTableIterator` for upper SST 9 and a concat iterator for ordered lower SSTs `[2, 3]`. Put the upper L2 iterator first in the two-way merge because L2 is newer than L3 and must win `k`.
 
-### Agent
+### Apprentice
 
 > Correct. The upper task contains one SST, so one `SsTableIterator` is sufficient; the lower non-overlapping run uses concat, and upper L2 must be the first/newer side.
 
@@ -1933,17 +1923,17 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Non-L0 iterator shape | Use one `SsTableIterator` for upper SST 9 and concat lower `[2,3]`; pass upper first | One selected upper file is already sorted, lower files form a sorted run, and L2 is newer than L3 | Duplicate `k` keeps the upper L2 value without constructing unnecessary upper children |
 
-### Agent — Checkpoint 2 (dynamic leveled), engine decision 3
+### Apprentice — Checkpoint 2 (dynamic leveled), engine decision 3
 
 **Course rule:** Normal result application must sort the lower IDs by looking up every ID’s `first_key`, including new output SST 12. Should the engine call the controller before adding SST 12 to a private clone of the latest state, or add it to that clone first and then call the controller? When should the resulting state become visible to readers?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Add SST 12’s opened table object to a private clone of the latest state first, then call the controller so its first-key sort can resolve every output ID. Publish the fully transformed clone atomically only after application and sorting finish; readers must never observe IDs whose table metadata is absent or a partially reordered level.
 
-### Agent
+### Apprentice
 
 > Correct. Output metadata must exist in the private state before the controller sorts IDs; only the fully applied state is published.
 
@@ -1953,7 +1943,7 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Output metadata installation | Insert output table objects into a private latest-state clone before controller application; publish only afterward | Normal application sorts every lower ID by looking up `first_key` | Sorting can resolve output IDs, and readers see neither missing metadata nor a partial reorder |
 
-### Agent — Dynamic leveled Slice 2 authorization
+### Apprentice — Dynamic leveled Slice 2 authorization
 
 The engine-integration slice is now specified:
 
@@ -1977,27 +1967,27 @@ No Day 4 test will be revealed. I will run `cargo fmt --all` and `cargo check -p
 
 **Your choice (edit authorization):** Do you authorize this dynamic-leveled engine Slice 2?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Dynamic Leveled Slice 2 in `src/compact.rs` exactly as summarized, run formatting and `cargo check -p mini-lsm-starter --lib`, reveal no Week 2 Day 4 tests, then stop for review and separate test-copy authorization.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll edit only `src/compact.rs`: add the two dynamic-leveled iterator paths and reorder private-state installation so output table metadata exists before controller application. Then I’ll format, compile, verify scope, and stop before Day 4.
 
-### Agent
+### Apprentice
 
 > The engine slice is implemented. Non-L0 tasks assert the controller’s one-upper-SST invariant; L0 still builds its overlapping recency merge, and both paths pass the newer upper stream first. I’m compiling the exact slice now.
 
-### Agent
+### Apprentice
 
 > The library check passed, with one expected cleanup warning: after adding the final policy arm, the old wildcard “later checkpoint” branch became unreachable. I’m removing that stale branch within the same dispatch slice and rerunning the check so the handoff is warning-free.
 
-### Agent
+### Apprentice
 
 > The cleaned slice now compiles without warnings. Scope inspection shows only the authorized engine/controller files plus previously authorized Day 1–3 materials and the walkthrough; no Day 4 filename appeared. I’m recording the validation and stopping on the private-state metadata insertion line.
 
-### Agent — Dynamic leveled Slice 2 review
+### Apprentice — Dynamic leveled Slice 2 review
 
 The dynamic-leveled engine slice is implemented, formatted, and compiles without warnings. No Week 2 Day 4 test was copied, opened, or run.
 
@@ -2023,11 +2013,11 @@ current_snapshot.sstables.insert(sst.sst_id(), sst.clone());
 
 **Course rule (review):** Why must this insertion happen before `apply_compaction_result`, and what would fail if the output SST were added only after application?
 
-### Coordinator
+### Student
 
 > Normal dynamic-leveled application sorts the rebuilt lower level by looking up each ID’s `first_key`, including every new output ID. If SST 12 were inserted only afterward, the controller could not resolve that ID and would fail or be unable to restore the level’s required key order.
 
-### Agent
+### Apprentice
 
 > Correct. The controller’s normal-run sort dereferences every lower-level ID, so output metadata must already be present; reversing the order would panic on the new ID or leave the level unsorted. The engine Slice 2 review is complete.
 
@@ -2037,7 +2027,7 @@ The dynamic-leveled ledger gains this entry:
 | --- | --- | --- | --- |
 | Metadata-order review | Output SST objects must precede controller application in the private state | Normal application looks up every rebuilt lower-level ID's `first_key` | New IDs resolve during sorting and required lower-level order is restored |
 
-### Agent — Dynamic leveled test-reveal authorization
+### Apprentice — Dynamic leveled test-reveal authorization
 
 The independent dynamic-leveled first pass now compiles and includes:
 
@@ -2052,15 +2042,15 @@ No Week 2 Day 4 test has been copied, opened, or run.
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 4` followed by `cargo test -p mini-lsm-starter week2_day4`?
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 4 with `cargo x copy-test --week 2 --day 4`, run `cargo test -p mini-lsm-starter week2_day4`, report the exact result, and do not inspect or reveal Day 5 or later tests.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll copy only Week 2 Day 4, run only the focused `week2_day4` tests, record the exact result, and leave Day 5 and later untouched.
 
-### Agent — Dynamic leveled Day 4 result
+### Apprentice — Dynamic leveled Day 4 result
 
 Week 2 Day 4 passed completely:
 
@@ -2072,37 +2062,35 @@ test tests::week2_day4::test_integration ... ok
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 4.46s
 ```
 
-The compaction simulator, CLI, and wrapper binary targets each ran 0 matching tests and passed. Cargo emitted the same non-fatal macOS `xcrun` filesystem-event/cache-path warnings as earlier focused runs. No Week 2 Day 5 or later test was copied, opened, or run.
-
 Dynamic leveled compaction is complete for this checkpoint: its controller and engine first pass compile, the annotated simulator trace succeeds, and all revealed Day 4 tests pass.
 
-### Coordinator
+### Student
 
 > Continue the experiment with Checkpoint 3: manifest and WAL recovery, implementing the final framed, checksummed formats directly. Read only the allowed Week 2 manifest, WAL, and batch/checksum chapters plus relevant starter interfaces. Preserve the transcript, ask one short design question at a time, and do not edit until I authorize a coherent slice. Do not reveal Week 2 Day 5 or Day 6 tests until the entire Checkpoint 3 first pass compiles and I separately authorize those copy-test commands. Ask the first recovery decision question now.
 
-### Agent
+### Apprentice
 
 > I’m starting Checkpoint 3 with recovery only. I’ll read the permitted manifest, WAL, and batch/checksum chapters plus their starter interfaces, record those exact reads, then ask one concrete recovery-format question and stop without editing or revealing Day 5/6 tests.
 
-### Agent
+### Apprentice
 
 > The permitted chapters confirm that this checkpoint should land directly on the final formats: framed JSON manifest records and framed key/value WAL records, each with per-record CRC-32, plus checksums for blocks, metadata, and bloom sections. I’m now reading only the starter persistence and lifecycle interfaces needed to frame the first crash-order question.
 
-### Agent
+### Apprentice
 
 > The first recovery boundary is the durability order that makes manifest replay trustworthy. I’m recording the permitted reads and asking that crash-point question now; implementation files remain unchanged.
 
-### Agent — Checkpoint 3 (recovery), decision 1
+### Apprentice — Checkpoint 3 (recovery), decision 1
 
 **Course rule:** A flush creates SST 12 and will append `Flush(12)` to the manifest. In what durability order should the engine sync the SST, its directory entry, and the manifest record? If it crashes after the SST/directory sync but before the manifest append, what should recovery see; and what unsafe state could the reverse order create?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > First finish and `sync_all` SST 12, then sync the directory entry, then append and sync `Flush(12)` in the manifest. Only after that durable logical transition may obsolete inputs be deleted, followed by another directory sync. A crash after the SST/directory sync but before the manifest record leaves an unreferenced orphan file and recovery keeps the old logical state; that is safe. Reversing the order can leave a durable manifest record that requires a missing or non-durable SST, making the recorded state unrecoverable.
 
-### Agent
+### Apprentice
 
 > Exactly. The manifest is allowed to lag the filesystem and leave an orphan, but it must never lead it and reference a missing SST.
 
@@ -2112,17 +2100,17 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- | --- |
 | Flush durability order | Sync SST, sync directory, append+sync manifest, then delete obsolete files and sync directory | Recovery may ignore an orphan but must not reference a missing file | A pre-manifest crash preserves old logical state; durable manifest state always has durable inputs |
 
-### Agent — Checkpoint 3 (recovery), decision 2
+### Apprentice — Checkpoint 3 (recovery), decision 2
 
 **Course rule:** For JSON payload bytes `P`, define the final manifest frame as `[u32 length][P][u32 checksum]`. What exactly should `length` count and the CRC-32 protect, in which byte order should the integers be stored, and what must recovery verify before deserializing `P`?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > `length` counts only the JSON payload bytes `P`; store both u32 fields in big-endian order, consistent with the starter’s disk formats. The CRC-32 protects exactly `P`, not the length header or checksum field. Recovery must bounds-check that the declared payload plus checksum fits the remaining file, isolate `P`, read the stored checksum, verify `crc32fast::hash(P)` matches, and only then deserialize the JSON; truncated or oversized framing must return an error rather than slice-panic.
 
-### Agent
+### Apprentice
 
 > Correct. The frame length and checksum both concern only the JSON payload, integers are big-endian, and recovery validates bounds and CRC before JSON parsing.
 
@@ -2132,17 +2120,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Manifest frame | `[u32_be payload_len][JSON payload][u32_be CRC32(payload)]` | Length delimits adjacent records; checksum covers exactly the serialized record bytes | Recovery bounds-checks and verifies CRC before JSON deserialization; truncation/corruption returns an error |
 
-### Agent — Checkpoint 3 (recovery), decision 3
+### Apprentice — Checkpoint 3 (recovery), decision 3
 
 **Course rule:** Manifest replay reaches a dynamic-leveled compaction whose outputs are `[12, 13]`, but no SST objects or key ranges have been opened yet. Should replay sort the rebuilt lower-level IDs immediately? If not, when and how should their required first-key order be restored?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > No. Replay should apply the task with `in_recovery = true` and defer sorting because IDs 12 and 13 have no opened metadata yet. After all manifest records identify the live set, open every live SST into the state map, then sort each lower level by the loaded table’s `first_key` before publishing the recovered state or serving reads.
 
-### Agent
+### Apprentice
 
 > Exactly. Manifest replay reconstructs IDs only; dynamic application uses recovery mode, then live SST metadata is opened and leveled runs are sorted before publication.
 
@@ -2152,17 +2140,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Leveled replay ordering | Apply compaction with `in_recovery=true`; open all live SSTs; then sort levels by loaded `first_key` before publication | Key-range metadata is unavailable during record replay | Replay never dereferences missing SST objects, while readers still receive ordered non-overlapping runs |
 
-### Agent — Checkpoint 3 (recovery), decision 4
+### Apprentice — Checkpoint 3 (recovery), decision 4
 
 **Course rule:** The manifest contains `NewMemtable(7)`, `NewMemtable(9)`, then `Flush(7)`; stale `00007.wal` still exists, `00009.wal` is live, and the largest live SST ID is 12. Which WAL should recovery replay, where should that recovered memtable sit, and what ID should the fresh mutable memtable receive?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Replay only `00009.wal`; durable `Flush(7)` logically retires WAL 7 even if its stale file remains. Recover memtable 9 as the newest immutable memtable (with multiple live WALs, order them by descending creation/ID). The next ID is `max(live SST 12, live WAL 9) + 1 = 13`, so create and durably record the fresh WAL-backed mutable memtable as ID 13 before exposing it to writes.
 
-### Agent
+### Apprentice
 
 > Correct. `Flush(7)` retires WAL 7 logically, so only WAL 9 is replayed; recovered WAL memtables are immutable and newest-first, and fresh ID 13 must be recorded before writes can target it.
 
@@ -2172,17 +2160,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Live WAL recovery and ID | Replay only unflushed WAL IDs, order recovered memtables newest-first, allocate `max(SST,WAL)+1`, and durably record the fresh WAL memtable | Manifest records—not leftover filenames—define liveness | Stale WAL 7 is ignored; WAL 9 becomes immutable; mutable memtable 13 is recoverable before writes use it |
 
-### Agent — Checkpoint 3 (recovery), decision 5
+### Apprentice — Checkpoint 3 (recovery), decision 5
 
 **Course rule:** Define one final WAL record as `[u16 key_len][key][u16 value_len][value][u32 checksum]`. Which bytes should its CRC-32 protect, what byte order should the integer fields use, and what checks must recovery perform before inserting the record into the skiplist?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > CRC exactly the encoded bytes before the checksum: big-endian `key_len`, key bytes, big-endian `value_len`, and value bytes. Recovery must validate each fixed-width field is present, use checked bounds for both declared lengths plus the final u32 checksum, isolate the complete protected slice, compare its CRC before exposing anything, and only then insert the decoded key/value (including an empty tombstone value) into the skiplist. Truncation or an impossible length must return an error, not panic or partially replay.
 
-### Agent
+### Apprentice
 
 > Exactly. The WAL checksum covers both encoded lengths and payload bytes, and recovery verifies the complete frame before mutating the skiplist—even tombstones replay only after validation.
 
@@ -2192,17 +2180,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | WAL frame | `[u16_be key_len][key][u16_be value_len][value][u32_be CRC32(all prior record bytes)]` | Lengths are part of the protected on-disk representation | Recovery bounds-checks and verifies a whole record before inserting; corruption/truncation never partially replays |
 
-### Agent — Checkpoint 3 (recovery), decision 6
+### Apprentice — Checkpoint 3 (recovery), decision 6
 
 **Course rule:** `Wal::put` has appended bytes to a `BufWriter`, and the engine now promises that all completed writes before `sync()` will survive a crash. What two operations must `Wal::sync` perform, in what order, and what must happen to an old memtable’s WAL when that memtable is frozen?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > First call `BufWriter::flush()` to push buffered bytes into the file, then call `sync_all()` on the underlying file handle. When a memtable is frozen, synchronize its WAL before completing the replacement so writes in that immutable memtable are durable; keep the WAL file until the memtable’s SST and durable manifest `Flush(id)` record retire it logically, then delete the file.
 
-### Agent
+### Apprentice
 
 > Correct. `flush()` moves bytes out of the user-space buffer, `sync_all()` makes the file durable, and freezing must synchronize the old WAL before the replacement is complete. Its file remains until a durable flush record retires it.
 
@@ -2212,17 +2200,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | WAL synchronization/lifetime | `BufWriter::flush`, then underlying `sync_all`; sync old WAL when freezing; delete only after durable `Flush(id)` | Buffered and page-cache bytes are not durable; manifest defines WAL retirement | Successful sync/freeze preserves writes, and a crash cannot require a prematurely deleted live WAL |
 
-### Agent — Checkpoint 3 (recovery), decision 7
+### Apprentice — Checkpoint 3 (recovery), decision 7
 
 **Course rule:** A data block encodes to bytes `B`. In the final SST format, where should its CRC-32 be stored and what should it cover? When reading the byte range from this block’s offset to the next block/metadata offset, what must happen before `Block::decode(B)`?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Append the big-endian u32 CRC immediately after `B`, and protect exactly the encoded block bytes `B`; the configured target still applies to block content, with the checksum added afterward. On read, require at least four bytes, split the range into content and stored checksum, verify `crc32fast::hash(content)` first, and call `Block::decode` only after it matches.
 
-### Agent
+### Apprentice
 
 > Exactly. Each block is `[B][u32_be CRC32(B)]`; offsets delimit the checksum-bearing block range, and readers verify before decoding.
 
@@ -2232,17 +2220,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Data-block checksum | Append big-endian CRC-32 of exactly encoded block `B`; verify before `Block::decode` | Block target remains content-sized; offset range includes its trailing checksum | A corrupt block returns an error before structural decode, and earlier block-size tests retain their content target |
 
-### Agent — Checkpoint 3 (recovery), decision 8
+### Apprentice — Checkpoint 3 (recovery), decision 8
 
 **Course rule:** `Bloom::encode` appends filter bytes plus `k` to an SST buffer that already contains blocks and metadata. Which byte range should it checksum, where should that checksum go, and why would hashing the entire destination buffer make `Bloom::decode` fail?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Record the destination length before encoding, append the complete Bloom payload (filter bytes plus `k`), hash exactly that newly added slice, then append its big-endian u32 checksum. Hashing the entire destination would include unrelated preceding SST sections that `Bloom::decode` is not given, so the decoder could not reproduce the encoder’s checksum even for a valid filter.
 
-### Agent
+### Apprentice
 
 > Correct. Bloom CRC covers only the bytes appended for that bloom payload, followed immediately by its big-endian checksum; including prior SST sections would make verification irreproducible.
 
@@ -2252,17 +2240,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Bloom checksum | Hash only newly appended `[filter][k]`, then append big-endian CRC | Decoder receives only the bloom section, not preceding SST bytes | Encoder and decoder reproduce the same protected range in a non-empty destination buffer |
 
-### Agent — Checkpoint 3 (recovery), decision 9
+### Apprentice — Checkpoint 3 (recovery), decision 9
 
 **Course rule:** Block metadata appends `[count][records]` to the same non-empty SST buffer. Which bytes should its CRC protect, where should the checksum sit relative to `meta_block_offset`, and what must the decoder verify before parsing the count and records?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Protect exactly the metadata payload `[count][records]` beginning at its recorded start, append the big-endian CRC immediately after that payload, then append `meta_block_offset` before the Bloom section. On open, validate the section offsets and minimum checksum width, split metadata payload from its trailing CRC, verify it first, and only then parse the count and variable records; corrupted offsets/counts must be rejected before unsafe slicing.
 
-### Agent
+### Apprentice
 
 > Exactly. Metadata CRC covers only `[count][records]`, sits before the stored metadata offset, and must be verified before variable-length parsing.
 
@@ -2272,7 +2260,7 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Block-metadata checksum | Hash only appended `[count][records]`, append CRC, then append `meta_block_offset`; verify offsets/bounds/CRC before parsing | Metadata decoder receives its bounded section including trailing CRC | Corrupt frames fail before count/key-length parsing, and prior SST sections are excluded |
 
-### Agent — Checkpoint 3 codec Slice 1 authorization
+### Apprentice — Checkpoint 3 codec Slice 1 authorization
 
 The final persistent-codec slice is now specified:
 
@@ -2295,23 +2283,23 @@ This slice will not integrate manifest/WAL lifecycle into storage yet. No Day 5 
 
 **Your choice (edit authorization):** Do you authorize Checkpoint 3 final-codec Slice 1?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Checkpoint 3 final-codec Slice 1 exactly as specified for manifest, WAL, data blocks, block metadata, and Bloom framing/checksums. Include bounds checks that return errors rather than panic on truncated lengths/checksums. Run formatting and `cargo check -p mini-lsm-starter --lib`; reveal no Day 5/6 tests and stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing only the five final codecs and the CRC dependency. Each decoder will validate fixed fields and checked lengths, verify CRC, and only then parse or expose payloads; storage lifecycle remains unchanged for the next slice.
 
-### Agent
+### Apprentice
 
 > The final frames are implemented. Manifest and WAL recovery now reject incomplete frames before slicing and validate CRC before deserialization/insertion; SST blocks, metadata, and bloom sections verify their own bounded payloads before decoding. I’m formatting and compiling this codec-only slice now.
 
-### Agent
+### Apprentice
 
 > The codec slice compiles cleanly. Scope is limited to the CRC dependency/lockfile and the authorized manifest, WAL, block, metadata, bloom writer/readers; existing earlier checkpoint files remain as previously modified, and no Day 5/6 test appeared. I’m recording the result and stopping on the verify-before-deserialize line.
 
-### Agent — Checkpoint 3 codec Slice 1 review
+### Apprentice — Checkpoint 3 codec Slice 1 review
 
 The final-codec slice is implemented, formatted, and compiles cleanly. No Week 2 Day 5 or Day 6 test was copied, opened, or run.
 
@@ -2341,11 +2329,11 @@ records.push(serde_json::from_slice(payload)?);
 
 **Course rule (review):** What ordering does this enforce, and what corruption behavior would become unsafe if JSON deserialization happened before checksum verification?
 
-### Coordinator
+### Student
 
 > It authenticates the exact framed payload before interpreting or exposing it as a manifest state transition. If deserialization came first, a bit-flipped payload that remained valid JSON could be turned into a plausible but false `Flush`, `NewMemtable`, or `Compaction` record—and potentially affect recovery—before its integrity failure was recognized.
 
-### Agent
+### Apprentice
 
 > Correct. Integrity is established before semantics: a valid-looking corrupted JSON record must never become a recovery action. The final-codec Slice 1 review is complete.
 
@@ -2355,17 +2343,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Verify before interpretation | Authenticate framed payload bytes before JSON deserialization | Corruption can preserve valid JSON syntax while changing record meaning | A false but plausible structural transition is rejected before replay can observe it |
 
-### Agent — Checkpoint 3 (recovery), decision 10
+### Apprentice — Checkpoint 3 (recovery), decision 10
 
 **Course rule:** `MemTable::put(k, v)` has a WAL, and appending the WAL record can fail. Should it append the checksummed WAL record before or after inserting `k -> v` into the skiplist? What state should callers observe if the WAL append fails?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Append the WAL record first and propagate any failure before mutating the skiplist. If the append fails, callers should receive the error and observe no `k -> v` in the memtable; once the WAL append succeeds, the in-memory insertion is the infallible follow-up.
 
-### Agent
+### Apprentice
 
 > Exactly. WAL append is the fallible gate; only a successful append permits the infallible skiplist update, so an error never leaves an unlogged visible write.
 
@@ -2375,17 +2363,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | WAL-before-memory write | Append WAL record first; insert into skiplist only on success | WAL I/O may fail while skiplist insertion is infallible | A failed put returns an error without exposing an unlogged value |
 
-### Agent — Checkpoint 3 (recovery), decision 11
+### Apprentice — Checkpoint 3 (recovery), decision 11
 
 **Course rule:** For Week 2 `write_batch([Put(a,1), Del(b)])`, does the API promise all-or-nothing visibility or durability? How should `put`/`delete` relate to it, and when should the engine check whether the current memtable needs freezing?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Week 2 promises neither all-or-nothing visibility nor whole-batch durability; process records with the existing per-record put/tombstone semantics, and an error may leave an earlier prefix applied. Refactor `put` and `delete` to call `write_batch` with one `Put` or `Del`. After the batch records have been applied successfully, check the resulting current memtable size and use the existing locked recheck/freeze path once if it reached the target.
 
-### Agent
+### Apprentice
 
 > Correct. Week 2 batches are sequential, not transactional; singleton `put`/`delete` delegate to the batch path, and the size threshold is checked once after a successful batch with the existing locked recheck.
 
@@ -2395,17 +2383,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Week 2 batch semantics | Sequential per-record writes; prefix may remain on error; singleton APIs delegate; freeze-check once afterward | Chapter adds API grouping without transactional atomicity | Existing put/delete semantics remain, and one successful batch causes at most one threshold freeze |
 
-### Agent — Checkpoint 3 (recovery), decision 12
+### Apprentice — Checkpoint 3 (recovery), decision 12
 
 **Course rule:** Freezing WAL-backed memtable 7 creates new mutable memtable 8. Before memtable 8 can accept writes, which events must make `00008.wal` discoverable and its `NewMemtable(8)` record durable, and what synchronization must protect the old memtable 7 as it becomes immutable?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Create `00008.wal`, sync the database directory so its entry is durable, then append and sync `NewMemtable(8)` in the manifest before publishing memtable 8 as writable. While the state lock serializes the freeze, flush and `sync_all` memtable 7’s WAL before moving it into the immutable list and swapping in 8, so every write assigned to 7 remains recoverable.
 
-### Agent
+### Apprentice
 
 > Exactly. WAL 8’s durable directory entry and `NewMemtable(8)` must precede writability, while WAL 7 is flushed and synced under the serialized freeze before it becomes immutable.
 
@@ -2415,17 +2403,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | WAL-backed freeze | Create WAL 8, sync directory, durably record `NewMemtable(8)`, sync old WAL 7 under serialized freeze, then publish swap | New writes need a discoverable recorded WAL; frozen writes must already be durable | Recovery can find both the new mutable lifetime and every write assigned to the old immutable memtable |
 
-### Agent — Checkpoint 3 (recovery), decision 13
+### Apprentice — Checkpoint 3 (recovery), decision 13
 
 **Course rule:** Immutable memtable 7 is flushed to `00007.sst`, while `00007.wal` still exists. In what order should the engine make the SST/directory, `Flush(7)` manifest record, in-memory state, and WAL deletion durable so every crash point remains recoverable?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Write and `sync_all` `00007.sst`, then sync its directory entry. Under `state_lock`, append and sync `Flush(7)` in the manifest, then publish the latest in-memory state with memtable 7 removed and SST 7 installed. Only after that durable record logically retires the WAL should `00007.wal` be unlinked, followed by another directory sync. Crashes before `Flush(7)` recover WAL 7; crashes after it recover SST 7 and ignore any stale WAL file.
 
-### Agent
+### Apprentice
 
 > Correct. Before `Flush(7)`, WAL 7 remains the recovery source; after the durable record, SST 7 is authoritative and the WAL may be deleted.
 
@@ -2435,17 +2423,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Flush/WAL retirement | Sync SST+directory, durably append `Flush(7)`, publish state, then unlink WAL and sync directory | Durable manifest record changes the authoritative recovery source | Every crash recovers either live WAL 7 or live SST 7, never neither |
 
-### Agent — Checkpoint 3 (recovery), decision 14
+### Apprentice — Checkpoint 3 (recovery), decision 14
 
 **Course rule:** A compaction task produces SSTs `[20, 21]` and makes inputs `[5, 6]` obsolete. Where must the durable `Compaction(task, [20,21])` record fall relative to syncing outputs, publishing the transformed state, and deleting inputs—and must user-requested full compaction follow the same rule?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > First finish and sync output SSTs 20/21 and sync their directory entries. Under `state_lock`, append and sync `Compaction(task, [20, 21])`, then publish the transformed latest state. Only afterward unlink obsolete inputs 5/6 and sync the directory again. User-requested full compaction must use the same manifest transition and ordering; otherwise it would be unrecoverable despite background compaction being safe.
 
-### Agent
+### Apprentice
 
 > Exactly. Both background and forced compaction use the same durable transition: outputs first, manifest second, state publication third, obsolete deletion last.
 
@@ -2455,17 +2443,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Compaction durability | Sync outputs+directory, durably record task/output IDs, publish latest-state result, delete obsolete inputs, sync directory; apply to background and forced tasks | Manifest transition must never reference missing outputs or lose still-authoritative inputs | Recovery sees the complete old or new file set at every crash boundary |
 
-### Agent — Checkpoint 3 (recovery), decision 15
+### Apprentice — Checkpoint 3 (recovery), decision 15
 
 **Course rule:** On clean `close`, what should happen after stopping and joining background threads when WALs are disabled versus enabled? Which path must leave no non-empty memtables, and which path may retain WAL-backed memtables?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > After stopping and joining compaction and flush workers, the no-WAL path must freeze/flush every non-empty mutable or immutable memtable so no in-memory-only data remains. The WAL-enabled path may retain those memtables logically; it must synchronize their WALs instead so recovery can rebuild them. Both paths should be harmless when `close` is called again.
 
-### Agent
+### Apprentice
 
 > Correct. Clean close first joins workers; without WAL it drains every non-empty memtable to SSTs, while with WAL it may retain memtables but must synchronize their logs. Both paths should be idempotent.
 
@@ -2475,17 +2463,17 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Clean close | Stop/join workers; without WAL drain all data to SSTs; with WAL sync retained memtables; allow repeat close | No-WAL memory has no crash source, WAL-backed memory does | Clean close preserves all writes in the appropriate durable form and is harmless when repeated |
 
-### Agent — Checkpoint 3 (recovery), decision 16
+### Apprentice — Checkpoint 3 (recovery), decision 16
 
 **Course rule:** At `MiniLsm::sync()`, the current WAL-backed memtable is 8 and older immutable memtable 7 was synced when frozen. Which WAL must the call synchronize to guarantee writes completed before the sync point survive, and what should `sync()` do when WALs are disabled?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Synchronize the current memtable 8’s WAL; immutable 7 was already synchronized at its freeze boundary, so together they cover all writes completed before this sync point. With WALs disabled, `sync()` has no WAL durability promise to establish and should return `Ok(())` as a no-op.
 
-### Agent
+### Apprentice
 
 > Correct. `sync()` only needs the current WAL because every immutable WAL crossed a freeze-time sync boundary; without WAL it is a no-op.
 
@@ -2495,7 +2483,7 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Public sync boundary | Sync current WAL only; no-op without WAL | Immutable WALs were synced when frozen | All writes completed before the sync point have a durable current or immutable WAL source |
 
-### Agent — Checkpoint 3 lifecycle Slice 2 authorization
+### Apprentice — Checkpoint 3 lifecycle Slice 2 authorization
 
 The storage lifecycle/recovery slice is now specified:
 
@@ -2510,27 +2498,27 @@ No Week 2 Day 5 or Day 6 test will be revealed. I will run `cargo fmt --all` and
 
 **Your choice (edit authorization):** Do you authorize Checkpoint 3 lifecycle/recovery Slice 2?
 
-### Coordinator
+### Student
 
 > Authorized. Implement Checkpoint 3 lifecycle/recovery Slice 2 exactly as specified: WAL-first memtable writes, sequential write_batch with put/delete delegation, manifest replay and live-WAL recovery, collision-free ID allocation, durable new-memtable/flush/compaction ordering, recovery-time level sorting after SST open, sync semantics, WAL retirement, and idempotent close behavior. Run formatting and `cargo check -p mini-lsm-starter --lib`; reveal no Day 5/6 tests, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’m implementing the lifecycle in dependency order: task clonability and WAL-backed memtables first, then manifest replay/fresh-ID construction, write/freeze/flush/close paths, and finally compaction manifest ordering. I’ll compile only after the complete authorized slice is connected.
 
-### Agent
+### Apprentice
 
 > The lifecycle paths are connected: open replays logical IDs before opening SST metadata, WAL-backed writes gate memory visibility, freeze/flush record lifetimes durably, and close selects WAL sync versus full draining. I’m compiling now; any fixes will remain confined to this authorized integration slice.
 
-### Agent
+### Apprentice
 
 > The first compile is clean. A focused inspection confirms that only the intentionally deferred Week 3 `put_batch` helpers remain unimplemented; Checkpoint 3’s manifest, WAL, replay, write, flush, compaction, sync, and close paths are all connected. I’m making one small clarity cleanup in forced-result assignment, then rerunning the same library check before review.
 
-### Agent
+### Apprentice
 
 > Lifecycle Slice 2 now compiles cleanly, and `git diff --check` reports no whitespace errors. Replay performs ID-only transitions before SST open, level sorting follows metadata load, fresh WAL lifetimes are durable before publication, and flush/compaction records precede retirement. I’m recording the evidence and stopping on the flush manifest boundary.
 
-### Agent — Checkpoint 3 lifecycle Slice 2 review
+### Apprentice — Checkpoint 3 lifecycle Slice 2 review
 
 The lifecycle/recovery slice is implemented, formatted, and compiles cleanly. No Week 2 Day 5 or Day 6 test was copied, opened, or run.
 
@@ -2563,11 +2551,11 @@ self.manifest
 
 **Course rule (review):** What recovery boundary does this durable record establish, and what could happen if WAL 7 were deleted before this append+sync succeeded?
 
-### Coordinator
+### Student
 
 > It is the durable logical handoff from live WAL/memtable 7 to live SST 7: recovery before the record replays WAL 7; recovery after it installs SST 7 and ignores any stale WAL. Deleting the WAL before the append+sync succeeds could leave a crash state where the manifest still requires WAL 7 but its file is gone, losing the only recovery source for those writes.
 
-### Agent
+### Apprentice
 
 > Correct. `Flush(7)` is the durable handoff between recovery sources; deleting the WAL first could leave neither a manifest-authorized WAL nor a recoverable SST transition. The lifecycle Slice 2 review is complete.
 
@@ -2577,7 +2565,7 @@ The recovery ledger gains this entry:
 | --- | --- | --- | --- |
 | Flush-boundary review | Durable `Flush(7)` changes recovery authority from WAL 7 to SST 7; WAL deletion follows | Before the record, manifest still requires the WAL; after it, SST is live | No crash point loses the only authorized copy of the memtable's writes |
 
-### Agent — Checkpoint 3 Day 5 test-reveal authorization
+### Apprentice — Checkpoint 3 Day 5 test-reveal authorization
 
 The complete Checkpoint 3 independent first pass compiles and includes final checksummed formats, manifest replay, structural durability ordering, live-WAL recovery, fresh-ID allocation, batch/singleton writes, sync, and close.
 
@@ -2585,15 +2573,15 @@ No Week 2 Day 5 or Day 6 test has been copied, opened, or run.
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 5` followed by `cargo test -p mini-lsm-starter week2_day5`? Day 6 will remain untouched pending its own authorization.
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 5 with `cargo x copy-test --week 2 --day 5`, run `cargo test -p mini-lsm-starter week2_day5`, report the exact result, and keep Day 6 unrevealed.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll copy only Week 2 Day 5, run only the focused `week2_day5` tests, record the exact result, and keep Day 6 untouched.
 
-### Agent — Checkpoint 3 Day 5 result
+### Apprentice — Checkpoint 3 Day 5 result
 
 Week 2 Day 5 passed completely:
 
@@ -2609,21 +2597,21 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; fin
 
 The compaction simulator, CLI, and wrapper binary targets each ran 0 matching tests and passed. No Week 2 Day 6 test was copied, opened, or run.
 
-### Agent — Checkpoint 3 Day 6 test-reveal authorization
+### Apprentice — Checkpoint 3 Day 6 test-reveal authorization
 
 The independent WAL first pass compiled before any Day 5/6 reveal, and all now-authorized Day 5 manifest/recovery tests pass.
 
 **Your choice (test-reveal authorization):** Do you authorize `cargo x copy-test --week 2 --day 6` followed by `cargo test -p mini-lsm-starter week2_day6`?
 
-### Coordinator
+### Student
 
 > Authorized. Reveal only Week 2 Day 6 with `cargo x copy-test --week 2 --day 6`, run `cargo test -p mini-lsm-starter week2_day6`, and report the exact result.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll copy only Week 2 Day 6, run the focused `week2_day6` tests, and record the exact result.
 
-### Agent — Checkpoint 3 Day 6 result
+### Apprentice — Checkpoint 3 Day 6 result
 
 Week 2 Day 6 passed completely:
 
@@ -2640,29 +2628,29 @@ The compaction simulator, CLI, and wrapper binary targets each ran 0 matching te
 
 Checkpoint 3 is complete: the final framed/checksummed codecs and recovery lifecycle compile, all four revealed Day 5 manifest tests pass, and all three revealed Day 6 WAL tests pass. The whole-week `cargo x scheck` command has not been run.
 
-### Coordinator
+### Student
 
 > Continue with Checkpoint 4: validate the final write-batch API and add focused corruption/truncation cases for data blocks, block metadata, Bloom filters, WAL records, and manifest records. Inspect only the current starter implementation and allowed book; preserve the transcript. Ask one short prediction/design question at a time. Do not add tests until I authorize the proposed test slice. Start with the first corruption-boundary question.
 
-### Agent
+### Apprentice
 
 > I’m starting Checkpoint 4 with validation only. I’ll inspect the final checksum/write-batch implementation against the permitted checksum chapter, record those reads, then ask one concrete corruption prediction and stop without adding tests.
 
-### Agent
+### Apprentice
 
 > The current readers match the chapter’s verify-before-decode rule. I’m recording the inspection and asking the first boundary prediction for a corrupted data-block payload; no test file is being added.
 
-### Agent — Checkpoint 4 validation, decision 1
+### Apprentice — Checkpoint 4 validation, decision 1
 
 **Course rule:** A valid SST data-block frame is `[B][crc32(B)]`. A test flips one byte inside `B` but leaves the stored checksum unchanged, then calls `SsTable::read_block`. Should `Block::decode` run, and what result should the caller receive?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > `Block::decode` should not run. `SsTable::read_block` must detect the CRC mismatch first and return an error (rather than decoded data or a panic), leaving the corrupted payload unexposed.
 
-### Agent
+### Apprentice
 
 > Correct. The CRC mismatch must return an error before structural block decoding, so corrupt bytes are neither exposed nor allowed to trigger a decode panic.
 
@@ -2672,17 +2660,17 @@ You may reply `simpler`, `example`, `hint`, or `choose for me`.
 | --- | --- | --- |
 | Data-block payload corruption | CRC rejection precedes `Block::decode` | `SsTable::read_block` returns an error without panic or decoded data |
 
-### Agent — Checkpoint 4 validation, decision 2
+### Apprentice — Checkpoint 4 validation, decision 2
 
 **Course rule:** An SST metadata section is `[count+records][crc32(metadata)]`. A test flips one byte in `count+records`, preserves the stored CRC, and reopens the SST through the checked `SsTable::open` path. Should count/key-length parsing run, and what result should reopening produce?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Count and key-length parsing should not run until the metadata CRC matches. The checked `SsTable::open` path should return an error for the corrupted section, not construct a partial table or panic while parsing altered lengths.
 
-### Agent
+### Apprentice
 
 > Correct. Metadata integrity must be established before interpreting even the record count; reopening returns an error without constructing a partial table or parsing corrupted lengths.
 
@@ -2692,17 +2680,17 @@ The validation ledger gains this entry:
 | --- | --- | --- |
 | Metadata payload corruption | CRC rejection precedes count/key-length parsing | Checked `SsTable::open` returns an error without panic or partial table construction |
 
-### Agent — Checkpoint 4 validation, decision 3
+### Apprentice — Checkpoint 4 validation, decision 3
 
 **Course rule:** `Bloom::encode` appends `[filter][k][crc]` after unrelated prefix bytes `P`. If a test mutates only `P`, should the extracted Bloom section still decode? What should happen instead if it mutates one filter byte while leaving the Bloom CRC unchanged?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Yes. Mutating unrelated prefix `P` must not affect decoding of the extracted Bloom section, proving the encoder did not checksum preceding bytes. Mutating a filter byte while keeping the Bloom CRC unchanged must make `Bloom::decode` return a checksum error before exposing the filter.
 
-### Agent
+### Apprentice
 
 > Exactly. Prefix mutation must be irrelevant to Bloom verification, while protected filter mutation must return a checksum error before exposure.
 
@@ -2712,17 +2700,17 @@ The validation ledger gains this entry:
 | --- | --- | --- |
 | Bloom append boundary/corruption | Unrelated prefix mutation does not affect extracted Bloom; filter mutation fails CRC | Decoder checksum covers exactly `[filter][k]` and exposes no corrupted filter |
 
-### Agent — Checkpoint 4 validation, decision 4
+### Apprentice — Checkpoint 4 validation, decision 4
 
 **Course rule:** A WAL contains one complete `[key_len,key,value_len,value,crc]` record, then a test removes the final checksum byte and calls `Wal::recover` into an empty skiplist. What should recovery return, and should that key appear in the skiplist?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > Recovery should return an error for the truncated record, and the key must not appear in the skiplist. The decoder must establish complete framing and checksum integrity before applying the record.
 
-### Agent
+### Apprentice
 
 > Correct. A missing checksum byte makes the frame incomplete, so recovery returns an error before inserting the key.
 
@@ -2732,17 +2720,17 @@ The validation ledger gains this entry:
 | --- | --- | --- |
 | WAL checksum truncation | Incomplete frame returns an error before replay | Empty target skiplist remains empty; recovery does not panic |
 
-### Agent — Checkpoint 4 validation, decision 5
+### Apprentice — Checkpoint 4 validation, decision 5
 
 **Course rule:** A manifest starts with a valid big-endian payload length, but a test changes that header to declare more payload bytes than remain in the file. What should `Manifest::recover` do before slicing or JSON deserialization, and may it return any recovered records?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > It must validate the declared payload-plus-checksum length against the remaining bytes using checked arithmetic before slicing or deserializing. The call should return an error, not a partial success or panic; for this first malformed frame it returns no recovered records.
 
-### Agent
+### Apprentice
 
 > Correct. Oversized framing is rejected with checked arithmetic before any slice or JSON parse, and the recovery call returns an error rather than partial records.
 
@@ -2752,17 +2740,17 @@ The validation ledger gains this entry:
 | --- | --- | --- |
 | Manifest oversized length | Bounds error precedes slicing/JSON | `Manifest::recover` returns an error without panic or recovered records |
 
-### Agent — Checkpoint 4 validation, decision 6
+### Apprentice — Checkpoint 4 validation, decision 6
 
 **Course rule:** A WAL-enabled database runs `write_batch([Put(a,1), Put(b,2), Del(a)])`, then `sync()` succeeds and the database reopens. What should `get(a)` and `get(b)` return after recovery, and what stronger batch guarantee does this test deliberately not claim?
 
 You may reply `simpler`, `example`, `hint`, or `choose for me`.
 
-### Coordinator
+### Student
 
 > After recovery, `get(a)` should return `None` because the last record is its tombstone, and `get(b)` should return `2`. The test does not claim atomic visibility or durability for the batch as one transaction; it only checks ordered per-record semantics plus durability after the explicit sync point.
 
-### Agent
+### Apprentice
 
 > Correct. The recovered state should be `a = None`, `b = 2`; the test validates ordered records plus durability after `sync`, not transactional batch atomicity.
 
@@ -2772,7 +2760,7 @@ The validation ledger gains this entry:
 | --- | --- | --- |
 | WAL-backed write batch | Ordered `Put(a)`, `Put(b)`, `Del(a)` survives explicit sync/reopen | `a` is absent and `b=2`; no all-or-nothing batch claim |
 
-### Agent — Checkpoint 4 focused-test authorization
+### Apprentice — Checkpoint 4 focused-test authorization
 
 The proposed validation slice adds a crate-local test module without editing generated `src/tests.rs`:
 
@@ -2792,23 +2780,23 @@ No production behavior will change. After authorization I will run `cargo fmt --
 
 **Your choice (test authorization):** Do you authorize this focused Checkpoint 4 test slice and its three validation commands?
 
-### Coordinator
+### Student
 
 > Authorized. Add the six focused crate-local Checkpoint 4 tests for data-block corruption, metadata corruption, Bloom prefix/payload boundaries, truncated WAL, oversized/truncated manifest framing, and WAL-backed write-batch recovery as proposed. Do not modify supplied tests or `src/tests.rs`. Run formatting, `cargo test -p mini-lsm-starter checkpoint4`, and `cargo check -p mini-lsm-starter --lib`, then stop for review.
 
-### Agent
+### Apprentice
 
 > Authorization received. I’ll add only the separate crate-local test module and its registration. The supplied test index and Day 1–6 modules will remain untouched.
 
-### Agent
+### Apprentice
 
 > The six tests are added in the separate crate-local module. They mutate raw frames only after producing valid encodings, then exercise the checked public/crate entry points; supplied tests and `src/tests.rs` are unchanged. I’m running the authorized focused validation now.
 
-### Agent
+### Apprentice
 
 > All six focused tests pass, the library check is clean, and `git diff --check` reports no issues. Scope inspection confirms only `src/lib.rs` registration and the new crate-local test file were added for this slice; supplied `src/tests.rs` and Day 1–6 files were not edited. I’m recording the evidence and stopping on the Bloom boundary assertion.
 
-### Agent — Checkpoint 4 focused-test review
+### Apprentice — Checkpoint 4 focused-test review
 
 The focused validation slice is complete. No production behavior or supplied test file changed.
 
@@ -2842,11 +2830,11 @@ Bloom::decode(&encoded[bloom_start..]).unwrap();
 
 **Course rule (review):** What checksum-boundary property do these two lines prove, and what implementation mistake would make this valid decode fail?
 
-### Coordinator
+### Student
 
 > They prove the Bloom checksum depends only on bytes appended from `bloom_start` through the Bloom payload, not on preceding SST bytes. If `Bloom::encode` hashed the entire destination buffer—or otherwise included prefix bytes—the decoder, which receives only the Bloom section, could not reproduce the checksum and this valid decode would fail.
 
-### Agent
+### Apprentice
 
 > Correct. The test isolates the Bloom section: preceding bytes may change without changing its CRC. Hashing the whole destination would couple unrelated SST sections to a decoder that never receives them. The focused-test review is complete.
 
@@ -2858,15 +2846,15 @@ The validation ledger gains this entry:
 
 Checkpoint 4 is complete. The final write-batch round trip and focused block, metadata, Bloom, WAL, and manifest corruption/truncation cases all pass. The whole-week `cargo x scheck` command remains unrun pending separate direction.
 
-### Coordinator
+### Student
 
 > Proceed to the finished-engine audit. First ask me one deliberate-fault prediction question based on a clean passing state; do not edit until I answer and authorize. After that experiment is reverted, run `cargo x scheck`, all three compaction simulators, the six Checkpoint 4 tests, `git diff --check`, and inspect the diff for changed supplied tests, removed assertions, broad lint suppressions, unchecked corrupted lengths, unresolved placeholders, and deletion-before-manifest ordering. Then produce the final evidence report and ensure the walkthrough contains the full exchange and outcomes.
 
-### Agent
+### Apprentice
 
 > I’ll begin with one reversible fault targeted at a boundary the new tests claim to protect. I’m recording the proposed experiment only; no implementation or test code will change until you predict the result and explicitly authorize it.
 
-### Agent — Finished-engine audit, deliberate-fault prediction
+### Apprentice — Finished-engine audit, deliberate-fault prediction
 
 **Your choice:** Suppose I temporarily change Bloom encoding from `crc32fast::hash(&buf[bloom_start..])` to `crc32fast::hash(buf)`, run only `checkpoint4_bloom_checksum_respects_section_boundary`, and then revert the line. Which assertion should fail, and why? Please explicitly authorize the temporary edit/run/revert if you want the experiment performed.
 
@@ -2880,7 +2868,7 @@ No command accessed either forbidden reference implementation, Git history, anot
 pwd && sed -n '1,240p' AGENTS.md
 ```
 
-Observed outcome: exit status 0. The working directory printed as `/private/tmp/mini-lsm-week2-agent-walkthrough/mini-lsm-starter`, followed by the complete 159-line local `AGENTS.md`.
+Observed outcome: exit status 0. The working directory printed as `<isolated-worktree>`, followed by the complete 159-line local `AGENTS.md`.
 
 ### 2. Inventory permitted book and starter paths
 
@@ -3126,8 +3114,6 @@ test tests::week2_day2::test_integration ... ok
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 3.48s
 ```
 
-The binary targets ran 0 matching tests and passed. Cargo emitted non-fatal `xcrun` output about Xcode filesystem events and `DARWIN_USER_CACHE_DIR`, then finished the test profile in 3.57 seconds. The combined command exited 0.
-
 ### 30. Confirm only the authorized Day 2 module was added
 
 ```shell
@@ -3217,8 +3203,6 @@ test tests::week2_day3::test_integration ... ok
 
 test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 52 filtered out; finished in 4.13s
 ```
-
-The failure said the test did not panic as expected at `src/tests/week2_day3.rs:102`. Cargo emitted the same non-fatal `xcrun`/Xcode cache-path warnings seen in the Day 2 run and finished the test profile in 3.23 seconds before the failing tests completed. No Day 4 or later test was copied, opened, or run.
 
 ### 40. Read only the revealed failing Day 3 test setup, first part
 
@@ -3316,8 +3300,6 @@ Observed outcome: exit status 0. Cargo checked `mini-lsm-starter v0.2.0` and end
 cargo run --bin compaction-simulator -- leveled --size-only --iterations 6
 ```
 
-Observed outcome: exit status 0. Iterations 0, 2, and 4 left one L0 SST and scheduled no task. Iterations 1, 3, and 5 reached the two-file L0 trigger and compacted directly into L4, selecting respectively zero, two, and four overlapping L4 SSTs. The level-count transitions after those tasks were `0 0 0 0 2`, `0 0 0 0 4`, and `0 0 0 0 6`. Final statistics were 3.000x write amplification, 2.000x maximum space usage, and 1x read amplification. Cargo emitted non-fatal `xcrun`/Xcode cache-path warnings and finished successfully. No Week 2 Day 4 test was copied, opened, or run.
-
 ### 50. Confirm trace defaults, controller line numbers, and authorized scope
 
 ```shell
@@ -3329,7 +3311,7 @@ Observed outcome: exit status 0. Defaults are four levels, a two-file L0 trigger
 ### 51. Inspect transcript placement before recording the Slice 1 review
 
 ```shell
-rg -n "Dynamic|leveled|Learner|Coordinator|authorization|Command log" WEEK2_AGENT_WALKTHROUGH.md | tail -n 100 && sed -n '1,180p' WEEK2_AGENT_WALKTHROUGH.md
+rg -n "Dynamic|leveled|Student|Apprentice|authorization|Command log" WEEK2_AGENT_WALKTHROUGH.md | tail -n 100 && sed -n '1,180p' WEEK2_AGENT_WALKTHROUGH.md
 ```
 
 Observed outcome: exit status 0. The transcript contained all dynamic decisions through the Slice 1 authorization request and command log through command 44.
@@ -3387,8 +3369,6 @@ test tests::week2_day4::test_integration ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 4.46s
 ```
-
-The binary targets each ran 0 matching tests and passed. Cargo emitted non-fatal `xcrun`/Xcode cache-path warnings and finished the test profile in 2.71 seconds. No Week 2 Day 5 or later test was copied, opened, or run.
 
 ### 57. Locate only the permitted recovery chapters and relevant starter stubs
 
@@ -3565,11 +3545,11 @@ Agent:
 
 > Suppose I temporarily change Bloom encoding from `crc32fast::hash(&buf[bloom_start..])` to `crc32fast::hash(buf)`, run only `checkpoint4_bloom_checksum_respects_section_boundary`, then revert. Which assertion fails and why? Explicitly authorize the temporary edit/run/revert.
 
-Coordinator:
+Student:
 
 > The valid extracted Bloom decode at line 81 fails its `unwrap`, because the stored checksum would include the bytes before the Bloom section while the decoder receives and hashes only the extracted Bloom section. I explicitly authorize that temporary edit, focused run, and immediate revert.
 
-The agent changed the single encoding line to:
+The Apprentice changed the single encoding line to:
 
 ```rust
 let checksum = crc32fast::hash(buf);
@@ -3581,7 +3561,7 @@ let checksum = crc32fast::hash(buf);
 cargo test -p mini-lsm-starter checkpoint4_bloom_checksum_respects_section_boundary
 ```
 
-Observed outcome: exit status 101. The one selected test failed at `src/checkpoint4_tests.rs:81:44` when it unwrapped `Err(Bloom checksum mismatch)`; 0 tests passed, 1 failed, and 70 were filtered out. This matched the coordinator's prediction. The agent immediately restored the line to:
+Observed outcome: exit status 101. The one selected test failed at `src/checkpoint4_tests.rs:81:44` when it unwrapped `Err(Bloom checksum mismatch)`; 0 tests passed, 1 failed, and 70 were filtered out. This matched the Student's prediction. The Apprentice immediately restored the line to:
 
 ```rust
 let checksum = crc32fast::hash(&buf[bloom_start..]);

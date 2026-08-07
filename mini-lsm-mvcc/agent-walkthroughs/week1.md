@@ -1,40 +1,20 @@
-# Week 1 Agent Fast-Forward Walkthrough Transcript
+# Week 1 Student–Apprentice Walkthrough
 
-> **Experimental stacked PR:** This branch records a learner-agent experiment. It is intended for a stacked draft PR demonstrating the Week 1 agent path and is **not intended to merge**.
+## Setup
 
-## Experiment Scope
+**Student:**
 
-The primary agent acted as the student and transcript coordinator. The Week 1 subagent acted as the coding agent inside the isolated starter worktree. The coding agent was prohibited from accessing the reference implementation, from revealing supplied tests before each checkpoint had a complete compiling first pass, and from committing or pushing.
+> Work with me through the Week 1 fast-forward checkpoints inside an isolated `mini-lsm-starter` workspace. Follow the student-owned design protocol, use only learner-visible sources, ask one decision question at a time, and wait for authorization before each implementation slice. Reveal supplied tests only after the corresponding checkpoint has a complete compiling first pass.
 
-### Exact Initial Spawn Instruction
+**Apprentice:**
 
-**Primary agent (student):**
-
-> Act as the coding agent for a real Week 1 fast-forward learner walkthrough. Work exclusively in `/tmp/mini-lsm-week1-agent-walkthrough/mini-lsm-starter` (the isolated worktree on `skyzh/week1-agent-walkthrough`); pass that directory as `workdir` for every shell command. Never inspect or modify the primary checkout at `/Users/skyzh/Work/mini-lsm`, never inspect `../mini-lsm`, and do not commit or push. The primary agent will act as the student and will preserve the transcript.
->
-> Begin with only the handshake required by `../mini-lsm-book/src/agent-fast-forward-overview.md`: confirm the working directory, read `./AGENTS.md`, summarize the reference-solution boundary, the new implementation-before-test protections, the student-owned design protocol, consequential versus mechanical choices, and allowed local sources. Stop without editing implementation files, copying tests, or inspecting tests. On later turns, follow `../mini-lsm-book/src/week1-fast-forward.md` exactly, ask one decision question at a time, and wait for a student answer or edit authorization. Complete all three Week 1 checkpoints eventually, revealing each supplied test module only after the checkpoint has a compiling first pass. On product-test failures, explain the test evidence and ask the student to diagnose; do not independently trace or fix the implementation. You may diagnose harness/environment failures. When Week 1 is complete, report the implementation, decisions, exact checks, and feedback on the path.
-
-## Handshake
-
-**Week 1 subagent (coding agent):**
-
-> Handshake complete. Working directory is `/private/tmp/mini-lsm-week1-agent-walkthrough/mini-lsm-starter` (the resolved form of the assigned `/tmp/.../mini-lsm-starter`). I read `./AGENTS.md` and `../mini-lsm-book/src/agent-fast-forward-overview.md`.
->
-> Reference-solution boundary: I must never read/search/inspect/diff/copy `../mini-lsm`, nor reconstruct it through Git history, other refs/remotes, generated artifacts, or online copies.
->
-> Implementation-before-test protection: for each checkpoint I must first produce an independent, complete, compiling first pass. Only then may I run the named `cargo x copy-test` command; after copying I may inspect tests in this starter, but never open their sources in `../mini-lsm`. I must not edit/disable/weaken supplied tests or the harness. Product-test failures belong first to the student: I explain setup, expected vs. observed behavior, and the implicated invariant, then ask the student to diagnose. I may directly diagnose harness/build/dependency/environment failures.
->
-> Student-owned design protocol: inspect only allowed interfaces/book material, identify checkpoint decisions, ask exactly one short **Course rule** or **Your choice** question at a time, evaluate the student's reasoning with evidence, maintain a decision ledger, and wait for explicit edit authorization once a coherent slice is specified. Requests to implement a checkpoint start this dialogue; they do not authorize silent design or one-shot coding. `simpler`, `example`, `hint`, and `choose for me` are accepted at each stop.
->
-> Consequential choices require a stop: representation/layout, ordering and duplicate precedence, ownership, size/boundary accounting, seek behavior, errors, synchronization, and optimization ownership. Mechanical matters do not: local names, imports, formatting, and obvious compiler-directed type repairs.
->
-> Allowed local sources: starter interfaces/code in this directory, chapters under `../mini-lsm-book/src/`, Rust/dependency documentation, and copied tests only after their checkpoint first pass. No files were edited, no tests were inspected or copied, and no implementation command was run. I am stopped and ready for the student's first checkpoint request.
+> Handshake complete. I will use the starter code and book chapters only, keep the reference implementations off-limits, distinguish consequential decisions from mechanical edits, and stop for the Student's reasoning before changing product behavior. No implementation file or supplied test has been opened yet.
 
 ## Checkpoint 1: Ordered In-Memory State
 
 ### Start Instruction
 
-**Primary agent (student):**
+**Student:**
 
 > Build Day 1 with me, starting with ordered in-memory state. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm`. Before coding, ask one short question at a time using a concrete example. Use plain English and introduce technical terms after I answer. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 >
@@ -42,7 +22,7 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 
 ### Memtable and Cursor Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > **Course rule — What order should a scan use?**
 >
@@ -52,11 +32,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > You can reply `simpler`, `example`, `hint`, or `choose for me`.
 
-**Primary agent (student):**
+**Student:**
 
 > The scan should return `ant → 2`, `cat → 3`, then `pear → 1`. The order is ascending lexicographic order of the raw key bytes, not insertion order.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded the course constraint as **ascending bytewise key order**: insertion order cannot affect a memtable scan.
 >
@@ -66,11 +46,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should they expose one entry or two, and which value should be visible?
 
-**Primary agent (student):**
+**Student:**
 
 > They should expose one `cat` entry with `new`. A memtable keeps the latest value for each key, so the later write replaces the earlier mapping.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **one entry per key within a memtable; a later write replaces the earlier value**.
 >
@@ -80,11 +60,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What entry, if any, should the current memtable store for `cat`, and what should a user-facing lookup report when it sees that entry?
 
-**Primary agent (student):**
+**Student:**
 
 > The current memtable must store a tombstone for `cat`, represented by the course's empty value. A lookup that finds it should return `None` and stop; it must not continue into older state and resurrect `old`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **an empty value is a deletion tombstone; it wins over older values, and the user-visible lookup returns absence without probing farther**.
 >
@@ -94,13 +74,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > May that cursor ever become valid again or revisit an entry? What should its validity report after exhaustion?
 
-**Primary agent (student):**
+**Student:**
 
 > No. Once exhausted, the cursor stays exhausted: `is_valid()` remains false and later `next()` calls cannot make it valid again or revisit an entry.
 
 ### Memtable Slice Authorization
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. That gives us a coherent first slice: one ordered memtable and its bounded cursor.
 >
@@ -117,13 +97,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement that memtable-and-cursor slice, use only non-test compilation/formatting feedback, and stop for review afterward without copying or inspecting supplied tests.
 
 ### Memtable Slice Report and Review
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > The memtable-and-cursor slice is implemented and compiles. No supplied tests were copied, opened, or run.
 >
@@ -150,13 +130,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this line trying to distinguish? What plausible behavior would break if it checked whether the **value** was empty instead of whether the key was empty?
 
-**Primary agent (student):**
+**Student:**
 
 > It distinguishes a real positioned entry from the cursor's empty-key exhausted sentinel. Checking the value instead would make a valid tombstone look exhausted, so deletion entries could disappear before the merge/read layers use them to suppress older values.
 
 ### Point Operations and Freeze Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Exactly. The key is an exhaustion sentinel; using the value would erase tombstones before they can defeat older data.
 >
@@ -166,11 +146,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > In what order should `get("cat")` probe these sources, and when should it stop?
 
-**Primary agent (student):**
+**Student:**
 
 > Probe the mutable memtable first, then immutable memtables from newest to oldest. Stop at the first entry found, whether it is a value or tombstone, because that entry is the newest version.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **mutable first, then immutable memtables newest-to-oldest; the first found entry is authoritative, including a tombstone**.
 >
@@ -180,11 +160,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What went wrong, and which part of W’s operation must remain protected by the `state` read guard to prevent it?
 
-**Primary agent (student):**
+**Student:**
 
 > W wrote into A after A had been published as immutable, so readers or a concurrent flush could miss or race with a supposedly frozen write. W must retain the `state` read guard from selecting the current mutable memtable through completion of the insertion; the freezer needs the write guard and therefore cannot publish A as immutable until that write finishes.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **the state read guard covers both selecting the mutable memtable and completing its insertion**, so freezing cannot publish a memtable while a write is still entering it.
 >
@@ -194,11 +174,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Before freezing, what current condition must Writer 2 check, and what should it do in this case?
 
-**Primary agent (student):**
+**Student:**
 
 > It must re-read the latest state under `state_lock` and recheck the current mutable memtable's approximate size. Here the current table is fresh B and below the limit, so Writer 2 should do nothing rather than freeze B.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **serialize structural changes with `state_lock`, then recheck the current memtable’s size; an obsolete observation must not freeze its replacement**.
 >
@@ -208,13 +188,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should the writer attempt a freeze at 100, only above 100, or before the write—and why?
 
-**Primary agent (student):**
+**Student:**
 
 > Attempt the freeze after the write when the estimate is at least 100 bytes. It is a soft capacity limit, so the write is accepted first; equality is enough to trigger maintenance.
 
 ### Point/Freeze Slice Authorization
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. We now have enough decisions for the engine point-operation and freeze slice.
 >
@@ -231,13 +211,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the memtable-only point operations and freeze slice as described. Use no supplied tests and stop for review after non-test checks pass.
 
 ### Point/Freeze Slice Report and Review
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > The point-operation and freeze slice is implemented and compiles. No supplied tests were copied, inspected, or run.
 >
@@ -262,13 +242,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this line trying to guarantee by running before the read guard is dropped? What concrete behavior could break if we first cloned the memtable pointer, dropped the guard, and only then performed this insertion?
 
-**Primary agent (student):**
+**Student:**
 
 > It guarantees that the table remains the mutable table until the insertion completes. If we cloned the pointer and dropped the guard first, a freezer could publish that table as immutable or begin flushing it, then this delayed insertion could be missing from the frozen snapshot/SST or race with an object that readers assume no longer changes.
 
 ### Merge and Logical Iterator Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. That is the exact unsafe interleaving the read guard prevents.
 >
@@ -278,11 +258,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which entry should the merge expose, and what must happen to the other `cat` when the merge advances?
 
-**Primary agent (student):**
+**Student:**
 
 > Expose input 0's `cat → new`, because inputs are ordered newest to oldest and the lower input index wins equal keys. When advancing, consume every other cursor currently on `cat` so the merged output contains the key only once and cannot later emit `old`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **lower input index wins equal keys, and advancing consumes every input positioned on that key before selecting the next output**.
 >
@@ -292,11 +272,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What must those later calls report, and why must the cursor not resume even if an underlying child still has entries?
 
-**Primary agent (student):**
+**Student:**
 
 > After the first error, `is_valid()` must remain false and every later `next()` must return an error without advancing the child. Otherwise a caller could continue after a partially failed transition and observe a stream whose position or ordering is no longer trustworthy.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **the user-facing fused cursor enters a permanent errored state: invalid thereafter, with every later `next()` returning an error and no child advancement**.
 >
@@ -306,13 +286,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should the merge keep or remove the tombstone, and which layer should finally hide it from the user?
 
-**Primary agent (student):**
+**Student:**
 
 > The merge must keep the tombstone so it wins duplicate resolution and suppresses `old`. Only the outer `LsmIterator`, after source precedence has been resolved, should skip tombstones from the user-visible stream.
 
 ### Merge Slice Authorization
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **merge tombstones as ordinary precedence-bearing entries; only `LsmIterator`, after duplicate resolution, hides them from callers**.
 >
@@ -336,13 +316,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the merge, LSM/fused iterator, and memtable-only scan slice. After it compiles, reveal only Week 1 Days 1 and 2 and run their focused tests as prescribed.
 
 ### Checkpoint 1 Result and Review
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Checkpoint 1’s implementation and supplied validation are complete: all 14 focused tests passed.
 >
@@ -376,11 +356,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this comparison trying to decide? What plausible output bug would appear if it broke on equality instead, leaving the older cursor positioned on the same key?
 
-**Primary agent (student):**
+**Student:**
 
 > It keeps consuming heap children while their current key equals the key just emitted, and stops at the first different key. If it broke on equality, the older cursor would remain on the duplicate and could emit the same logical key again—possibly surfacing an older value immediately after a newer value or tombstone.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. That comparison is the duplicate-elimination gate; reversing it would allow stale versions to re-enter the stream.
 >
@@ -390,7 +370,7 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What exact sequence should the caller observe, and which layer removes each hidden entry? I will not add a new test unless you explicitly authorize it.
 
-**Primary agent (student):**
+**Student:**
 
 > The caller should observe `a → 1`, then `c → 4`. `MergeIterator` discards the older duplicate `b → 2` behind the newer tombstone and the older `c → 3` behind `c → 4`; `LsmIterator` then hides the winning `b` tombstone. Do not add a test. Proceed to Checkpoint 2: implement the durable block and SST representation.
 
@@ -398,7 +378,7 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 
 ### Block Format Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > **Course rule — Which block format is this checkpoint targeting?**
 >
@@ -408,11 +388,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > You can reply `simpler`, `example`, `hint`, or `choose for me`.
 
-**Primary agent (student):**
+**Student:**
 
 > Go directly to the final Day 7 prefix-compressed layout. The checkpoint must pass the combined Days 3, 4, and 7 acceptance target, so implementing and then replacing the earlier layout would be wasted work and obscure the final format contract.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **the final Day 7 prefix-compressed block layout is the checkpoint’s sole acceptance format**.
 >
@@ -422,11 +402,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should each later key record its shared prefix with the first key or with the immediately previous key, and why?
 
-**Primary agent (student):**
+**Student:**
 
 > Use the first key as the prefix basis for every later key. Then an iterator can reconstruct any entry from the first key plus that entry alone, preserving direct offset access and allowing independent comparisons during seek.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **every key is encoded relative to the block’s first key, so any indexed entry is independently reconstructible**.
 >
@@ -436,11 +416,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > In field order, which lengths and payload bytes must this entry contain, and how should the fixed-width integers be encoded?
 
-**Primary agent (student):**
+**Student:**
 
 > The entry is `overlap_len:u16 = 0`, `rest_key_len:u16 = 1`, the remaining key byte `0x61`, `value_len:u16 = 1`, then value byte `0x58`. Encode every `u16` in big-endian order, so the bytes are `00 00 00 01 61 00 01 58`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. The one-entry data section is exactly `00 00 00 01 61 00 01 58`.
 >
@@ -448,11 +428,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > That entry begins at data offset 0 and is the only entry in the block. What footer bytes must follow the data section, and which final field tells the decoder how many preceding offsets belong to the footer?
 
-**Primary agent (student):**
+**Student:**
 
 > Append the entry offset `0` as `00 00`, then the entry count `1` as `00 01`. The final `u16` count tells the decoder that the preceding one `u16` belongs to the offset table and where the data section ends.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. The complete one-entry block is the 8-byte entry, then `00 00` offset and final `00 01` count; decoding from the last two bytes locates the offset table and data boundary.
 >
@@ -462,11 +442,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should `add` accept or reject that record, and which comparison expresses the rule?
 
-**Primary agent (student):**
+**Student:**
 
 > Accept it. The target is inclusive, so a non-first entry is rejected only when the projected encoded size is greater than the target, not when it is equal.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **accept projected size equal to the target; reject only when a non-first entry would make it greater**.
 >
@@ -476,11 +456,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should the empty builder accept this first record, and what should happen to later records?
 
-**Primary agent (student):**
+**Student:**
 
 > Accept the oversized first record so the builder can make progress and produce a one-entry block. Once non-empty, reject later records whose projected size exceeds the target.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **an empty builder accepts one representable oversized record; only subsequent additions are constrained by the target**.
 >
@@ -490,11 +470,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Where should each iterator land, including the case after the block’s last key?
 
-**Primary agent (student):**
+**Student:**
 
 > Seek uses lower-bound semantics: `0` lands on `1`, `3` on `3`, `4` on `5`, and `6` makes the iterator invalid because no stored key is greater than or equal to it.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. That is **lower-bound seek**: first stored key greater than or equal to the target, otherwise invalid.
 >
@@ -504,11 +484,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which approach should this implementation use?
 
-**Primary agent (student):**
+**Student:**
 
 > Use binary search over entry indices. The offset table and first-key prefix basis make each candidate independently decodable, so logarithmic comparisons are worthwhile without introducing a dependency chain.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **binary-search entry indices for lower-bound seeks**, using independent reconstruction from the first key.
 >
@@ -518,11 +498,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which level should we implement?
 
-**Primary agent (student):**
+**Student:**
 
 > Add focused assertions for the minimum footer size, computed offset-table bounds, and monotonic in-range offsets. The API cannot return a recoverable error, but explicit invariant failures are clearer and prevent obscure out-of-bounds behavior.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **focused decode assertions at the non-`Result` trust boundary**, covering footer size, offset-table bounds, and monotonic in-range entry offsets.
 >
@@ -532,13 +512,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should the builder truncate those numbers, reject the addition cleanly, or fail an invariant—and what corruption would truncation cause?
 
-**Primary agent (student):**
+**Student:**
 
 > Reject the addition cleanly with `false`, even on an empty builder, when any encoded length or offset cannot fit in `u16`. Truncation would wrap the field and make the decoder slice the wrong key/value bytes or jump to the wrong entry boundary, corrupting the block.
 
 ### Block Slice Authorization and Report
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **return `false` rather than truncate any length/offset that cannot fit in `u16`; oversized-first acceptance applies only to representable records**.
 >
@@ -563,11 +543,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the complete final-format block builder, codec, and iterator slice. Use only non-test checks and stop for review without revealing Days 3, 4, or 7 yet.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > The final-format block slice is implemented and compiles. Days 3, 4, and 7 remain unrevealed.
 >
@@ -592,13 +572,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What are the two separate rules expressed by this condition? What plausible behavior would break if `>` changed to `>=` or if the `!self.is_empty()` guard were removed?
 
-**Primary agent (student):**
+**Student:**
 
 > The non-empty guard implements progress for one representable oversized first record; the strict `>` makes the target inclusive for later records. Changing it to `>=` would reject an entry that fits exactly, while removing the guard could leave an empty builder unable to accept a large first record and cause the SST builder to retry forever.
 
 ### SST and Bloom Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. Those are exactly the two independent boundary rules.
 >
@@ -608,11 +588,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which field does it read first, and once it has that value, where exactly does it find the metadata offset?
 
-**Primary agent (student):**
+**Student:**
 
 > Read the final four bytes as `bloom_offset:u32`. That points to the start of the Bloom section; the metadata offset is the four-byte field immediately before it, at byte range `bloom_offset - 4 .. bloom_offset`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **read `bloom_offset` from the final four bytes, then read `meta_offset` from the four bytes immediately preceding the Bloom section**.
 >
@@ -622,11 +602,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What three facts should each `BlockMeta` record, and in what order must the metadata records appear?
 
-**Primary agent (student):**
+**Student:**
 
 > Each `BlockMeta` records the encoded block's starting byte offset plus its actual first and last keys. Records appear in the same ascending key/block order as the data blocks; the next block's offset, or the metadata-section offset for the last block, gives the current block's byte span.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **offset plus actual first/last key for every block, in the same ascending order as encoded blocks**.
 >
@@ -636,11 +616,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which representation should we use?
 
-**Primary agent (student):**
+**Student:**
 
 > Prefix the metadata section with a `u32` record count, then encode each record with its `u32` offset and `u16`-length-prefixed first and last keys. The explicit count is worth four bytes for clearer cardinality and truncation checks.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **count-prefixed big-endian metadata records with `u32` offsets and `u16`-length-prefixed boundary keys**.
 >
@@ -650,11 +630,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What must the SST iterator do next, and where should it finally land?
 
-**Primary agent (student):**
+**Student:**
 
 > It must advance to block 1 and seek to that block's first entry, landing on `e`. A lower-bound seek cannot become invalid merely because the initially selected predecessor block ended before the target.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **if the candidate block exhausts during seek, advance to the next block’s first entry before declaring the SST iterator invalid**.
 >
@@ -664,11 +644,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which approach should we use?
 
-**Primary agent (student):**
+**Student:**
 
 > Use last-key metadata to choose the first block whose last key is at least the target. We already treat last keys as required accurate metadata, and this avoids reading a predecessor block that cannot satisfy the seek.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **binary-search block last keys and select the first block whose last key is `>=` the target**.
 >
@@ -678,11 +658,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What pair must be used as the cache key, and what should concurrent misses for that same pair share?
 
-**Primary agent (student):**
+**Student:**
 
 > Use `(sst_id, block_index)` as the cache key. Concurrent misses for the same pair should share one loaded `Arc<Block>`/single cache fill, while equal block indices from different SST IDs remain distinct.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **cache identity is `(sst_id, block_index)`, and same-pair concurrent misses share one cached `Arc<Block>` load**.
 >
@@ -692,11 +672,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which answer permits skipping the SST, and what lookup work must happen for the other answer?
 
-**Primary agent (student):**
+**Student:**
 
 > Only “definitely absent” permits skipping the SST. “May contain” is inconclusive, so the engine must still perform the normal metadata/block seek and compare the actual key.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **only a Bloom negative can skip an SST; a positive always falls through to the normal exact lookup**.
 >
@@ -706,11 +686,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which bytes and hash function must both sides use in this Week 1 format?
 
-**Primary agent (student):**
+**Student:**
 
 > Both sides must hash the exact raw Week 1 user-key bytes with `farmhash::fingerprint32`. The builder stores those `u32` fingerprints and lookup computes the same fingerprint from the requested key; neither compressed encoding nor a different key projection may enter one side.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **both writer and reader use `farmhash::fingerprint32` over identical raw Week 1 key bytes**.
 >
@@ -718,11 +698,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > The course fixes the Bloom false-positive rate at `0.01`. Should that target be stored as an on-disk setting, exposed as a new option, or used only by the SST builder to compute bits per key while the encoded filter carries the resulting bitset and probe count?
 
-**Primary agent (student):**
+**Student:**
 
 > Use `0.01` only in the SST builder to compute bits per key. The on-disk Bloom section needs only the resulting bitset and probe count `k`; do not add a public option or persist the target probability itself.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **`0.01` is a builder-only sizing input; the encoded Bloom filter stores only its bitset and `k`**.
 >
@@ -732,13 +712,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which approach should we retain?
 
-**Primary agent (student):**
+**Student:**
 
 > Reuse the iterator's existing `KeyVec` capacity: clear it and append the first-key prefix plus suffix for each decoded entry. That preserves the same observable behavior while avoiding an allocation per move.
 
 ### Bloom Core Slice
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **reuse the iterator’s `KeyVec` allocation while reconstructing each key**; the current block slice already follows that choice.
 >
@@ -756,11 +736,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this Bloom core slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the Bloom core only, using non-test checks and leaving the durable-representation tests unrevealed.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > The Bloom core is implemented and compiles; Days 3, 4, and 7 remain unrevealed.
 >
@@ -783,13 +763,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What logical claim does this line make? What correctness failure would become possible if a probe returned false even though all of a present key’s builder-set positions were actually set?
 
-**Primary agent (student):**
+**Student:**
 
 > It says that one clear bit among the key's required probe positions proves the key was never inserted, so the filter may return “definitely absent.” Returning false when all builder-set positions are present would be a false negative; the read path could skip an SST containing the key and return stale data or absence.
 
 ### Final SST Decisions and Authorization
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. That line is safe only because builder and prober use the identical positions; violating that identity creates a result-changing false negative.
 >
@@ -799,11 +779,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which approach should we use?
 
-**Primary agent (student):**
+**Student:**
 
 > Validate the minimum trailer length, both offsets, and `blocks <= metadata < meta_offset field < bloom < final bloom_offset field` ordering, returning descriptive errors before slicing. Since `open` already returns `Result`, malformed disk bytes should not panic the process.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **`SsTable::open` returns descriptive errors for malformed trailer length, offsets, and section ordering before slicing**.
 >
@@ -818,13 +798,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this final SST slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the SST codec, builder, cache integration, and iterator slice. Once the checkpoint compiles, reveal Days 3, 4, and 7 and run only their focused tests.
 
 ### Checkpoint 2 Result and Review
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Checkpoint 2’s implementation and supplied validation are complete: all 19 focused tests passed (9 Day 3, 7 Day 4, 3 Day 7).
 >
@@ -858,11 +838,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this comparison trying to select? What exact-key behavior would break if `<` changed to `<=`?
 
-**Primary agent (student):**
+**Student:**
 
 > It counts blocks whose last key is strictly before the target, so the selected index is the first block with `last_key >= target`. Changing `<` to `<=` would skip a block whose final key exactly equals the target and could miss that exact match.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. Strict `<` preserves a block whose last key is the exact lower bound.
 >
@@ -872,7 +852,7 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What three full keys must the iterator reconstruct, and should the third entry remain a valid block entry or disappear at this layer? I will not add a new test unless you authorize it.
 
-**Primary agent (student):**
+**Student:**
 
 > The keys are `mini-a`, `mini-b`, and `z`. The third remains a valid block entry with an empty value; the block/SST layers preserve tombstones, and only the outer logical iterator hides them after precedence resolution. Do not add a test. Proceed to Checkpoint 3: connect the components into one logical engine.
 
@@ -880,7 +860,7 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 
 ### Read-Path Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > **Course rule — Which source owns the logical key?**
 >
@@ -890,11 +870,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > You can reply `simpler`, `example`, `hint`, or `choose for me`.
 
-**Primary agent (student):**
+**Student:**
 
 > `get("cat")` returns `None`. Internally, the mutable tombstone wins the scan merge and is then filtered from user output. Priority is mutable memtable, immutable memtables newest to oldest, then L0 SSTs newest to oldest; the first entry for a duplicate key is authoritative.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **mutable > immutable newest-to-oldest > L0 newest-to-oldest; first duplicate wins, then an authoritative tombstone becomes absence**.
 >
@@ -904,11 +884,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What comparison must `get` make before returning a value, and what should it return here?
 
-**Primary agent (student):**
+**Student:**
 
 > After seeking, `get` must require both a valid iterator and `iterator.key() == requested_key`. Here it lands on `c`, so `b` is absent and `get` returns `None` rather than `3`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **an SST lower-bound result is returned only after exact key equality; the next greater key is not a point match**.
 >
@@ -918,11 +898,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which keys should each return, and which layer should enforce the upper bound given that SST iterators only receive a lower-bound seek?
 
-**Primary agent (student):**
+**Student:**
 
 > `[b,d)` returns `b,c`; `[b,d]` returns `b,c,d`. The outer `LsmIterator` should enforce the upper bound on the already merged logical stream, since child iterators are positioned from the lower bound and source merging must happen before the final range cutoff.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **`LsmIterator` enforces excluded end with `< end` and included end with `<= end` after merge**.
 >
@@ -932,11 +912,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What should remain alive for consistency, and what must be dropped before SST iterator creation begins?
 
-**Primary agent (student):**
+**Student:**
 
 > Keep the cloned `Arc<LsmStorageState>` snapshot alive so the scan sees one coherent set of memtables/SST handles. Drop the `state.read()` guard immediately after cloning that snapshot, before any SST block I/O or iterator creation.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **retain the cloned state `Arc`, but release the read guard before constructing/ seeking SST iterators or doing I/O**.
 >
@@ -946,11 +926,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which composition should we use?
 
-**Primary agent (student):**
+**Student:**
 
 > Keep homogeneous memtable and L0 `MergeIterator`s, then combine them with `TwoMergeIterator` so the memory side wins equal keys. This fits the starter's static-dispatch architecture without boxing heterogeneous children.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **merge memory and L0 separately, then use `TwoMergeIterator` with memory as side A so it wins equal keys**.
 >
@@ -960,11 +940,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > May the engine exclude this SST for each scan, and which endpoint equality makes the answers differ?
 
-**Primary agent (student):**
+**Student:**
 
 > For `(d,f]`, the SST may be skipped because its largest key equals the excluded lower bound, so it contains nothing greater than `d`. For `[d,f]`, it must remain because key `d` is included. Thus an excluded lower bound skips when `sst.last_key <= bound`, while an included lower bound skips only when `sst.last_key < bound`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded the lower-side overlap rule exactly.
 >
@@ -974,11 +954,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > May the SST be skipped for each range, and how do excluded versus included upper bounds compare against the SST’s first key?
 
-**Primary agent (student):**
+**Student:**
 
 > For `[a,b)`, skip the SST because its first key equals the excluded upper bound. For `[a,b]`, keep it because `b` is included. An excluded upper bound skips when `sst.first_key >= bound`; an included upper bound skips only when `sst.first_key > bound`.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded the symmetric upper-side overlap rule.
 >
@@ -988,13 +968,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What should `num_active_iterators()` report for the combined logical iterator, and why must the merge’s current child be included?
 
-**Primary agent (student):**
+**Student:**
 
 > It should report `3 + 2 = 5`. Each merge's current child is temporarily outside its heap but still live and able to produce data, so omitting it would undercount actual active iterators and make filtering/accounting results misleading.
 
 ### Read-Path Slice Authorization and Report
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **active counts sum all live children, including each merge’s current child outside its heap**.
 >
@@ -1010,11 +990,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this read-path slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the complete memory-plus-L0 read path and iterator accounting slice, using non-test checks and leaving Days 5 and 6 unrevealed.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > The memory-plus-L0 read-path slice is implemented and compiles. Days 5 and 6 remain unrevealed.
 >
@@ -1039,13 +1019,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this comparison trying to choose? What visible behavior would break if `<=` changed to `<` when side A is memory and side B is L0?
 
-**Primary agent (student):**
+**Student:**
 
 > It selects the smaller current key and deliberately selects side A on equality. If `<=` became `<`, an equal key from L0 would win over the newer memory entry, exposing stale data or even resurrecting a value hidden by a memory tombstone.
 
 ### Flush and Lifecycle Decisions
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. Equality is the cross-layer recency rule; changing it would invert memory-over-disk precedence.
 >
@@ -1055,11 +1035,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which memtable ID should be selected, and what should both vectors contain afterward?
 
-**Primary agent (student):**
+**Student:**
 
 > Select the oldest immutable memtable, ID 5. After installing its SST, `imm_memtables` is `[7,6]` and L0 is `[5,4,3]`, with the newly flushed SST inserted at the newest side.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **flush the last/oldest immutable table and install its SST ID at the front/newest side of L0**.
 >
@@ -1069,11 +1049,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which identity must it assert, and which three structural updates must be published together in the replacement snapshot?
 
-**Primary agent (student):**
+**Student:**
 
 > Assert that the current oldest/last immutable memtable is still ID 5—the exact source used to build the SST. Publish removal of that memtable, insertion of the new `SsTable` into the `sstables` map, and insertion of ID 5 at the front of `l0_sstables` in one replacement state snapshot.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **verify the popped ID matches the built SST and atomically remove that memtable, add the table object, and prepend its ID to L0**.
 >
@@ -1083,11 +1063,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which Week 1 design should we use?
 
-**Primary agent (student):**
+**Student:**
 
 > For Week 1, hold `state_lock` across selection, SST construction/I/O, and installation, while releasing the `state` read-write guard during the expensive build. This prevents duplicate flush selection without introducing an in-flight reservation protocol.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Accepted. I’ve recorded **hold `state_lock` for the whole flush operation, but hold the state read/write guard only for selection and final installation—not during SST construction or file I/O**.
 >
@@ -1097,11 +1077,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should it fail, build anything, or return successfully without work?
 
-**Primary agent (student):**
+**Student:**
 
 > Recheck after acquiring `state_lock` and return `Ok(())` without building anything when the immutable list is empty. The earlier observation was only a hint; an already-completed flush is not an error.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **recheck under `state_lock`; an already-drained immutable list is a successful no-op**.
 >
@@ -1111,11 +1091,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should it flush at equality or only above the limit, and which end of the list does that triggered flush remove?
 
-**Primary agent (student):**
+**Student:**
 
 > Flush at equality: trigger when `imm_memtables.len() >= num_memtable_limit`. The flush still removes the oldest entry at the end of the newest-first immutable list.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **background flush triggers at `len >= limit` and still selects the oldest immutable table**.
 >
@@ -1125,11 +1105,11 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Which worker actions must the first call perform, what should the second call do, and should either call implicitly freeze/flush the remaining mutable data?
 
-**Primary agent (student):**
+**Student:**
 
 > The first call signals the existing background workers to stop and joins their handles. The second is harmless because those handles have already been taken. Day 1 `close()` does not implicitly freeze or flush the remaining mutable memtable.
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **`close` signals and joins each existing worker once, is idempotent after handles are taken, and does not implicitly flush mutable state**.
 >
@@ -1139,13 +1119,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Should `open` reject the path, defer directory creation until flush, or create the directory before constructing the engine—and why?
 
-**Primary agent (student):**
+**Student:**
 
 > Create the directory during `open` before constructing the engine. Then later SST creation has a valid parent path, and opening a fresh database path works without deferring an avoidable filesystem failure to the first flush.
 
 ### Final Slice Authorization
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. I’ve recorded **`open` creates the database directory up front so SST writes have a valid parent**.
 >
@@ -1172,13 +1152,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > Authorize this final slice?
 
-**Primary agent (student):**
+**Student:**
 
 > Authorized. Implement the memtable-to-SST flush, background trigger, directory setup, and idempotent Day 1 lifecycle slice. After non-test compilation succeeds, reveal Days 5 and 6 and run only their focused tests.
 
 ### Checkpoint 3 Result and Review
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Checkpoint 3’s implementation and supplied validation are complete: Day 5 passed 8/8 and Day 6 passed 5/5.
 >
@@ -1211,13 +1191,13 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What is this assertion trying to prove about the transition? What corruption could follow if installation silently removed a different immutable memtable than the one used to build the SST?
 
-**Primary agent (student):**
+**Student:**
 
 > It proves the atomic transition removes exactly the immutable memtable whose contents produced the installed SST. If a different memtable were removed, one table's data could be lost while the flushed source remained visible alongside its SST, creating both a missing source and duplicate/stale state.
 
 ### Final Adversarial Prediction
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Correct. The assertion ties the removed in-memory source to the exact durable replacement; without it, one transition could simultaneously lose unrelated data and duplicate the flushed data.
 >
@@ -1231,23 +1211,23 @@ The primary agent acted as the student and transcript coordinator. The Week 1 su
 >
 > What should `get(a)`, `get(b)`, and scan `[a,d]` return? Name the winning source for each visible or deleted key. I will not add a new permanent test unless you authorize it.
 
-**Primary agent (student):**
+**Student:**
 
 > `get(a)` returns `1` from the newest immutable memtable; `get(b)` returns `None` because the mutable tombstone wins over immutable `b → 2`. Scan `[a,d]` returns `a → 1`, `c → 3`, `d → 4`: `a` wins from the immutable memtable over L0, `b` is deleted by mutable state, `c` comes from L0, and mutable `d → 4` wins over L0 `d → 3`. Do not add a permanent test. Complete the remaining Day 1 audit and deliberate-fault experiment from the guide, reverting the fault immediately, then provide the final evidence report and your candid feedback on this agent path.
 
 ## Deliberate-Fault Experiment
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
 > Deliberate-fault prediction: I will temporarily change `LsmIterator`’s excluded upper-bound comparison from `<` to `<=`. I expect `tests::week1_day5::test_task2_storage_scan_end_bound_at_seek_position` to fail because a key exactly at the excluded endpoint becomes visible. I am starting from the clean 46/46 passing state and will revert immediately after the one narrow run.
 
-The predicted test failed at the supplied assertion that the iterator must be invalid at the excluded endpoint. The coding agent immediately restored `<`, reran the exact test, and observed it pass. No deliberate-fault code remained in the final tree.
+The predicted test failed at the supplied assertion that the iterator must be invalid at the excluded endpoint. The Apprentice immediately restored `<`, reran the exact test, and observed it pass. No deliberate-fault code remained in the final tree.
 
 ## Final Evidence Report
 
-**Week 1 subagent (coding agent):**
+**Apprentice:**
 
-> Day 1 is complete in `/tmp/mini-lsm-week1-agent-walkthrough/mini-lsm-starter`. I did not commit, push, or access `../mini-lsm`.
+> Day 1 is complete in `<isolated-worktree>`. I did not commit, push, or access `../mini-lsm`.
 >
 > Implementation
 >
