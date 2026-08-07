@@ -22,13 +22,17 @@ use anyhow::Result;
 use bytes::BufMut;
 
 use super::{BlockMeta, FileObject, SsTable, bloom::Bloom};
-use crate::{block::BlockBuilder, key::KeySlice, lsm_storage::BlockCache};
+use crate::{
+    block::BlockBuilder,
+    key::{KeySlice, KeyVec},
+    lsm_storage::BlockCache,
+};
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     builder: BlockBuilder,
-    first_key: Vec<u8>,
-    last_key: Vec<u8>,
+    first_key: KeyVec,
+    last_key: KeyVec,
     data: Vec<u8>,
     pub(crate) meta: Vec<BlockMeta>,
     block_size: usize,
@@ -40,8 +44,8 @@ impl SsTableBuilder {
     pub fn new(block_size: usize) -> Self {
         Self {
             builder: BlockBuilder::new(block_size),
-            first_key: Vec::new(),
-            last_key: Vec::new(),
+            first_key: KeyVec::new(),
+            last_key: KeyVec::new(),
             data: Vec::new(),
             meta: Vec::new(),
             block_size,
@@ -66,11 +70,10 @@ impl SsTableBuilder {
             );
         }
         if self.first_key.is_empty() {
-            self.first_key.extend_from_slice(key.raw_ref());
+            self.first_key.set_from_slice(key);
         }
-        self.last_key.clear();
-        self.last_key.extend_from_slice(key.raw_ref());
-        self.key_hashes.push(farmhash::fingerprint32(key.raw_ref()));
+        self.last_key.set_from_slice(key);
+        self.key_hashes.push(farmhash::fingerprint32(key.key_ref()));
     }
 
     /// Get the estimated size of the SSTable.
@@ -99,6 +102,13 @@ impl SsTableBuilder {
         let bloom = Bloom::build_from_key_hashes(&self.key_hashes, bits_per_key);
         let bloom_offset = self.data.len();
         bloom.encode(&mut self.data);
+        let max_ts = self
+            .meta
+            .iter()
+            .flat_map(|meta| [meta.first_key.ts(), meta.last_key.ts()])
+            .max()
+            .unwrap_or(0);
+        self.data.put_u64(max_ts);
         self.data.put_u32(bloom_offset as u32);
 
         let first_key = self.meta.first().unwrap().first_key.clone();
@@ -113,7 +123,7 @@ impl SsTableBuilder {
             first_key,
             last_key,
             bloom: Some(bloom),
-            max_ts: 0,
+            max_ts,
         })
     }
 
@@ -127,8 +137,8 @@ impl SsTableBuilder {
         let encoded = builder.build().encode();
         self.meta.push(BlockMeta {
             offset: self.data.len(),
-            first_key: crate::key::KeyBytes::from_bytes(self.first_key.clone().into()),
-            last_key: crate::key::KeyBytes::from_bytes(self.last_key.clone().into()),
+            first_key: self.first_key.clone().into_key_bytes(),
+            last_key: self.last_key.clone().into_key_bytes(),
         });
         self.data.extend_from_slice(&encoded);
         self.data.put_u32(crc32fast::hash(&encoded));

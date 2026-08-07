@@ -58,9 +58,11 @@ impl BlockMeta {
             assert!(meta.last_key.len() <= u16::MAX as usize);
             buf.put_u32(meta.offset as u32);
             buf.put_u16(meta.first_key.len() as u16);
-            buf.extend_from_slice(meta.first_key.raw_ref());
+            buf.extend_from_slice(meta.first_key.key_ref());
+            buf.put_u64(meta.first_key.ts());
             buf.put_u16(meta.last_key.len() as u16);
-            buf.extend_from_slice(meta.last_key.raw_ref());
+            buf.extend_from_slice(meta.last_key.key_ref());
+            buf.put_u64(meta.last_key.ts());
         }
         let checksum = crc32fast::hash(&buf[metadata_start..]);
         buf.put_u32(checksum);
@@ -86,25 +88,29 @@ impl BlockMeta {
         ensure!(payload.remaining() >= 4, "block metadata count is missing");
         let count = payload.get_u32() as usize;
         ensure!(
-            count <= payload.remaining() / 8,
+            count <= payload.remaining() / 24,
             "block metadata count exceeds the available bytes"
         );
         let mut block_meta = Vec::with_capacity(count);
         for _ in 0..count {
-            ensure!(payload.remaining() >= 6, "truncated block metadata record");
+            ensure!(payload.remaining() >= 22, "truncated block metadata record");
             let offset = payload.get_u32() as usize;
             let first_key_len = payload.get_u16() as usize;
             ensure!(
-                payload.remaining() >= first_key_len + 2,
+                payload.remaining() >= first_key_len + 10,
                 "truncated first key in block metadata"
             );
-            let first_key = KeyBytes::from_bytes(payload.copy_to_bytes(first_key_len));
+            let first_key_bytes = payload.copy_to_bytes(first_key_len);
+            let first_key_ts = payload.get_u64();
+            let first_key = KeyBytes::from_bytes_with_ts(first_key_bytes, first_key_ts);
             let last_key_len = payload.get_u16() as usize;
             ensure!(
-                payload.remaining() >= last_key_len,
+                payload.remaining() >= last_key_len + 8,
                 "truncated last key in block metadata"
             );
-            let last_key = KeyBytes::from_bytes(payload.copy_to_bytes(last_key_len));
+            let last_key_bytes = payload.copy_to_bytes(last_key_len);
+            let last_key_ts = payload.get_u64();
+            let last_key = KeyBytes::from_bytes_with_ts(last_key_bytes, last_key_ts);
             block_meta.push(BlockMeta {
                 offset,
                 first_key,
@@ -177,12 +183,12 @@ impl SsTable {
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let file_size = usize::try_from(file.size())?;
-        ensure!(file_size >= 8, "SST is too short for its trailer");
+        ensure!(file_size >= 16, "SST is too short for its trailer");
 
         let bloom_offset_bytes = file.read((file_size - 4) as u64, 4)?;
         let bloom_offset = u32::from_be_bytes(bloom_offset_bytes.try_into().unwrap()) as usize;
         ensure!(
-            bloom_offset >= 4 && bloom_offset < file_size - 4,
+            bloom_offset >= 4 && bloom_offset < file_size - 12,
             "invalid Bloom section offset"
         );
 
@@ -208,9 +214,11 @@ impl SsTable {
             "invalid data block offsets"
         );
 
-        let bloom_bytes = file.read(bloom_offset as u64, (file_size - 4 - bloom_offset) as u64)?;
+        let bloom_bytes = file.read(bloom_offset as u64, (file_size - 12 - bloom_offset) as u64)?;
         ensure!(!bloom_bytes.is_empty(), "Bloom section is empty");
         let bloom = Bloom::decode(&bloom_bytes)?;
+        let max_ts_bytes = file.read((file_size - 12) as u64, 8)?;
+        let max_ts = u64::from_be_bytes(max_ts_bytes.try_into().unwrap());
         let first_key = block_meta.first().unwrap().first_key.clone();
         let last_key = block_meta.last().unwrap().last_key.clone();
 
@@ -223,7 +231,7 @@ impl SsTable {
             first_key,
             last_key,
             bloom: Some(bloom),
-            max_ts: 0,
+            max_ts,
         })
     }
 

@@ -56,13 +56,13 @@ impl BlockBuilder {
             0
         } else {
             self.first_key
-                .raw_ref()
+                .key_ref()
                 .iter()
-                .zip(key.raw_ref())
+                .zip(key.key_ref())
                 .take_while(|(a, b)| a == b)
                 .count()
         };
-        let rest = &key.raw_ref()[overlap..];
+        let rest = &key.key_ref()[overlap..];
         if overlap > u16::MAX as usize
             || rest.len() > u16::MAX as usize
             || value.len() > u16::MAX as usize
@@ -71,7 +71,7 @@ impl BlockBuilder {
             return false;
         }
 
-        let entry_size = 2 + 2 + rest.len() + 2 + value.len();
+        let entry_size = 2 + 2 + rest.len() + 8 + 2 + value.len();
         let projected_size = self.data.len()
             + entry_size
             + (self.offsets.len() + 1) * size_of::<u16>()
@@ -84,6 +84,7 @@ impl BlockBuilder {
         self.data.put_u16(overlap as u16);
         self.data.put_u16(rest.len() as u16);
         self.data.extend_from_slice(rest);
+        self.data.put_u64(key.ts());
         self.data.put_u16(value.len() as u16);
         self.data.extend_from_slice(value);
         if self.first_key.is_empty() {

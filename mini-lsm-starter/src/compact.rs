@@ -248,12 +248,51 @@ impl LsmStorageInner {
         let mut output = Vec::new();
         let mut builder = SsTableBuilder::new(self.options.block_size);
         let mut builder_has_entries = false;
+        let mut last_user_key = Vec::new();
+        let mut current_user_key = Vec::new();
+        let mut kept_version_at_or_below_watermark = false;
+        let mut filter_selected = false;
+        let watermark = self.mvcc().watermark();
+        let filters = self.compaction_filters.lock().clone();
 
         while input.is_valid() {
-            if !compact_to_bottom_level || !input.value().is_empty() {
-                builder.add(input.key(), input.value());
-                builder_has_entries = true;
-                if builder.estimated_size() >= self.options.target_sst_size {
+            if current_user_key.as_slice() != input.key().key_ref() {
+                kept_version_at_or_below_watermark = false;
+                filter_selected = false;
+                current_user_key.clear();
+                current_user_key.extend_from_slice(input.key().key_ref());
+            }
+
+            let mut matches_filter = false;
+            for filter in &filters {
+                match filter {
+                    crate::lsm_storage::CompactionFilter::Prefix(prefix)
+                        if input.key().key_ref().starts_with(prefix) =>
+                    {
+                        matches_filter = true
+                    }
+                    _ => {}
+                }
+            }
+            let keep = if filter_selected {
+                false
+            } else if matches_filter && input.key().ts() <= watermark {
+                filter_selected = true;
+                false
+            } else if input.key().ts() > watermark {
+                true
+            } else if kept_version_at_or_below_watermark {
+                false
+            } else {
+                kept_version_at_or_below_watermark = true;
+                !(compact_to_bottom_level && input.value().is_empty())
+            };
+
+            if keep {
+                if builder_has_entries
+                    && builder.estimated_size() >= self.options.target_sst_size
+                    && last_user_key.as_slice() != input.key().key_ref()
+                {
                     let sst_id = self.next_sst_id();
                     let sst = builder.build(
                         sst_id,
@@ -262,8 +301,11 @@ impl LsmStorageInner {
                     )?;
                     output.push(Arc::new(sst));
                     builder = SsTableBuilder::new(self.options.block_size);
-                    builder_has_entries = false;
                 }
+                builder.add(input.key(), input.value());
+                builder_has_entries = true;
+                last_user_key.clear();
+                last_user_key.extend_from_slice(input.key().key_ref());
             }
             input.next()?;
         }

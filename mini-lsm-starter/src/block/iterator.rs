@@ -125,22 +125,24 @@ impl BlockIterator {
         let rest_end = rest_start
             .checked_add(rest_len)
             .expect("block key length overflow");
-        assert!(rest_end + 2 <= data.len(), "truncated block key");
+        assert!(rest_end + 8 + 2 <= data.len(), "truncated block key");
         assert!(
-            overlap <= self.first_key.len(),
+            overlap <= self.first_key.key_len(),
             "key overlap exceeds first key"
         );
+        let ts = u64::from_be_bytes(data[rest_end..rest_end + 8].try_into().unwrap());
         let value_len =
-            u16::from_be_bytes(data[rest_end..rest_end + 2].try_into().unwrap()) as usize;
-        let value_start = rest_end + 2;
+            u16::from_be_bytes(data[rest_end + 8..rest_end + 10].try_into().unwrap()) as usize;
+        let value_start = rest_end + 10;
         let value_end = value_start
             .checked_add(value_len)
             .expect("block value length overflow");
         assert!(value_end <= data.len(), "truncated block value");
 
         self.key.clear();
-        self.key.append(&self.first_key.raw_ref()[..overlap]);
+        self.key.append(&self.first_key.key_ref()[..overlap]);
         self.key.append(&data[rest_start..rest_end]);
+        self.key.set_ts(ts);
         if idx == 0 {
             assert_eq!(overlap, 0, "first block key must have zero overlap");
             self.first_key.set_from_slice(self.key.as_key_slice());

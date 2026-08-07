@@ -83,6 +83,28 @@ fn days_to_copy(week: usize, day: Option<usize>) -> Vec<usize> {
     }
 }
 
+const WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR: &str = "KeySlice::from_slice(";
+const WEEK3_DAY5_STARTER_KEY_CONSTRUCTOR: &str = "KeySlice::from_slice_with_ts(";
+const WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS: usize = 7;
+
+fn adapt_starter_test_source(week: usize, day: usize, source: &str) -> Result<String> {
+    if (week, day) != (3, 5) {
+        return Ok(source.to_owned());
+    }
+
+    let adaptation_count = source.matches(WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR).count();
+    if adaptation_count != WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS {
+        return Err(anyhow!(
+            "expected exactly {WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS} Week 3 Day 5 key-constructor adaptations, found {adaptation_count}"
+        ));
+    }
+
+    Ok(source.replace(
+        WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR,
+        WEEK3_DAY5_STARTER_KEY_CONSTRUCTOR,
+    ))
+}
+
 fn fmt() -> Result<()> {
     println!("{}", style("cargo fmt").bold());
     cmd!("cargo", "fmt").run()?;
@@ -177,7 +199,12 @@ fn copy_test_case(test: CopyTestAction) -> Result<()> {
             }
             continue;
         }
-        cmd!("cp", src, target).run()?;
+        if (test.week, day) == (3, 5) {
+            let source = std::fs::read_to_string(src)?;
+            std::fs::write(target, adapt_starter_test_source(test.week, day, &source)?)?;
+        } else {
+            cmd!("cp", src, target).run()?;
+        }
     }
     let test_filename = "harness.rs";
     let src = format!("{}/{}", src_dir, test_filename);
@@ -269,7 +296,10 @@ fn main() -> Result<()> {
 mod tests {
     use std::path::Path;
 
-    use super::days_to_copy;
+    use super::{
+        WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS, WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR,
+        WEEK3_DAY5_STARTER_KEY_CONSTRUCTOR, adapt_starter_test_source, days_to_copy,
+    };
 
     #[test]
     fn copy_all_available_days_when_day_is_omitted() {
@@ -301,5 +331,35 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn week3_day5_starter_copy_adapts_exactly_seven_key_constructors() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let source =
+            std::fs::read_to_string(root.join("mini-lsm-mvcc/src/tests/week3_day5.rs")).unwrap();
+        let adapted = adapt_starter_test_source(3, 5, &source).unwrap();
+
+        assert_eq!(
+            source.matches(WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR).count(),
+            WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS
+        );
+        assert_eq!(
+            adapted.matches(WEEK3_DAY5_STARTER_KEY_CONSTRUCTOR).count(),
+            WEEK3_DAY5_KEY_CONSTRUCTOR_ADAPTATIONS
+        );
+        assert!(!adapted.contains(WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR));
+        assert_eq!(
+            adapted.replace(
+                WEEK3_DAY5_STARTER_KEY_CONSTRUCTOR,
+                WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR
+            ),
+            source
+        );
+    }
+
+    #[test]
+    fn week3_day5_starter_copy_rejects_source_drift() {
+        assert!(adapt_starter_test_source(3, 5, WEEK3_DAY5_REFERENCE_KEY_CONSTRUCTOR).is_err());
     }
 }

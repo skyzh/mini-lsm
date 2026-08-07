@@ -38,29 +38,47 @@ type LsmIteratorInner = TwoMergeIterator<
 pub struct LsmIterator {
     inner: LsmIteratorInner,
     end_bound: Bound<Bytes>,
+    read_ts: u64,
+    prev_key: Bytes,
 }
 
 impl LsmIterator {
-    pub(crate) fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {
+    pub(crate) fn new(
+        iter: LsmIteratorInner,
+        end_bound: Bound<Bytes>,
+        read_ts: u64,
+    ) -> Result<Self> {
         let mut this = Self {
             inner: iter,
             end_bound,
+            read_ts,
+            prev_key: Bytes::new(),
         };
         this.skip_tombstones()?;
         Ok(this)
     }
 
     fn skip_tombstones(&mut self) -> Result<()> {
-        while self.inner.is_valid() && self.within_end_bound() && self.inner.value().is_empty() {
-            self.inner.next()?;
+        while self.inner.is_valid() && self.within_end_bound() {
+            if self.inner.key().ts() > self.read_ts {
+                self.inner.next()?;
+                continue;
+            }
+            if self.inner.key().key_ref() == self.prev_key.as_ref() || self.inner.value().is_empty()
+            {
+                self.prev_key = Bytes::copy_from_slice(self.inner.key().key_ref());
+                self.inner.next()?;
+                continue;
+            }
+            break;
         }
         Ok(())
     }
 
     fn within_end_bound(&self) -> bool {
         match &self.end_bound {
-            Bound::Included(end) => self.inner.key().raw_ref() <= end.as_ref(),
-            Bound::Excluded(end) => self.inner.key().raw_ref() < end.as_ref(),
+            Bound::Included(end) => self.inner.key().key_ref() <= end.as_ref(),
+            Bound::Excluded(end) => self.inner.key().key_ref() < end.as_ref(),
             Bound::Unbounded => true,
         }
     }
@@ -74,7 +92,7 @@ impl StorageIterator for LsmIterator {
     }
 
     fn key(&self) -> &[u8] {
-        self.inner.key().raw_ref()
+        self.inner.key().key_ref()
     }
 
     fn value(&self) -> &[u8] {
@@ -82,6 +100,7 @@ impl StorageIterator for LsmIterator {
     }
 
     fn next(&mut self) -> Result<()> {
+        self.prev_key = Bytes::copy_from_slice(self.inner.key().key_ref());
         self.inner.next()?;
         self.skip_tombstones()
     }
