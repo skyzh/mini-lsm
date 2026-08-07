@@ -98,16 +98,7 @@ Derive these course rules from small states and byte layouts:
 
 The fixed order is user-key bytes ascending and timestamp descending. Prefix compression applies only to user-key bytes; each timestamp is stored in full. Block metadata preserves complete internal first and last keys, while Bloom filters hash only user-key bytes because a lookup asks whether any version of that user key may exist.
 
-Translate each user bound once into an internal-key bound, then use that same result for memtable scans, L0 SST seeks, and leveled-SST seeks:
-
-| User bound | Internal-key bound |
-| --- | --- |
-| lower `Included(k)` | `Included(k@TS_RANGE_BEGIN)` = `Included(k@u64::MAX)` |
-| lower `Excluded(k)` | `Excluded(k@TS_RANGE_END)` = `Excluded(k@0)` |
-| upper `Included(k)` | `Included(k@TS_RANGE_END)` = `Included(k@0)` |
-| upper `Excluded(k)` | `Excluded(k@TS_RANGE_BEGIN)` = `Excluded(k@u64::MAX)` |
-
-For example, `(a, b]` becomes `Excluded(a@0)..=b@0`. Seeking an excluded lower bound at `a@u64::MAX` would still admit older `a` versions, so a correct memtable result does not prove the SST paths are correct. Trace all four lower/upper inclusion combinations before and after flushing into both L0 and a leveled SST; no storage path may reinterpret the user bounds independently.
+Translate each user bound once into an internal-key bound, then use that same result for memtable scans, L0 SST seeks, and leveled-SST seeks. Trace all four lower/upper inclusion combinations before and after flushing into both L0 and a leveled SST; no storage path may reinterpret the user bounds independently.
 
 One committed write batch receives one new timestamp. Hold `write_lock` across timestamp allocation, insertion into one memtable and WAL, and publication of `latest_commit_ts`; otherwise concurrent writers can reuse or publish timestamps out of order. A batch may exceed the memtable size target, but it must not be split between memtables.
 
