@@ -48,7 +48,11 @@ For every adversarial case, first name which row it challenges. If an explanatio
 
 ## Prepare Day 3
 
-Begin from a Day 2 implementation that passes its complete suite. Week 3 changes public interfaces as it proceeds, so copy tests progressively; later test modules may not compile against an intentionally incomplete earlier checkpoint. From the repository root, copy the Day 1 test module and record the first failure:
+Begin from a Day 2 implementation that passes its complete suite. In this chapter, **Day 3** names the course day, while `--week 3 --day N` names progressive **Week 3 test module Day N**. Use that full phrase when crossing test gates so the test-module number is not mistaken for the course day.
+
+Week 3 changes public interfaces as it proceeds, so copy tests progressively; later test modules may not compile against an intentionally incomplete earlier checkpoint. The preparation command below is the **sole course-defined exception** to the starter rule that supplied tests are revealed only after an independent first pass: copy Week 3 test module Day 1 before implementation so the initial compatibility failure is captured as evidence. After this preparation exception, do not copy any later Week 3 test module until the corresponding slice has a complete independent first pass.
+
+From the repository root, copy Week 3 test module Day 1 and record the first failure:
 
 ```shell
 cargo x copy-test --week 3 --day 1
@@ -94,6 +98,17 @@ Derive these course rules from small states and byte layouts:
 
 The fixed order is user-key bytes ascending and timestamp descending. Prefix compression applies only to user-key bytes; each timestamp is stored in full. Block metadata preserves complete internal first and last keys, while Bloom filters hash only user-key bytes because a lookup asks whether any version of that user key may exist.
 
+Translate each user bound once into an internal-key bound, then use that same result for memtable scans, L0 SST seeks, and leveled-SST seeks:
+
+| User bound | Internal-key bound |
+| --- | --- |
+| lower `Included(k)` | `Included(k@TS_RANGE_BEGIN)` = `Included(k@u64::MAX)` |
+| lower `Excluded(k)` | `Excluded(k@TS_RANGE_END)` = `Excluded(k@0)` |
+| upper `Included(k)` | `Included(k@TS_RANGE_END)` = `Included(k@0)` |
+| upper `Excluded(k)` | `Excluded(k@TS_RANGE_BEGIN)` = `Excluded(k@u64::MAX)` |
+
+For example, `(a, b]` becomes `Excluded(a@0)..=b@0`. Seeking an excluded lower bound at `a@u64::MAX` would still admit older `a` versions, so a correct memtable result does not prove the SST paths are correct. Trace all four lower/upper inclusion combinations before and after flushing into both L0 and a leveled SST; no storage path may reinterpret the user bounds independently.
+
 One committed write batch receives one new timestamp. Hold `write_lock` across timestamp allocation, insertion into one memtable and WAL, and publication of `latest_commit_ts`; otherwise concurrent writers can reuse or publish timestamps out of order. A batch may exceed the memtable size target, but it must not be split between memtables.
 
 Use the final WAL batch grammar:
@@ -105,7 +120,13 @@ batch_body_len:u32
   | body_checksum:u32
 ```
 
-The checksum covers the complete body. Reject keys, values, and batch bodies that do not fit their `u16` or `u32` fields instead of truncating a cast. Validate every length and the checksum before recovery inserts any entry. `Wal::put` should use the batch path for one record. Append the complete WAL frame before inserting any entry into the memtable, and publish `latest_commit_ts` only after every memtable entry is installed. A WAL error therefore exposes no in-memory update. After a process stop, recovery may replay a complete persisted frame or lose an unsynchronized frame, but it must never expose a prefix. Synchronization remains a separate durability guarantee.
+The checksum covers the complete body. Reject keys, values, and batch bodies that do not fit their `u16` or `u32` fields instead of truncating a cast. `Wal::put` should use the batch path for one record.
+
+Recovery uses one complete frame, or write batch, as its atomicity unit. Clean EOF succeeds when the cursor is exactly between frames. If EOF arrives inside the final frame's header, body, or checksum, treat that frame as a crash-torn tail: emit a warning, discard only the incomplete frame, and return success. Earlier complete frames remain replayable.
+
+Stage the entries for one frame separately and publish them only after that frame's lengths and checksum validate. A fully present frame with a checksum mismatch or invalid nested key/value length returns `Err` as corruption; do not treat it as a normal torn tail. If a bad frame follows a valid one, entries from the earlier validated frame remain replayed, but recovery never publishes a prefix of the bad frame.
+
+Append the complete WAL frame before inserting any entry into the memtable, and publish `latest_commit_ts` only after every memtable entry is installed. A WAL error therefore exposes no in-memory update. After a process stop, recovery may replay every complete persisted frame and discard an unsynchronized torn final frame, but it must never expose a prefix of any frame. Synchronization remains a separate durability guarantee.
 
 Compaction keeps every version for now. It may split output between user keys but never between versions of one user key. Latest-state `get` and `scan` skip repeated versions after selecting the newest visible entry and treat a selected tombstone as absence rather than continuing to an older value.
 
@@ -114,14 +135,14 @@ Reusing the merged scan path for `get` does not remove the point-read Bloom opti
 Checkpoint 1 is not one edit. Use this default slice order and obtain separate authorization for each slice:
 
 1. block/SST encoding, metadata, and Bloom identity;
-2. finish the timestamp-zero Day 1 engine refactor and pass its focused tests;
-3. copy the Day 2 tests from the repository root with `cargo x copy-test --week 3 --day 2`;
+2. finish the timestamp-zero Week 3 test module Day 1 engine refactor and pass its focused tests;
+3. copy Week 3 test module Day 2 from the repository root with `cargo x copy-test --week 3 --day 2`;
 4. implement timestamped memtables, internal range bounds, latest-state iteration, final WAL framing, batch timestamp allocation, and the write path; and
 5. implement compaction retention and output boundaries.
 
-Before approving the checkpoint, independently calculate one encoded entry, exercise all four included/excluded range endpoints, and truncate one WAL batch in its header, body, and checksum. Explain which guarantee each case checks. After focused tests pass, have the agent point to the internal-key comparison and the condition that prevents an SST split within one user key.
+Before approving the checkpoint, independently calculate one encoded entry and exercise all four included/excluded range combinations through the memtable and again after flush into L0 and a leveled SST. After one valid WAL frame, truncate a second frame in its header, body, and checksum; each case should warn, succeed, replay the first frame, and publish none of the second. Then corrupt the checksum or nested lengths of a fully present second frame; recovery should return `Err`, retain the first frame's entries, and publish none of the corrupt frame. Explain which guarantee each case checks. After focused tests pass, have the agent point to the shared user-bound conversion, the internal-key comparison, and the condition that prevents an SST split within one user key.
 
-Do not use the complete historical suite as the pass/fail gate for this intermediate state. Checkpoint 1 deliberately retains bottom-level tombstones, while the Week 2 all-tombstones test expects the pre-MVCC compactor to remove them. Run the focused Week 3 Day 1 and Day 2 tests instead:
+Do not use the complete historical suite as the pass/fail gate for this intermediate state. Checkpoint 1 deliberately retains bottom-level tombstones, while the Week 2 all-tombstones test expects the pre-MVCC compactor to remove them. Run the focused Week 3 test modules Day 1 and Day 2 instead:
 
 ```shell
 cargo test -p mini-lsm-starter --lib week3_day
@@ -137,7 +158,7 @@ Ask:
 
 Use [Snapshot Read - Transaction API](./week3-03-snapshot-read-part-2.md) and [Watermark and Garbage Collection](./week3-04-watermark.md) as references.
 
-Before starting, add the Day 3 test module from the repository root:
+Before starting, add Week 3 test module Day 3 from the repository root:
 
 ```shell
 cargo x copy-test --week 3 --day 3
@@ -161,11 +182,27 @@ The watermark stores a reader count for each timestamp, not merely a set of time
 
 Store each SST's maximum timestamp and initialize the timestamp oracle from every live SST and recovered WAL-backed memtable. The first post-recovery batch must receive a strictly larger timestamp. This prevents reuse among recoverable versions; if a production design must never reuse a timestamp after all evidence of it has been garbage-collected, it needs an additional durable timestamp high-water mark.
 
-This checkpoint necessarily evolves some public interfaces: starting a transaction must return a transaction handle, and an engine scan must return an iterator that owns its transaction. These are **Course rule** changes, not compiler-directed mechanics. The starter already gives `Transaction::get`, `scan`, and `commit` a `Result` return type, while `put` and `delete` return `()`. Do not silently change the latter two merely to unify use-after-commit handling; that is a separate public-API choice and the supplied tests call them as non-fallible statements. Have the agent cite the copied tests and starter interfaces, preview the exact required signatures, and obtain slice authorization before editing them.
+This checkpoint necessarily evolves public interfaces: starting a transaction must return a transaction handle, and both engine scan methods must return an iterator that owns its transaction. These are **Course rule** changes, not compiler-directed mechanics. The complete required signature set is:
+
+```text
+MiniLsm:
+pub fn new_txn(&self) -> Result<Arc<crate::mvcc::txn::Transaction>>
+pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>)
+    -> Result<crate::mvcc::txn::TxnIterator>
+
+LsmStorageInner:
+pub fn new_txn(self: &Arc<Self>) -> Result<Arc<crate::mvcc::txn::Transaction>>
+pub fn scan(self: &Arc<Self>, lower: Bound<&[u8]>, upper: Bound<&[u8]>)
+    -> Result<crate::mvcc::txn::TxnIterator>
+```
+
+Treat this block as the approval list: have the agent cite the copied tests and starter interfaces, preview all four signatures together, and obtain slice authorization for the complete list before editing any of them. If the proposed diff changes another public signature, stop and request separate approval instead of classifying it as a mechanical follow-on.
+
+The starter already gives `Transaction::get`, `scan`, and `commit` a `Result` return type, while `put` and `delete` return `()`. Do not silently change the latter two merely to unify use-after-commit handling; that is a separate public-API choice and the supplied tests call them as non-fallible statements.
 
 The starter also already uses the final `TxnIterator` shape that merges a local iterator with the engine iterator. Before Day 5, preserve that shape by making the local side an empty, validly constructed stream. Do not simplify the struct for Day 3 and then churn it back two slices later.
 
-After snapshot reads and timestamp recovery pass their focused checks, copy the Day 4 test module, then implement the watermark and compaction-GC slice:
+After snapshot reads and timestamp recovery pass their focused checks, copy Week 3 test module Day 4, then implement the watermark and compaction-GC slice:
 
 ```shell
 cargo x copy-test --week 3 --day 4
@@ -181,7 +218,7 @@ Ask:
 
 This checkpoint covers [Transaction Workspace and Atomic Commit](./week3-05-txn-occ.md). Keep the guarantee ledger visible: local isolation, atomic visibility, crash atomicity, and durability are different claims.
 
-Before starting, add its test module from the repository root:
+Before starting, add Week 3 test module Day 5 from the repository root:
 
 ```shell
 cargo x copy-test --week 3 --day 5
@@ -222,7 +259,7 @@ Ask:
 
 Use [Serializable Validation](./week3-06-serializable.md) and [Compaction Filters](./week3-07-compaction-filter.md) as references.
 
-Before starting, add the Day 6 test module from the repository root:
+Before starting, add Week 3 test module Day 6 from the repository root:
 
 ```shell
 cargo x copy-test --week 3 --day 6
@@ -244,7 +281,7 @@ For a writing transaction, hold `commit_lock` across validation, timestamp alloc
 
 This is conservative point-key validation, not the full Serializable Snapshot Isolation algorithm. It can reject some serializable histories, and scans record returned-key hashes rather than predicates or gaps. The empty-range insertion above can therefore pass. Treat that limitation as a required explanation, not a hidden test gap or permission to claim full serializability.
 
-After validation passes its focused checks, copy the Day 7 test module:
+After validation passes its focused checks, copy Week 3 test module Day 7:
 
 ```shell
 cargo x copy-test --week 3 --day 7
