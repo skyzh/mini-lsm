@@ -25,14 +25,8 @@ use super::harness::{check_iter_result_by_key_and_ts, generate_sst_with_ts};
 #[test]
 fn test_sst_build_multi_version_simple() {
     let mut builder = SsTableBuilder::new(16);
-    builder.add(
-        KeySlice::for_testing_from_slice_with_ts(b"233", 233),
-        b"233333",
-    );
-    builder.add(
-        KeySlice::for_testing_from_slice_with_ts(b"233", 0),
-        b"2333333",
-    );
+    builder.add(KeySlice::from_slice_with_ts(b"233", 233), b"233333");
+    builder.add(KeySlice::from_slice_with_ts(b"233", 0), b"2333333");
     let dir = tempdir().unwrap();
     builder.build_for_test(dir.path().join("1.sst")).unwrap();
 }
