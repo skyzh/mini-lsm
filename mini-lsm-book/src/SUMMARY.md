@@ -40,4 +40,4 @@
   - [Day 1 - Build the Storage Engine](./week1-fast-forward.md)
   - [Day 2 - Compaction and Recovery](./week2-fast-forward.md)
   - [Day 3 - Transactions and MVCC](./week3-fast-forward.md)
-- [Sponsor](./sponsor.md)
+- [Sponsored by Raft.build](./sponsor.md)
