@@ -35,6 +35,7 @@
   - [Serializable Validation](./week3-06-serializable.md)
   - [Snack Time: Compaction Filters](./week3-07-compaction-filter.md)
 - [The Rest of Your Life (TBD)](./week4-overview.md)
+- [Sponsor](./sponsor.md)
 
 - [Mini-LSM with Coding Agents](./agent-fast-forward-overview.md)
   - [Day 1 - Build the Storage Engine](./week1-fast-forward.md)
