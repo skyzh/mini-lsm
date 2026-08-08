@@ -31,12 +31,23 @@ The repository pins the required Rust toolchain in `rust-toolchain.toml`. If you
 cargo x install-tools
 ```
 
-## Run the Tests
+## Check the Starter and Reveal the First Tests
+
+From the repository root, first confirm that the untouched starter compiles:
+
+```
+cargo check -p mini-lsm-starter --lib
+```
+
+This command should pass. Then copy the Week 1 Day 1 tests and record the initial red gate:
 
 ```
 cargo x copy-test --week 1 --day 1
 cargo x scheck
 ```
+
+`cargo x scheck` should exit with status 1 because the six copied Day 1 tests fail at the starter's unimplemented boundaries. These
+failures are the expected starting evidence, not a setup failure. Chapter 1 turns this gate green.
 
 You are now ready to begin [Week 1: Mini-LSM](./week1-overview.md).
 

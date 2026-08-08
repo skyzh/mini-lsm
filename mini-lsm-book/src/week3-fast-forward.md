@@ -127,9 +127,17 @@ Checkpoint 1 is not one edit. Use this default slice order and obtain separate a
 
 1. block/SST encoding, metadata, and Bloom identity;
 2. finish the timestamp-zero Week 3 test module Day 1 engine refactor and pass its focused tests;
-3. copy Week 3 test module Day 2 from the repository root with `cargo x copy-test --week 3 --day 2`;
-4. implement timestamped memtables, internal range bounds, latest-state iteration, final WAL framing, batch timestamp allocation, and the write path; and
-5. implement compaction retention and output boundaries.
+3. implement timestamped memtables, internal range bounds, latest-state iteration, final WAL framing, batch timestamp allocation, and the write path; and
+4. implement compaction retention and output boundaries.
+
+After slice 3 forms one compiling first pass, run the non-test gate and only then reveal Week 3 test module Day 2:
+
+```shell
+cargo check -p mini-lsm-starter --lib
+cargo x copy-test --week 3 --day 2
+```
+
+Then implement slice 4 before the focused tests and independent checks below.
 
 Before approving the checkpoint, independently calculate one encoded entry and exercise all four included/excluded range combinations through the memtable and again after flush into L0 and a leveled SST. After one valid WAL frame, truncate a second frame in its header, body, and checksum; each case should warn, succeed, replay the first frame, and publish none of the second. Then corrupt the checksum or nested lengths of a fully present second frame; recovery should return `Err`, retain the first frame's entries, and publish none of the corrupt frame. Explain which guarantee each case checks. After focused tests pass, have the agent point to the shared user-bound conversion, the internal-key comparison, and the condition that prevents an SST split within one user key.
 
@@ -148,12 +156,6 @@ Ask:
 > Add fixed-timestamp transactions, recovery of the timestamp oracle, and watermark-based garbage collection.
 
 Use [Snapshot Read - Transaction API](./week3-03-snapshot-read-part-2.md) and [Watermark and Garbage Collection](./week3-04-watermark.md) as references.
-
-Before starting, add Week 3 test module Day 3 from the repository root:
-
-```shell
-cargo x copy-test --week 3 --day 3
-```
 
 Work out these rules from concrete version streams and reader lifetimes:
 
@@ -193,10 +195,20 @@ The starter already gives `Transaction::get`, `scan`, and `commit` a `Result` re
 
 The starter also already uses the final `TxnIterator` shape that merges a local iterator with the engine iterator. Before Day 5, preserve that shape by making the local side an empty, validly constructed stream. Do not simplify the struct for Day 3 and then churn it back two slices later.
 
-After snapshot reads and timestamp recovery pass their focused checks, copy Week 3 test module Day 4, then implement the watermark and compaction-GC slice:
+Implement snapshot selection, transaction ownership, and timestamp recovery as one coherent first pass. Once that slice compiles without supplied tests, reveal Week 3 test module Day 3 and run its focused gate:
 
 ```shell
+cargo check -p mini-lsm-starter --lib
+cargo x copy-test --week 3 --day 3
+cargo test -p mini-lsm-starter --lib week3_day3
+```
+
+After Day 3 passes, implement watermark reader counts and compaction garbage collection as another independent first pass. Compile before revealing Week 3 test module Day 4:
+
+```shell
+cargo check -p mini-lsm-starter --lib
 cargo x copy-test --week 3 --day 4
+cargo test -p mini-lsm-starter --lib week3_day4
 ```
 
 Before approving the checkpoint, keep old transactions alive across overwrite, deletion, flush, and compaction. Compare their `get` and bounded `scan` results before and after each transition. Separately, close and reopen databases whose largest timestamp is first in an SST and then in a live WAL-backed memtable; confirm the next batch receives a larger timestamp. Have the agent identify the ownership edge that keeps an abandoned scan's timestamp live and ask what compaction could reclaim if that edge disappeared.
@@ -208,12 +220,6 @@ Ask:
 > Add a private transaction workspace, read-your-writes, and one atomic commit path.
 
 This checkpoint covers [Transaction Workspace and Atomic Commit](./week3-05-txn-occ.md). Keep the guarantee ledger visible: local isolation, atomic visibility, crash atomicity, and durability are different claims.
-
-Before starting, add Week 3 test module Day 5 from the repository root:
-
-```shell
-cargo x copy-test --week 3 --day 5
-```
 
 The agent should help you derive:
 
@@ -240,6 +246,14 @@ Calibrate each claim independently:
 - successful `sync` establishes the documented **durability** boundary; and
 - none of these performs conflict validation or prevents write skew.
 
+Complete the private workspace, iterator merge, rejection, batch commit, and framed-WAL recovery as one coherent first pass. Once it compiles without the supplied module, reveal Week 3 test module Day 5 and run its focused gate:
+
+```shell
+cargo check -p mini-lsm-starter --lib
+cargo x copy-test --week 3 --day 5
+cargo test -p mini-lsm-starter --lib week3_day5
+```
+
 Before approving the checkpoint, predict what the caller and recovery may observe at each failure point. Run a torn-batch case that would expose a prefix if recovery mutated the memtable before validating the frame. After focused tests pass, have the agent explain the exact line separating WAL acceptance from memtable publication.
 
 ## Checkpoint 4: Validate Dependencies and Filter History
@@ -249,12 +263,6 @@ Ask:
 > Add point-key serializable validation, then integrate compaction filters with their undefined-read contract.
 
 Use [Serializable Validation](./week3-06-serializable.md) and [Compaction Filters](./week3-07-compaction-filter.md) as references.
-
-Before starting, add Week 3 test module Day 6 from the repository root:
-
-```shell
-cargo x copy-test --week 3 --day 6
-```
 
 First work out commit-time validation:
 
@@ -272,13 +280,23 @@ For a writing transaction, hold `commit_lock` across validation, timestamp alloc
 
 This is conservative point-key validation, not the full Serializable Snapshot Isolation algorithm. It can reject some serializable histories, and scans record returned-key hashes rather than predicates or gaps. The empty-range insertion above can therefore pass. Treat that limitation as a required explanation, not a hidden test gap or permission to claim full serializability.
 
-After validation passes its focused checks, copy Week 3 test module Day 7:
+Implement commit-time point-key validation and metadata reclamation as one coherent first pass. Compile before revealing Week 3 test module Day 6:
 
 ```shell
-cargo x copy-test --week 3 --day 7
+cargo check -p mini-lsm-starter --lib
+cargo x copy-test --week 3 --day 6
+cargo test -p mini-lsm-starter --lib week3_day6
 ```
 
-Then add compaction filters. Versions above the watermark remain untouched even when their user key matches. When the first matching version at or below the watermark is selected, omit it and every older version of that user key from the task's output. This deletion policy intentionally overrides ordinary snapshot visibility inside the filtered prefix: even an existing transaction may lose a version at or below the watermark. Such reads remain undefined, and older matching versions can also survive outside the current task.
+Then add compaction filters as another independent first pass. Versions above the watermark remain untouched even when their user key matches. When the first matching version at or below the watermark is selected, omit it and every older version of that user key from the task's output. This deletion policy intentionally overrides ordinary snapshot visibility inside the filtered prefix: even an existing transaction may lose a version at or below the watermark. Such reads remain undefined, and older matching versions can also survive outside the current task.
+
+Once the filter slice compiles without its supplied tests, reveal Week 3 test module Day 7 and run its focused gate:
+
+```shell
+cargo check -p mini-lsm-starter --lib
+cargo x copy-test --week 3 --day 7
+cargo test -p mini-lsm-starter --lib week3_day7
+```
 
 Before approving the checkpoint, reproduce the point-read write-skew abort and the scan-phantom limitation. Name why one is prevented and the other is not. Then, with watermark 5, filter `k@8, k@5, k@2`: predict that `k@8` survives while `k@5` and `k@2` may disappear, and explain why a read at timestamp 5 is outside the contract. Advance the watermark to 8, compact again, and trace the remaining history.
 

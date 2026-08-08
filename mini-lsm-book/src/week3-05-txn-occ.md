@@ -86,7 +86,7 @@ One timestamp makes a completed transaction appear at once to new readers, but i
 
 `batch_size` is the byte length of the body, and `checksum` covers the complete body. Reject keys, values, or batches that do not fit their encoded length fields rather than truncating their lengths.
 
-Implement `Wal::put_batch` and make `Wal::put` call it with a one-record batch. Recovery must validate the header, every field boundary, and the footer before applying any record. A truncated or corrupt batch returns an error and exposes none of its prefix.
+Implement `Wal::put_batch` and make `Wal::put` call it with a one-record batch. Recovery must validate the header, every field boundary, and the footer before applying any record. Clean EOF between frames succeeds. If the final frame ends inside its header, body, or checksum, warn, discard or truncate only that incomplete frame, and return success; earlier complete frames remain replayed. A fully present frame with a checksum mismatch or invalid nested key/value length is corruption: return an error, retain earlier validated frames, and expose none of the corrupt frame's prefix.
 
 Implement `MemTable::put_batch` and make `MemTable::put` use it. Append the complete WAL record before inserting entries into the skiplist; otherwise an I/O error can make an update visible in memory without a durable commit.
 
@@ -94,7 +94,7 @@ Submit the transaction to one memtable and one WAL before checking whether to fr
 
 ## Chapter Checkpoint
 
-Transaction-local reads should now behave like one overlay, and a successful commit should publish one indivisible logical and durable batch.
+Transaction-local reads should now behave like one overlay. One commit timestamp and delayed publication give the batch atomic visibility; one validated WAL frame gives it crash atomicity during recovery; successful `sync` establishes durability.
 
 Verify these cases explicitly:
 
@@ -103,14 +103,15 @@ Verify these cases explicitly:
 3. Inspect all internal records created by one commit and confirm that they have the same timestamp.
 4. Confirm that `get`, `scan`, `put`, `delete`, and a second `commit` reject use after the transaction has committed.
 5. Commit a batch larger than the memtable target and confirm that it stays in one memtable and WAL.
-6. Truncate the WAL batch in its header, body, and checksum; every recovery attempt must fail without exposing a prefix.
+6. Append one valid WAL frame, then truncate a second frame in its header, body, and checksum. Each recovery attempt must warn, succeed, replay the first frame, and expose none of the second.
+7. Corrupt the checksum or a nested length in a fully present second frame. Recovery must return an error, retain the first frame, and expose none of the corrupt frame.
 
 ## Test Your Understanding
 
 * Compare this chapter's guarantees with classic snapshot isolation as defined in the Week 3 overview. Which first-committer-wins rule is not enforced if two concurrent transactions blindly write the same key? Does allowing both commits necessarily make that particular history non-serializable?
 * What if the user wants to batch import data (i.e., 1TB?) If they use the transaction API to do that, will you give them some advice? Is there any opportunity to optimize for this case?
 * Day 6 uses optimistic concurrency control: it checks for conflicts at commit instead of preventing them while the transaction runs. What locks or blocking behavior would a pessimistic design add, and how would that change abort rates and concurrency?
-* Why are both a shared commit timestamp and WAL framing required for transaction atomicity?
+* Why do a shared commit timestamp and delayed publication provide atomic visibility, while a validated WAL frame provides crash atomicity? Where does `sync` establish durability?
 * Why must WAL append happen before memtable publication? What should the caller observe if either step fails?
 * When can the engine safely check the memtable size and freeze it without splitting the transaction?
 * Should an empty transaction allocate a commit timestamp? What are the tradeoffs? This checkpoint follows the existing batch-write behavior.

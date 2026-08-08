@@ -15,7 +15,7 @@ Week 1 produces a working storage engine. Weeks 2 and 3 add production-inspired 
 | Path | Format | Start here |
 | --- | --- | --- |
 | **Guided course** | Three weeks, with seven implementation chapters per week | [Read the course overview](./00-overview.md) |
-| **Coding-agent track** | Three planned days of decision stops, small code slices, and adversarial tests; Days 1–2 are available | [Prepare your agent and begin](./agent-fast-forward-overview.md) |
+| **Coding-agent track** | Three guided days of decision stops, small code slices, and adversarial tests; Days 1–3 are available (WIP) | [Prepare your agent and begin](./agent-fast-forward-overview.md) |
 
 Both paths build the same small storage system. The difference is who types most of the code, not who owns the understanding.
 
