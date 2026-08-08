@@ -171,13 +171,13 @@ WAL:      key_len | key | value_len | value | checksum | ...
 
 The checksum covers the encoded record bytes, not itself. Integer byte order is part of the format. Validate lengths before slicing and verify a checksum before exposing its payload.
 
-The agent should help you place crashes after every event in a flush and predict what recovery would observe. Here are the five events; before looking at the answer, work out a safe order where recovery never references a missing file:
+The agent should help you place crashes after every event in a flush and predict what recovery would observe. Here are the five events — they are **not** in the safe order. Before looking at the answer, work out an order where recovery never references a missing file:
 
-1. write and sync new SSTs
-2. sync the directory entries
-3. append and sync the manifest record
-4. delete obsolete inputs
-5. sync the directory again
+- sync the directory entries
+- delete obsolete inputs
+- append and sync the manifest record
+- write and sync new SSTs
+- sync the directory again
 
 Work through each candidate order. Place a crash after each step and describe what recovery would see: does it reference a file that was never durably created, or does it lose a file the manifest expects? Only one ordering guarantees that after every possible crash, recovery either sees the old logical state or the new logical state — never a state that requires a missing file.
 
