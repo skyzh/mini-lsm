@@ -6,7 +6,7 @@
 
 Mini-LSM is a hands-on course in database internals for systems and backend engineers. Build an LSM-tree storage engine from memtables and SSTs through compaction, crash recovery, MVCC, and transactions.
 
-**[Start the guided three-week course](https://skyzh.github.io/mini-lsm)** · **[Try the coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) (in progress)**
+**[Start the guided three-week course](https://skyzh.github.io/mini-lsm)** · **[Try the coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html)**
 
 Week 1 produces a working storage engine. Weeks 2 and 3 add production-inspired compaction, durability, concurrency control, and multi-version transactions.
 
