@@ -97,12 +97,12 @@ cargo run --bin compaction-simulator-mvcc-ref
 
 ## Guided Course Structure
 
-The guided course has three complete weeks and an open-ended collection of future optimizations.
+The guided course has three complete weeks.
 
 * Week 1: Storage Format + Engine Skeleton
 * Week 2: Compaction and Persistence
 * Week 3: Multi-Version Concurrency Control
-* The Rest of Your Life: Optional optimizations (TBD)
+* The Rest of Your Life: Closing chapter with expansion paths
 
 | Week + Chapter | Topic                                                       |
 | -------------- | ----------------------------------------------------------- |
