@@ -25,6 +25,43 @@ use crate::{
     tests::harness::check_lsm_iter_result_by_key,
 };
 
+fn check_all_range_bound_combinations(storage: &MiniLsm) {
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"a"), Bound::Included(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("a"), Bytes::from("1")),
+            (Bytes::from("b"), Bytes::from("2")),
+            (Bytes::from("c"), Bytes::from("3")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Included(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("a"), Bytes::from("1")),
+            (Bytes::from("b"), Bytes::from("2")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Excluded(b"a"), Bound::Included(b"c"))
+            .unwrap(),
+        vec![
+            (Bytes::from("b"), Bytes::from("2")),
+            (Bytes::from("c"), Bytes::from("3")),
+        ],
+    );
+    check_lsm_iter_result_by_key(
+        &mut storage
+            .scan(Bound::Excluded(b"a"), Bound::Excluded(b"c"))
+            .unwrap(),
+        vec![(Bytes::from("b"), Bytes::from("2"))],
+    );
+}
+
 #[test]
 fn test_task2_memtable_mvcc() {
     let dir = tempdir().unwrap();
@@ -330,14 +367,40 @@ fn test_task2_lsm_iterator_mvcc() {
 }
 
 #[test]
+fn test_task2_all_range_bounds_across_l0_and_level_ssts() {
+    let dir = tempdir().unwrap();
+    let options = LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction);
+    let storage = MiniLsm::open(&dir, options).unwrap();
+    storage.put(b"a", b"1").unwrap();
+    storage.put(b"b", b"2").unwrap();
+    storage.put(b"c", b"3").unwrap();
+
+    storage.force_flush().unwrap();
+    {
+        let state = storage.inner.state.read();
+        assert!(!state.l0_sstables.is_empty());
+        assert!(state.levels[0].1.is_empty());
+    }
+    check_all_range_bound_combinations(&storage);
+
+    storage.force_full_compaction().unwrap();
+    {
+        let state = storage.inner.state.read();
+        assert!(state.l0_sstables.is_empty());
+        assert!(!state.levels[0].1.is_empty());
+    }
+    check_all_range_bound_combinations(&storage);
+}
+
+#[test]
 fn test_task3_sst_ts() {
     let mut builder = SsTableBuilder::new(16);
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"11", 1), b"11");
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"22", 2), b"22");
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"33", 3), b"11");
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"44", 4), b"22");
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"55", 5), b"11");
-    builder.add(KeySlice::for_testing_from_slice_with_ts(b"66", 6), b"22");
+    builder.add(KeySlice::from_slice_with_ts(b"11", 6), b"11");
+    builder.add(KeySlice::from_slice_with_ts(b"22", 1), b"22");
+    builder.add(KeySlice::from_slice_with_ts(b"33", 3), b"11");
+    builder.add(KeySlice::from_slice_with_ts(b"44", 4), b"22");
+    builder.add(KeySlice::from_slice_with_ts(b"55", 5), b"11");
+    builder.add(KeySlice::from_slice_with_ts(b"66", 2), b"22");
     let dir = tempdir().unwrap();
     let sst = builder.build_for_test(dir.path().join("1.sst")).unwrap();
     assert_eq!(sst.max_ts(), 6);

@@ -20,9 +20,9 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 pub use builder::SsTableBuilder;
-use bytes::{Buf, BufMut};
+use bytes::BufMut;
 pub use iterator::SsTableIterator;
 
 use crate::block::Block;
@@ -30,6 +30,23 @@ use crate::key::{KeyBytes, KeySlice};
 use crate::lsm_storage::BlockCache;
 
 use self::bloom::Bloom;
+
+fn take_bytes<'a>(buf: &mut &'a [u8], len: usize, what: &str) -> Result<&'a [u8]> {
+    ensure!(buf.len() >= len, "{what} is truncated");
+    let (value, rest) = buf.split_at(len);
+    *buf = rest;
+    Ok(value)
+}
+
+fn take_u16(buf: &mut &[u8], what: &str) -> Result<u16> {
+    let value = take_bytes(buf, std::mem::size_of::<u16>(), what)?;
+    Ok(u16::from_be_bytes([value[0], value[1]]))
+}
+
+fn take_u32(buf: &mut &[u8], what: &str) -> Result<u32> {
+    let value = take_bytes(buf, std::mem::size_of::<u32>(), what)?;
+    Ok(u32::from_be_bytes([value[0], value[1], value[2], value[3]]))
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
@@ -43,7 +60,7 @@ pub struct BlockMeta {
 
 impl BlockMeta {
     /// Encode block meta to a buffer.
-    pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) {
+    pub fn encode_block_meta(block_meta: &[BlockMeta], buf: &mut Vec<u8>) -> Result<()> {
         let mut estimated_size = std::mem::size_of::<u32>();
         for meta in block_meta {
             // The size of offset
@@ -62,38 +79,71 @@ impl BlockMeta {
         // large
         buf.reserve(estimated_size);
         let original_len = buf.len();
-        buf.put_u32(block_meta.len() as u32);
+        buf.put_u32(u32::try_from(block_meta.len()).context("too many SST blocks")?);
         for meta in block_meta {
-            buf.put_u32(meta.offset as u32);
-            buf.put_u16(meta.first_key.len() as u16);
+            buf.put_u32(u32::try_from(meta.offset).context("SST block offset is too large")?);
+            buf.put_u16(u16::try_from(meta.first_key.len()).context("SST first key is too large")?);
             buf.put_slice(meta.first_key.raw_ref());
-            buf.put_u16(meta.last_key.len() as u16);
+            buf.put_u16(u16::try_from(meta.last_key.len()).context("SST last key is too large")?);
             buf.put_slice(meta.last_key.raw_ref());
         }
         buf.put_u32(crc32fast::hash(&buf[original_len + 4..]));
         assert_eq!(estimated_size, buf.len() - original_len);
+        Ok(())
     }
 
     /// Decode block meta from a buffer.
-    pub fn decode_block_meta(mut buf: &[u8]) -> Result<Vec<BlockMeta>> {
+    pub fn decode_block_meta(buf: &[u8]) -> Result<Vec<BlockMeta>> {
+        ensure!(
+            buf.len() >= std::mem::size_of::<u32>() * 2,
+            "SST block metadata is truncated"
+        );
+        let checksum_offset = buf.len() - std::mem::size_of::<u32>();
+        let expected_checksum = u32::from_be_bytes([
+            buf[checksum_offset],
+            buf[checksum_offset + 1],
+            buf[checksum_offset + 2],
+            buf[checksum_offset + 3],
+        ]);
+        let checksum = crc32fast::hash(&buf[std::mem::size_of::<u32>()..checksum_offset]);
+        ensure!(expected_checksum == checksum, "meta checksum mismatched");
+
+        let mut cursor = buf;
         let mut block_meta = Vec::new();
-        let num = buf.get_u32() as usize;
-        let checksum = crc32fast::hash(&buf[..buf.remaining() - 4]);
+        let num = take_u32(&mut cursor, "SST block count")? as usize;
+        let minimum_entry_size = std::mem::size_of::<u32>() + std::mem::size_of::<u16>() * 2;
+        ensure!(
+            num <= checksum_offset.saturating_sub(std::mem::size_of::<u32>()) / minimum_entry_size,
+            "SST block count exceeds the metadata length"
+        );
         for _ in 0..num {
-            let offset = buf.get_u32() as usize;
-            let first_key_len = buf.get_u16() as usize;
-            let first_key = KeyBytes::from_bytes(buf.copy_to_bytes(first_key_len));
-            let last_key_len: usize = buf.get_u16() as usize;
-            let last_key = KeyBytes::from_bytes(buf.copy_to_bytes(last_key_len));
+            let offset = take_u32(&mut cursor, "SST block offset")? as usize;
+            let first_key_len = take_u16(&mut cursor, "SST first-key length")? as usize;
+            ensure!(first_key_len > 0, "SST first key is empty");
+            let first_key = KeyBytes::from_bytes(
+                take_bytes(&mut cursor, first_key_len, "SST first key")?
+                    .to_vec()
+                    .into(),
+            );
+            let last_key_len = take_u16(&mut cursor, "SST last-key length")? as usize;
+            ensure!(last_key_len > 0, "SST last key is empty");
+            let last_key = KeyBytes::from_bytes(
+                take_bytes(&mut cursor, last_key_len, "SST last key")?
+                    .to_vec()
+                    .into(),
+            );
             block_meta.push(BlockMeta {
                 offset,
                 first_key,
                 last_key,
             });
         }
-        if buf.get_u32() != checksum {
-            bail!("meta checksum mismatched");
-        }
+        ensure!(
+            cursor.len() == std::mem::size_of::<u32>(),
+            "SST block metadata has trailing or missing bytes"
+        );
+        let stored_checksum = take_u32(&mut cursor, "SST metadata checksum")?;
+        ensure!(stored_checksum == checksum, "meta checksum mismatched");
 
         Ok(block_meta)
     }
@@ -105,10 +155,15 @@ pub struct FileObject(Option<File>, u64);
 impl FileObject {
     pub fn read(&self, offset: u64, len: u64) -> Result<Vec<u8>> {
         use std::os::unix::fs::FileExt;
-        let mut data = vec![0; len as usize];
+        let end = offset
+            .checked_add(len)
+            .context("file read range overflow")?;
+        ensure!(end <= self.1, "file read range is out of bounds");
+        let len = usize::try_from(len).context("file read is too large")?;
+        let mut data = vec![0; len];
         self.0
             .as_ref()
-            .unwrap()
+            .context("cannot read a metadata-only file object")?
             .read_exact_at(&mut data[..], offset)?;
         Ok(data)
     }
@@ -123,7 +178,7 @@ impl FileObject {
         File::open(path)?.sync_all()?;
         Ok(FileObject(
             Some(File::options().read(true).write(false).open(path)?),
-            data.len() as u64,
+            u64::try_from(data.len()).context("SST file is too large")?,
         ))
     }
 
@@ -158,20 +213,65 @@ impl SsTable {
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let len = file.size();
-        let raw_bloom_offset = file.read(len - 4, 4)?;
-        let bloom_offset = (&raw_bloom_offset[..]).get_u32() as u64;
-        let raw_bloom = file.read(bloom_offset, len - 4 - bloom_offset)?;
+        let bloom_trailer_offset = len
+            .checked_sub(std::mem::size_of::<u32>() as u64)
+            .context("SST bloom-offset trailer is truncated")?;
+        let raw_bloom_offset = file.read(bloom_trailer_offset, 4)?;
+        let bloom_offset = u32::from_be_bytes([
+            raw_bloom_offset[0],
+            raw_bloom_offset[1],
+            raw_bloom_offset[2],
+            raw_bloom_offset[3],
+        ]) as u64;
+        ensure!(
+            bloom_offset <= bloom_trailer_offset,
+            "SST bloom offset is out of bounds"
+        );
+        let meta_trailer_offset = bloom_offset
+            .checked_sub(std::mem::size_of::<u32>() as u64)
+            .context("SST metadata-offset trailer is truncated")?;
+        let raw_bloom = file.read(bloom_offset, bloom_trailer_offset - bloom_offset)?;
         let bloom_filter = Bloom::decode(&raw_bloom)?;
-        let raw_meta_offset = file.read(bloom_offset - 4, 4)?;
-        let block_meta_offset = (&raw_meta_offset[..]).get_u32() as u64;
-        let raw_meta = file.read(block_meta_offset, bloom_offset - 4 - block_meta_offset)?;
+        let raw_meta_offset = file.read(meta_trailer_offset, 4)?;
+        let block_meta_offset = u32::from_be_bytes([
+            raw_meta_offset[0],
+            raw_meta_offset[1],
+            raw_meta_offset[2],
+            raw_meta_offset[3],
+        ]) as u64;
+        ensure!(
+            block_meta_offset <= meta_trailer_offset,
+            "SST block-metadata offset is out of bounds"
+        );
+        let raw_meta = file.read(block_meta_offset, meta_trailer_offset - block_meta_offset)?;
         let block_meta = BlockMeta::decode_block_meta(&raw_meta[..])?;
+        ensure!(!block_meta.is_empty(), "SST has no data blocks");
+        ensure!(
+            block_meta[0].offset == 0,
+            "first SST block must start at zero"
+        );
+        ensure!(
+            block_meta
+                .windows(2)
+                .all(|pair| pair[0].offset < pair[1].offset),
+            "SST block offsets are not strictly increasing"
+        );
+        let block_meta_offset_usize =
+            usize::try_from(block_meta_offset).context("SST metadata offset is too large")?;
+        ensure!(
+            block_meta.iter().all(|meta| {
+                meta.offset
+                    .checked_add(std::mem::size_of::<u32>())
+                    .is_some_and(|end| end < block_meta_offset_usize)
+            }),
+            "SST block offset or checksum is out of bounds"
+        );
         Ok(Self {
             file,
-            first_key: block_meta.first().unwrap().first_key.clone(),
-            last_key: block_meta.last().unwrap().last_key.clone(),
+            first_key: block_meta[0].first_key.clone(),
+            last_key: block_meta[block_meta.len() - 1].last_key.clone(),
             block_meta,
-            block_meta_offset: block_meta_offset as usize,
+            block_meta_offset: block_meta_offset_usize,
             id,
             block_cache,
             bloom: Some(bloom_filter),
@@ -201,21 +301,33 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        let offset = self.block_meta[block_idx].offset;
+        let offset = self
+            .block_meta
+            .get(block_idx)
+            .context("SST block index is out of bounds")?
+            .offset;
         let offset_end = self
             .block_meta
             .get(block_idx + 1)
             .map_or(self.block_meta_offset, |x| x.offset);
-        let block_len = offset_end - offset - 4;
-        let block_data_with_chksum: Vec<u8> = self
-            .file
-            .read(offset as u64, (offset_end - offset) as u64)?;
+        let range_len = offset_end
+            .checked_sub(offset)
+            .context("SST block offsets are reversed")?;
+        let block_len = range_len
+            .checked_sub(std::mem::size_of::<u32>())
+            .context("SST block checksum is truncated")?;
+        let block_data_with_chksum: Vec<u8> = self.file.read(offset as u64, range_len as u64)?;
         let block_data = &block_data_with_chksum[..block_len];
-        let checksum = (&block_data_with_chksum[block_len..]).get_u32();
+        let checksum = u32::from_be_bytes([
+            block_data_with_chksum[block_len],
+            block_data_with_chksum[block_len + 1],
+            block_data_with_chksum[block_len + 2],
+            block_data_with_chksum[block_len + 3],
+        ]);
         if checksum != crc32fast::hash(block_data) {
             bail!("block checksum mismatched");
         }
-        Ok(Arc::new(Block::decode(block_data)))
+        Ok(Arc::new(Block::decode_checked(block_data)?))
     }
 
     /// Read a block from disk, with block cache.

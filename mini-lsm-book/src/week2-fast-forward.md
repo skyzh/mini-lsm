@@ -30,18 +30,17 @@ Tests and simulator output are evidence, not the specification. A plausible file
 
 ## Prepare Day 2
 
-Begin from a Day 1 implementation that passes its complete suite. From the repository root, copy all available Week 2 tests and record the first failure:
+Begin from a Day 1 implementation that passes its complete suite. Verify that it still compiles, but do not copy the Week 2 tests yet:
 
 ```shell
-cargo x copy-test --week 2
-cargo x scheck
+cargo check -p mini-lsm-starter --lib
 ```
 
-Week 2 has supplied tests for its original Days 1 through 6. The checksum work from original Day 7 has no dedicated supplied tests, so you will need your own corruption cases.
+Week 2 has supplied tests for its original Days 1 through 6. Reveal each one only after the corresponding checkpoint or compaction policy has a compiling independent first pass. The checksum work from original Day 7 has no dedicated supplied tests, so you will need your own corruption cases.
 
 With the agent running from `mini-lsm-starter`, send:
 
-> Build Day 2 with me, starting with one safe full compaction. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm`. Ask one short question at a time using a concrete set of files, keys, or crash points. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
+> Build Day 2 with me, starting with one safe full compaction. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm` or `../mini-lsm-mvcc`. Ask one short question at a time using a concrete set of files, keys, or crash points. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 
 Use the checkpoints in order unless you can explain why a different dependency order is safe. The tables are audit guides, not questionnaires to paste into the agent.
 
@@ -79,7 +78,14 @@ Inputs must be presented to the merge iterator from newest to oldest. A tombston
 
 L1 is one sorted run: its SST ranges do not overlap and are ordered by first key. Its concat iterator should open only the active SST rather than eagerly loading one block from every file.
 
-Before approving the checkpoint, use one key that appears in both L0 and L1. Predict the result when L0 contains a value and when it contains a tombstone. After the focused checks pass, explain the line that removes captured L0 IDs without removing a later flush.
+Reveal Week 2 Day 1 only after this checkpoint's first pass is complete:
+
+```shell
+cargo x copy-test --week 2 --day 1
+cargo test -p mini-lsm-starter week2_day1
+```
+
+Before approving the checkpoint, use one key that appears in both L0 and L1. Predict the result when L0 contains a value and when it contains a tombstone. After the focused check passes, explain the line that removes captured L0 IDs without removing a later flush.
 
 ## Checkpoint 2: Decide What to Compact
 
@@ -94,7 +100,24 @@ Follow this default sequence for each policy:
 1. implement task selection and result application against the simulator state;
 2. run a short simulator trace and explain every selected task;
 3. add the policy to compaction dispatch, flushing, and reads; and
-4. stop for review before beginning the next policy.
+4. reveal and run that policy's supplied test only after its first pass is complete; and
+5. stop for review before beginning the next policy.
+
+The policy tests map to commands as follows:
+
+```shell
+# Simple leveled
+cargo x copy-test --week 2 --day 2
+cargo test -p mini-lsm-starter week2_day2
+
+# Tiered
+cargo x copy-test --week 2 --day 3
+cargo test -p mini-lsm-starter week2_day3
+
+# Dynamic leveled
+cargo x copy-test --week 2 --day 4
+cargo test -p mini-lsm-starter week2_day4
+```
 
 > **For the coding agent:** The completed Week 2 track implements all three compaction policies — simple leveled, tiered, and dynamic leveled. This is a course rule, not a student choice. Genuine student choices are helper structure, allocation, and equivalent search methods.
 
@@ -135,8 +158,13 @@ Use these simulator commands without consulting the reference implementation:
 ```shell
 cargo run --bin compaction-simulator simple
 cargo run --bin compaction-simulator tiered
-cargo run --bin compaction-simulator leveled
+cargo run --locked --bin compaction-simulator -- leveled --seed 42
 ```
+
+The leveled simulator's seed controls its mock SST key ranges. Record the seed
+with the trace, and use the same source checkout, `Cargo.lock`, options, and
+seed for any authorized learner/reference comparison. A different seed is a
+different workload.
 
 For at least one trace per policy, annotate the selected inputs, the reason the task fired, whether it reaches the bottom, the source that wins equal keys, and the files that remain afterward. Change one threshold and predict the next task before rerunning the simulator.
 
@@ -201,6 +229,15 @@ Recovery may see the old logical state or the new logical state at some crash bo
 When WALs are enabled, create the WAL, sync its directory entry, and durably record `NewMemtable(id)` before making that memtable available for writes. `sync` must flush the `BufWriter` and then call `sync_all`. A durable flush record retires the WAL logically before its filename is removed. Recovery ignores such stale files, restores live immutable memtables newest to oldest, and sets `next_sst_id` to one greater than every live SST or WAL ID.
 
 Without WALs, `close` flushes every non-empty memtable. With WALs, it synchronizes them instead. In both cases, it stops and joins the background threads and remains harmless when called again.
+
+Reveal the manifest and WAL tests only after this checkpoint's first pass is complete:
+
+```shell
+cargo x copy-test --week 2 --day 5
+cargo x copy-test --week 2 --day 6
+cargo test -p mini-lsm-starter week2_day5
+cargo test -p mini-lsm-starter week2_day6
+```
 
 Before approving the checkpoint, write the event sequence for one flush and place a crash after every event. Then recover a manifest containing interleaved `NewMemtable`, `Flush`, and `Compaction` records by hand. After the focused tests pass, explain the line that prevents a manifest record from becoming durable before its new file.
 

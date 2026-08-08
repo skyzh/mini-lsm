@@ -64,22 +64,39 @@ impl BlockBuilder {
     #[must_use]
     pub fn add(&mut self, key: KeySlice, value: &[u8]) -> bool {
         assert!(!key.is_empty(), "key must not be empty");
-        if self.estimated_size() + key.len() + value.len() + SIZEOF_U16 * 3 /* key_len, value_len and offset */ > self.block_size
-            && !self.is_empty()
-        {
+        let Ok(key_len) = u16::try_from(key.len()) else {
+            return false;
+        };
+        let Ok(value_len) = u16::try_from(value.len()) else {
+            return false;
+        };
+        let entry_size = key
+            .len()
+            .saturating_add(value.len())
+            .saturating_add(SIZEOF_U16 * 3);
+        let block_is_full = self.estimated_size().saturating_add(entry_size) > self.block_size;
+        let offset_is_full = self.data.len() > usize::from(u16::MAX);
+        let count_is_full = self.offsets.len() >= usize::from(u16::MAX);
+        if !self.is_empty() && (block_is_full || offset_is_full || count_is_full) {
             return false;
         }
         // Add the offset of the data into the offset array.
-        self.offsets.push(self.data.len() as u16);
+        let Ok(offset) = u16::try_from(self.data.len()) else {
+            return false;
+        };
+        self.offsets.push(offset);
         let overlap = compute_overlap(self.first_key.as_key_slice(), key);
+        let Ok(overlap) = u16::try_from(overlap) else {
+            return false;
+        };
         // Encode key overlap.
-        self.data.put_u16(overlap as u16);
+        self.data.put_u16(overlap);
         // Encode key length.
-        self.data.put_u16((key.len() - overlap) as u16);
+        self.data.put_u16(key_len - overlap);
         // Encode key content.
-        self.data.put(&key.raw_ref()[overlap..]);
+        self.data.put(&key.raw_ref()[usize::from(overlap)..]);
         // Encode value length.
-        self.data.put_u16(value.len() as u16);
+        self.data.put_u16(value_len);
         // Encode value content.
         self.data.put(value);
 

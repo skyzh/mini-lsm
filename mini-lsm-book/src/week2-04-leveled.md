@@ -53,11 +53,17 @@ In this chapter, you will implement a more realistic leveled compaction strategy
 src/compact/leveled.rs
 ```
 
-To run the compaction simulator,
+To run the compaction simulator with a recorded workload seed,
 
+```shell
+cargo run --locked --bin compaction-simulator -- leveled --seed 42
 ```
-cargo run --bin compaction-simulator leveled
-```
+
+The seed controls the mock SST key ranges. When you compare learner and
+reference output, run both binaries from the same checkout and `Cargo.lock`
+with the same explicit seed. Changing the seed changes the workload. The
+default is `42`, but include `--seed` in saved evidence so another person can
+replay it.
 
 ### Task 1.1: Compute Target Sizes
 
@@ -148,7 +154,9 @@ After choosing the upper SST, find every lower-level SST whose key range overlap
 
 When compaction completes, remove the selected files and insert the outputs in the correct lower-level position. In every level except L0, keep SST IDs ordered by first key.
 
-Running the compaction simulator, you should see:
+Running the compaction simulator, you should see the same structural behavior.
+The IDs and key ranges in this excerpt are illustrative; compare exact values
+only when the source revision, lockfile, options, and seed are the same:
 
 ```
 --- After Compaction ---

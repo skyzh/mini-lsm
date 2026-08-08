@@ -8,9 +8,9 @@ Congratulations! The engine now supports multi-version transactions. This final 
 
 By the end of this chapter, you will be able to:
 
-* Apply a prefix filter without reclaiming versions that an active snapshot may still need.
+* Apply a prefix filter while preserving versions above the watermark.
 * Remove the selected version and older versions of the same user key from one compaction output.
-* Explain the intentionally undefined reads for a filtered key while reclamation is still propagating through the LSM tree.
+* Explain why reads for a filtered key are intentionally undefined, including for an existing snapshot whose visible version is reclaimed.
 
 For now, our compaction will simply retain the keys above the watermark and the latest version of the keys below the watermark. We can add some magic to the compaction process to help the user collect some unused data automatically as a background job.
 
@@ -70,12 +70,12 @@ You may assume that the user will not call `get` or scan within the filtered pre
 
 ## Chapter Checkpoint
 
-Compaction should now reclaim filtered prefixes only as quickly as the watermark and selected compaction tasks permit.
+Compaction should now reclaim filtered prefixes only as quickly as the watermark and selected compaction tasks permit. The filter is an explicit deletion policy, so the ordinary snapshot-preservation guarantee does not apply inside the matching prefix.
 
 Verify these cases explicitly:
 
-1. Hold an old snapshot, install a filter, and compact; versions needed by the snapshot must remain.
-2. Drop the snapshot and compact again; the matching version at or below the new watermark and its older history should disappear.
+1. With watermark 5 and versions `k@8, k@5, k@2`, install a matching filter and compact; `k@8` remains, while `k@5` and `k@2` may disappear. Explain why a read at timestamp 5 is intentionally outside the contract.
+2. Advance the watermark to 8 and compact again; the matching version at 8 and its older history should disappear.
 3. Mix matching and non-matching keys, including tombstones, and confirm ordinary garbage collection still applies to the non-matching keys.
 4. Apply the filter in a non-bottom compaction and identify any older matching versions that remain outside the task.
 

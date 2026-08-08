@@ -147,8 +147,13 @@ impl<'a> Key<&'a [u8]> {
         Key(self.0.to_vec(), self.1)
     }
 
-    /// Create a key slice from a slice. Will be removed in week 3.
-    pub fn from_slice(slice: &'a [u8], ts: u64) -> Self {
+    /// Create a key slice from a slice with the default timestamp.
+    pub fn from_slice(slice: &'a [u8]) -> Self {
+        Self(slice, TS_DEFAULT)
+    }
+
+    /// Create a key slice from a slice and an explicit timestamp.
+    pub fn from_slice_with_ts(slice: &'a [u8], ts: u64) -> Self {
         Self(slice, ts)
     }
 

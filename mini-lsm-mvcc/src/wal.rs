@@ -53,16 +53,18 @@ impl Wal {
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
         let mut rbuf: &[u8] = buf.as_slice();
+        let mut valid_len = 0;
+        let mut has_truncated_tail = false;
         while rbuf.has_remaining() {
-            ensure!(
-                rbuf.remaining() >= std::mem::size_of::<u32>(),
-                "incomplete WAL batch header"
-            );
+            if rbuf.remaining() < std::mem::size_of::<u32>() {
+                has_truncated_tail = true;
+                break;
+            }
             let batch_size = rbuf.get_u32() as usize;
-            ensure!(
-                batch_size <= rbuf.remaining().saturating_sub(std::mem::size_of::<u32>()),
-                "incomplete WAL batch"
-            );
+            if batch_size > rbuf.remaining().saturating_sub(std::mem::size_of::<u32>()) {
+                has_truncated_tail = true;
+                break;
+            }
             let mut batch_buf = &rbuf[..batch_size];
             let mut kv_pairs = Vec::new();
             let mut hasher = crc32fast::Hasher::new();
@@ -97,13 +99,24 @@ impl Wal {
             rbuf.advance(batch_size);
             let expected_checksum = rbuf.get_u32();
             let component_checksum = hasher.finalize();
-            assert_eq!(component_checksum, single_checksum);
+            ensure!(
+                component_checksum == single_checksum,
+                "WAL component checksum disagrees with frame checksum"
+            );
             if single_checksum != expected_checksum {
                 bail!("checksum mismatch");
             }
             for (key, ts, value) in kv_pairs {
                 skiplist.insert(KeyBytes::from_bytes_with_ts(key, ts), value);
             }
+            valid_len = buf.len() - rbuf.len();
+        }
+        if has_truncated_tail {
+            eprintln!("warning: ignoring incomplete WAL frame at byte offset {valid_len}");
+            file.set_len(valid_len as u64)
+                .context("failed to truncate incomplete WAL tail")?;
+            file.sync_all()
+                .context("failed to sync truncated WAL tail")?;
         }
         Ok(Self {
             file: Arc::new(Mutex::new(BufWriter::new(file))),
