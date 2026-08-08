@@ -117,6 +117,8 @@ fn freeze_memtable(&self) {
 
 This approach works for now. However, consider creating a write-ahead log file for every memtable:
 
+A write-ahead log (WAL) is an append-only record of recent writes that lets the engine recover after a crash; it is not part of this chapter — the example only shows why creating it must not happen inside the state lock. You will build the WAL in Week 2 Day 6.
+
 ```rust,no_run
 fn freeze_memtable(&self) -> Result<()> {
     let mut guard = self.state.write();

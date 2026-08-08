@@ -64,7 +64,9 @@ Begin a checkpoint with an ordinary capability request:
 
 > Implement block format.
 
-That prompt authorizes the learning process, not a one-shot patch. The agent should inspect allowed context and ask its first design question. It should not return a complete design, edit code, or run ahead to a passing suite.
+That prompt authorizes the learning process, not a one-shot patch.
+
+> **For the agent:** Inspect allowed context and ask your first design question. Do not return a complete design, edit code, or run ahead to a passing suite.
 
 Repeat this loop:
 
@@ -76,9 +78,7 @@ Repeat this loop:
 6. **Tests produce evidence.** A coding mistake can be fixed directly. A failure that exposes an unsettled or incorrect design returns to the dialogue.
 7. **Student reviews.** Inspect the diff and test output before authorizing the next slice.
 
-The agent must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek behavior, errors, synchronization, and where an optimization belongs. Some answers are course rules to derive; others are genuine choices. It need not interrupt you over a local variable name, import order, formatting, or an obvious compiler-directed repair.
-
-The distinction keeps the conversation educational without turning every keystroke into ceremony.
+> **For the agent:** You must stop on topics that affect behavior or understanding: representation, ordering, ownership, size and boundary accounting, seek behavior, errors, synchronization, and where an optimization belongs. Some answers are course rules to derive; others are genuine choices. Do not interrupt over a local variable name, import order, formatting, or an obvious compiler-directed repair. The distinction keeps the conversation educational without turning every keystroke into ceremony.
 
 At any stop, you can answer with one of these commands:
 
@@ -117,17 +117,17 @@ Delegating one choice is not permission for the agent to decide the rest.
 
 ## Review a Code Slice
 
-Before each edit, the agent should state:
-
-- which accepted decisions determine the slice;
-- which files and observable behavior will change; and
-- which focused check it expects to exercise that behavior.
+> **For the agent:** Before each edit, state:
+>
+> - which accepted decisions determine the slice;
+> - which files and observable behavior will change; and
+> - which focused check you expect to exercise that behavior.
 
 After the edit, require the exact command and result, then ask:
 
 > Treat this slice as untrusted. Connect the changed behavior to the decision ledger and supplied tests. Identify one plausible bug that could still pass, propose the smallest adversarial check, and ask me to predict its outcome before adding it.
 
-The agent should also point to one important changed line and ask: “What is this line trying to do, and what behavior might break if it changed?” The purpose is to connect a decision to code, not to quiz you on arbitrary syntax.
+> **For the agent:** Also point to one important changed line and ask: “What is this line trying to do, and what behavior might break if it changed?” The purpose is to connect a decision to code, not to quiz you on arbitrary syntax.
 
 Do not let “all tests pass” end the review. Conversely, once the contract and adversarial checks are satisfied, continue to the next unresolved decision instead of inventing unrelated refactors.
 

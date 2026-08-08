@@ -53,7 +53,7 @@ Ask:
 
 This checkpoint covers full compaction, the concat iterator, and the two-level read path. Use [Compaction Implementation](./week2-01-compaction.md) when a question needs more context.
 
-The agent should help you work out these course rules from small file states:
+> **For the agent:** Help the student work out these course rules from small file states:
 
 | Behavior to work out | Small case that exposes it |
 | --- | --- |
@@ -96,7 +96,7 @@ Follow this default sequence for each policy:
 3. add the policy to compaction dispatch, flushing, and reads; and
 4. stop for review before beginning the next policy.
 
-Do not treat “which policies should exist?” as a student preference: the completed Week 2 track implements all three. The policy algorithms are course rules; helper structure, allocation, and equivalent search methods may be genuine choices.
+> **For the agent:** Do not treat "which policies should exist?" as a student preference: the completed Week 2 track implements all three. The policy algorithms are course rules; helper structure, allocation, and equivalent search methods are genuine choices.
 
 ### Simple leveled
 
@@ -171,17 +171,21 @@ WAL:      key_len | key | value_len | value | checksum | ...
 
 The checksum covers the encoded record bytes, not itself. Integer byte order is part of the format. Validate lengths before slicing and verify a checksum before exposing its payload.
 
-For a flush or compaction that creates SSTs, the safe durable order is:
+For a flush or compaction that creates SSTs, you must decide the safe durable order. The steps are:
 
-```text
-write and sync new SSTs
-  -> sync the directory entries
-  -> append and sync the manifest record
-  -> delete obsolete inputs
-  -> sync the directory again
-```
+1. Write and sync new SSTs.
+2. Sync the directory entries.
+3. Append and sync the manifest record.
+4. Delete obsolete inputs.
+5. Sync the directory again.
 
-Recovery may see the old logical state or the new logical state at some crash boundaries. It must never see a durable manifest record that requires a missing file. An unreferenced new file or an undeleted obsolete file is tolerable because neither belongs to the recovered logical state.
+Each step depends on the previous one. Before the agent reveals the correct sequence, arrange these steps yourself and explain your reasoning:
+
+- At which point could a crash leave a durable manifest record pointing to a file that was never made durable?
+- At which point could a crash leave an orphaned SST file that the manifest does not reference?
+- Why must the directory be synced twice?
+
+After you propose an ordering, ask the agent to check it against the course rules and explain any difference.
 
 When WALs are enabled, create the WAL, sync its directory entry, and durably record `NewMemtable(id)` before making that memtable available for writes. `sync` must flush the `BufWriter` and then call `sync_all`. A durable flush record retires the WAL logically before its filename is removed. Recovery ignores such stale files, restores live immutable memtables newest to oldest, and sets `next_sst_id` to one greater than every live SST or WAL ID.
 
