@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use bytes::Bytes;
 use parking_lot::{Mutex, MutexGuard, RwLock};
 
@@ -60,6 +60,24 @@ pub struct LsmStorageState {
 pub enum WriteBatchRecord<T: AsRef<[u8]>> {
     Put(T, T),
     Del(T),
+}
+
+fn validate_write_batch<T: AsRef<[u8]>>(batch: &[WriteBatchRecord<T>]) -> Result<()> {
+    for record in batch {
+        let (key, value) = match record {
+            WriteBatchRecord::Put(key, value) => (key.as_ref(), value.as_ref()),
+            WriteBatchRecord::Del(key) => (key.as_ref(), &[][..]),
+        };
+        ensure!(
+            u16::try_from(key.len()).is_ok(),
+            "key is too large for the on-disk format"
+        );
+        ensure!(
+            u16::try_from(value.len()).is_ok(),
+            "value is too large for the on-disk format"
+        );
+    }
+    Ok(())
 }
 
 impl LsmStorageState {
@@ -553,6 +571,7 @@ impl LsmStorageInner {
     }
 
     pub fn write_batch<T: AsRef<[u8]>>(&self, batch: &[WriteBatchRecord<T>]) -> Result<()> {
+        validate_write_batch(batch)?;
         for record in batch {
             match record {
                 WriteBatchRecord::Del(key) => {

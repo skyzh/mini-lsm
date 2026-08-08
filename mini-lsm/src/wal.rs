@@ -19,7 +19,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{BufMut, Bytes};
 use crossbeam_skiplist::SkipMap;
 use parking_lot::Mutex;
 
@@ -52,24 +52,57 @@ impl Wal {
             .context("failed to recover from WAL")?;
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
-        let mut rbuf: &[u8] = buf.as_slice();
-        while rbuf.has_remaining() {
-            let mut hasher = crc32fast::Hasher::new();
-            let key_len = rbuf.get_u16() as usize;
-            hasher.write(&(key_len as u16).to_be_bytes());
-            let key = Bytes::copy_from_slice(&rbuf[..key_len]);
-            hasher.write(&key);
-            rbuf.advance(key_len);
-            let value_len = rbuf.get_u16() as usize;
-            hasher.write(&(value_len as u16).to_be_bytes());
-            let value = Bytes::copy_from_slice(&rbuf[..value_len]);
-            hasher.write(&value);
-            rbuf.advance(value_len);
-            let checksum = rbuf.get_u32();
-            if hasher.finalize() != checksum {
-                bail!("checksum mismatch");
+        let mut valid_len = 0usize;
+        while valid_len < buf.len() {
+            let remaining = &buf[valid_len..];
+            if remaining.len() < std::mem::size_of::<u16>() {
+                break;
             }
+            let key_len = u16::from_be_bytes([remaining[0], remaining[1]]) as usize;
+            let Some(value_len_offset) = std::mem::size_of::<u16>().checked_add(key_len) else {
+                break;
+            };
+            let Some(value_offset) = value_len_offset.checked_add(std::mem::size_of::<u16>())
+            else {
+                break;
+            };
+            if remaining.len() < value_offset {
+                break;
+            }
+            let value_len =
+                u16::from_be_bytes([remaining[value_len_offset], remaining[value_len_offset + 1]])
+                    as usize;
+            let Some(checksum_offset) = value_offset.checked_add(value_len) else {
+                break;
+            };
+            let Some(record_len) = checksum_offset.checked_add(std::mem::size_of::<u32>()) else {
+                break;
+            };
+            if remaining.len() < record_len {
+                break;
+            }
+
+            let expected_checksum = u32::from_be_bytes([
+                remaining[checksum_offset],
+                remaining[checksum_offset + 1],
+                remaining[checksum_offset + 2],
+                remaining[checksum_offset + 3],
+            ]);
+            if crc32fast::hash(&remaining[..checksum_offset]) != expected_checksum {
+                bail!("WAL checksum mismatch at byte offset {valid_len}");
+            }
+            let key = Bytes::copy_from_slice(&remaining[2..value_len_offset]);
+            let value = Bytes::copy_from_slice(&remaining[value_offset..checksum_offset]);
             skiplist.insert(key, value);
+            valid_len += record_len;
+        }
+
+        if valid_len < buf.len() {
+            eprintln!("warning: ignoring incomplete WAL record at byte offset {valid_len}");
+            file.set_len(valid_len as u64)
+                .context("failed to truncate incomplete WAL tail")?;
+            file.sync_all()
+                .context("failed to sync truncated WAL tail")?;
         }
         Ok(Self {
             file: Arc::new(Mutex::new(BufWriter::new(file))),
@@ -77,17 +110,19 @@ impl Wal {
     }
 
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        let key_len = u16::try_from(key.len()).context("WAL key is too large")?;
+        let value_len = u16::try_from(value.len()).context("WAL value is too large")?;
         let mut file = self.file.lock();
         let mut buf: Vec<u8> = Vec::with_capacity(
             key.len() + value.len() + std::mem::size_of::<u16>() * 2 + std::mem::size_of::<u32>(),
         );
         let mut hasher = crc32fast::Hasher::new();
-        hasher.write(&(key.len() as u16).to_be_bytes());
-        buf.put_u16(key.len() as u16);
+        hasher.write(&key_len.to_be_bytes());
+        buf.put_u16(key_len);
         hasher.write(key);
         buf.put_slice(key);
-        hasher.write(&(value.len() as u16).to_be_bytes());
-        buf.put_u16(value.len() as u16);
+        hasher.write(&value_len.to_be_bytes());
+        buf.put_u16(value_len);
         buf.put_slice(value);
         hasher.write(value);
         // add checksum: week 2 day 7

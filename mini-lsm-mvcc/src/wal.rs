@@ -99,7 +99,10 @@ impl Wal {
             rbuf.advance(batch_size);
             let expected_checksum = rbuf.get_u32();
             let component_checksum = hasher.finalize();
-            assert_eq!(component_checksum, single_checksum);
+            ensure!(
+                component_checksum == single_checksum,
+                "WAL component checksum disagrees with frame checksum"
+            );
             if single_checksum != expected_checksum {
                 bail!("checksum mismatch");
             }
