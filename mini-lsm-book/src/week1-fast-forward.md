@@ -77,7 +77,9 @@ Ask:
 
 This checkpoint covers blocks, block iterators, SST builders, SST readers, SST iterators, Bloom filters, and final prefix compression. Consult [Block](./week1-03-block.md), [Sorted String Table](./week1-04-sst.md), and [SST Optimizations](./week1-07-sst-optimizations.md) when a question requires deeper context.
 
-Because this path copies all seven test suites at the start, the accepted design should converge directly on the final Day 7 prefix-compressed block format. Do not first implement the Day 3 layout and silently replace it. > **For the agent:** Explicitly ask which acceptance target applies and record that choice.
+Because this path copies all seven test suites at the start, the accepted design should converge directly on the final Day 7 prefix-compressed block format. Do not first implement the Day 3 layout and silently replace it.
+
+> **For the agent:** Explicitly ask which acceptance target applies and record that choice.
 
 First use concrete byte examples to derive the parts fixed by the course:
 
@@ -120,7 +122,9 @@ Treat the writer and reader as two parties implementing a protocol. A round-trip
 
 </details>
 
-The example begins with an operation the student can picture and names the concept afterward. > **For the agent:** A real implementation stop must still preview the files and focused test, wait for authorization, report actual evidence, and stop before beginning the next slice. An unexpected test failure either reveals a mechanical bug or reopens one specific decision.
+The example begins with an operation the student can picture and names the concept afterward.
+
+> **For the agent:** A real implementation stop must still preview the files and focused test, wait for authorization, report actual evidence, and stop before beginning the next slice. An unexpected test failure either reveals a mechanical bug or reopens one specific decision.
 
 Before approving the completed checkpoint, decode three keys by hand: one with no shared prefix, one with a long shared prefix, and one with an empty value. Confirm that a seek returns the first key greater than or equal to its target and that a Bloom-filter negative can never hide a present key.
 

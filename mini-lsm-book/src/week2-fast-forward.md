@@ -171,13 +171,13 @@ WAL:      key_len | key | value_len | value | checksum | ...
 
 The checksum covers the encoded record bytes, not itself. Integer byte order is part of the format. Validate lengths before slicing and verify a checksum before exposing its payload.
 
-For a flush or compaction that creates SSTs, you must decide the safe durable order. The steps are:
+For a flush or compaction that creates SSTs, you must decide the safe durable order. The five steps below are **not** in the safe order — arrange them yourself:
 
-1. Write and sync new SSTs.
-2. Sync the directory entries.
-3. Append and sync the manifest record.
-4. Delete obsolete inputs.
-5. Sync the directory again.
+- Sync the directory entries.
+- Sync the directory again.
+- Delete obsolete inputs.
+- Append and sync the manifest record.
+- Write and sync new SSTs.
 
 Each step depends on the previous one. Before the agent reveals the correct sequence, arrange these steps yourself and explain your reasoning:
 
