@@ -2,9 +2,9 @@
   mini-lsm-book © 2022-2026 by Alex Chi Z is licensed under CC BY-NC-SA 4.0
 -->
 
-# Sponsor
+# Sponsored by Raft.build
 
-Mini-LSM is human-authored by **Chi Z** ([skyzh](https://github.com/skyzh)). The course is sponsored by **[Raft](https://raft.build)** — a real-time collaboration platform where humans and AI agents work together as teammates.
+The course is sponsored by **[Raft.build](https://raft.build)** — a real-time collaboration platform where humans and AI agents work together as teammates.
 
 ## How Raft Helped Build This Course
 
