@@ -15,7 +15,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bytes::BufMut;
 
 use super::bloom::Bloom;
@@ -99,15 +99,15 @@ impl SsTableBuilder {
         self.finish_block();
         let mut buf = self.data;
         let meta_offset = buf.len();
-        BlockMeta::encode_block_meta(&self.meta, &mut buf);
-        buf.put_u32(meta_offset as u32);
+        BlockMeta::encode_block_meta(&self.meta, &mut buf)?;
+        buf.put_u32(u32::try_from(meta_offset).context("SST metadata offset is too large")?);
         let bloom = Bloom::build_from_key_hashes(
             &self.key_hashes,
             Bloom::bloom_bits_per_key(self.key_hashes.len(), 0.01),
         );
         let bloom_offset = buf.len();
         bloom.encode(&mut buf);
-        buf.put_u32(bloom_offset as u32);
+        buf.put_u32(u32::try_from(bloom_offset).context("SST bloom offset is too large")?);
         let file = FileObject::create(path.as_ref(), buf)?;
         Ok(SsTable {
             id,

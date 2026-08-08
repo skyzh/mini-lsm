@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use bytes::Bytes;
 use parking_lot::{Mutex, MutexGuard, RwLock};
 
@@ -61,6 +61,36 @@ pub struct LsmStorageState {
 pub enum WriteBatchRecord<T: AsRef<[u8]>> {
     Put(T, T),
     Del(T),
+}
+
+fn validate_write_batch<T: AsRef<[u8]>>(batch: &[WriteBatchRecord<T>]) -> Result<()> {
+    let mut encoded_batch_len = 0usize;
+    for record in batch {
+        let (key, value) = match record {
+            WriteBatchRecord::Put(key, value) => (key.as_ref(), value.as_ref()),
+            WriteBatchRecord::Del(key) => (key.as_ref(), &[][..]),
+        };
+        ensure!(
+            u16::try_from(key.len()).is_ok(),
+            "key is too large for the on-disk format"
+        );
+        ensure!(
+            u16::try_from(value.len()).is_ok(),
+            "value is too large for the on-disk format"
+        );
+        encoded_batch_len = encoded_batch_len
+            .checked_add(std::mem::size_of::<u16>())
+            .and_then(|len| len.checked_add(key.len()))
+            .and_then(|len| len.checked_add(std::mem::size_of::<u64>()))
+            .and_then(|len| len.checked_add(std::mem::size_of::<u16>()))
+            .and_then(|len| len.checked_add(value.len()))
+            .context("write batch size overflow")?;
+    }
+    ensure!(
+        u32::try_from(encoded_batch_len).is_ok(),
+        "write batch is too large for the on-disk format"
+    );
+    Ok(())
 }
 
 impl LsmStorageState {
@@ -575,6 +605,7 @@ impl LsmStorageInner {
         if batch.is_empty() {
             return Ok(self.mvcc().latest_commit_ts());
         }
+        validate_write_batch(batch)?;
         let _lck = self.mvcc().write_lock.lock();
         let ts = self.mvcc().latest_commit_ts() + 1;
         let mut batch_datas: Vec<(key::Key<&[u8]>, &[u8])> = vec![];
