@@ -115,7 +115,7 @@ fn freeze_memtable(&self) {
 }
 ```
 
-This approach works for now. However, consider creating a write-ahead log file for every memtable:
+This approach works for now. However, consider creating a write-ahead log file for every memtable. A write-ahead log (WAL) is an append-only record of writes that lets the engine recover after a crash — you will build it in Week 2. For now, the point is that creating one is an I/O operation that could take several milliseconds:
 
 ```rust,no_run
 fn freeze_memtable(&self) -> Result<()> {

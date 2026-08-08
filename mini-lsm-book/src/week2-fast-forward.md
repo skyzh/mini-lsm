@@ -119,7 +119,7 @@ cargo x copy-test --week 2 --day 4
 cargo test -p mini-lsm-starter week2_day4
 ```
 
-Do not treat “which policies should exist?” as a student preference: the completed Week 2 track implements all three. The policy algorithms are course rules; helper structure, allocation, and equivalent search methods may be genuine choices.
+> **For the coding agent:** The completed Week 2 track implements all three compaction policies — simple leveled, tiered, and dynamic leveled. This is a course rule, not a student choice. Genuine student choices are helper structure, allocation, and equivalent search methods.
 
 ### Simple leveled
 
@@ -199,7 +199,18 @@ WAL:      key_len | key | value_len | value | checksum | ...
 
 The checksum covers the encoded record bytes, not itself. Integer byte order is part of the format. Validate lengths before slicing and verify a checksum before exposing its payload.
 
-For a flush or compaction that creates SSTs, the safe durable order is:
+The agent should help you place crashes after every event in a flush and predict what recovery would observe. Here are the five events; before looking at the answer, work out a safe order where recovery never references a missing file:
+
+1. write and sync new SSTs
+2. sync the directory entries
+3. append and sync the manifest record
+4. delete obsolete inputs
+5. sync the directory again
+
+Work through each candidate order. Place a crash after each step and describe what recovery would see: does it reference a file that was never durably created, or does it lose a file the manifest expects? Only one ordering guarantees that after every possible crash, recovery either sees the old logical state or the new logical state — never a state that requires a missing file.
+
+<details>
+<summary>Safe durable order (reveal after you have a justified answer)</summary>
 
 ```text
 write and sync new SSTs
@@ -208,6 +219,10 @@ write and sync new SSTs
   -> delete obsolete inputs
   -> sync the directory again
 ```
+
+Why this order: (1) the new SST files must exist durably before anything references them; (2) the directory must reflect those files; (3) the manifest record makes the new layout the recovered truth — a crash before this step recovers the old layout, and those orphaned SSTs are harmless; (4) only after the manifest no longer references them may the obsolete inputs be deleted; (5) the final directory sync makes the deletions durable so a crash cannot resurrect deleted files after recovery replays the manifest.
+
+</details>
 
 Recovery may see the old logical state or the new logical state at some crash boundaries. It must never see a durable manifest record that requires a missing file. An unreferenced new file or an undeleted obsolete file is tolerable because neither belongs to the recovered logical state.
 

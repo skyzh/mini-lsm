@@ -85,7 +85,7 @@ Ask:
 
 This checkpoint covers blocks, block iterators, SST builders, SST readers, SST iterators, Bloom filters, and final prefix compression. Consult [Block](./week1-03-block.md), [Sorted String Table](./week1-04-sst.md), and [SST Optimizations](./week1-07-sst-optimizations.md) when a question requires deeper context.
 
-This checkpoint targets the final Day 7 prefix-compressed block format directly. Do not first implement the Day 3 layout and silently replace it. The agent should explicitly ask which acceptance target applies and record that choice.
+> **For the coding agent:** Because this path copies all seven test suites at the start, converge directly on the final Day 7 prefix-compressed block format. Do not first implement the Day 3 layout and silently replace it. Explicitly ask which acceptance target applies and record that choice.
 
 First use concrete byte examples to derive the parts fixed by the course:
 
