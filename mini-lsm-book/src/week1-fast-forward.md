@@ -37,7 +37,7 @@ Do not run `cargo x copy-test --week 1` yet. Each checkpoint begins from the boo
 
 ## Start Day 1
 
-With the agent running from `mini-lsm-starter`, the instruction handshake complete, and the tests copied, send:
+With the agent running from `mini-lsm-starter`, the instruction handshake complete, and the supplied tests still unrevealed, send:
 
 > Build Day 1 with me, starting with ordered in-memory state. Follow the student-owned design protocol in `AGENTS.md` and never access `../mini-lsm` or `../mini-lsm-mvcc`. Before coding, ask one short question at a time using a concrete example. Use plain English and introduce technical terms after I answer. Mark each question **Course rule** or **Your choice**. I may reply `simpler`, `example`, `hint`, or `choose for me`. Do not edit until my answers specify one small, coherent slice. After each slice, show me one important line and ask what it does and what would break if it changed.
 
@@ -85,7 +85,7 @@ Ask:
 
 This checkpoint covers blocks, block iterators, SST builders, SST readers, SST iterators, Bloom filters, and final prefix compression. Consult [Block](./week1-03-block.md), [Sorted String Table](./week1-04-sst.md), and [SST Optimizations](./week1-07-sst-optimizations.md) when a question requires deeper context.
 
-Because this path copies all seven test suites at the start, the accepted design should converge directly on the final Day 7 prefix-compressed block format. Do not first implement the Day 3 layout and silently replace it. The agent should explicitly ask which acceptance target applies and record that choice.
+This checkpoint targets the final Day 7 prefix-compressed block format directly. Do not first implement the Day 3 layout and silently replace it. The agent should explicitly ask which acceptance target applies and record that choice.
 
 First use concrete byte examples to derive the parts fixed by the course:
 

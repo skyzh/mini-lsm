@@ -6,6 +6,8 @@
 
 This is a three-day guided track for students who intend to use a coding agent. The agent will write much of the code, but it must not silently design the system for you. You will reason about concrete examples, the agent will turn a few accepted decisions into a small code change, and tests will challenge your shared model.
 
+All three guided days are available. The track remains WIP while release validation is in progress.
+
 The goal is not to finish with the fewest prompts. It is to finish able to explain, test, and change the system the agent helped you build.
 
 | Guided day | Original course material | Outcome |

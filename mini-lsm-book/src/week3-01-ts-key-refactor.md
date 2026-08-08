@@ -14,10 +14,12 @@ To copy and run the test cases:
 
 ```
 cargo x copy-test --week 3 --day 1
-cargo x scheck
+cargo test -p mini-lsm-starter --lib week1_day
+cargo test -p mini-lsm-starter --lib week3_day1
 ```
 
-**Note:** The MVCC subsystem is not complete until Day 2. At the end of this chapter, only the Day 1 tests and Week 1 tests are expected to pass. Week 2 compaction still uses pre-MVCC assumptions.
+The MVCC subsystem is not complete until Day 2. At the end of this chapter, the Week 1 and Week 3 Day 1 tests are the
+focused green gate. Do not use the complete historical suite yet: Week 2 compaction still uses pre-MVCC assumptions.
 
 ## Before You Begin
 
