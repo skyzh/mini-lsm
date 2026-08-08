@@ -80,4 +80,21 @@
         width: 32px;
         height: 32px;
     }
+    .raft-cta {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+.raft-cta {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color, #d0d7de);
+    font-size: 0.95em;
+}
+
+.raft-cta a {
+    font-weight: 600;
 }
