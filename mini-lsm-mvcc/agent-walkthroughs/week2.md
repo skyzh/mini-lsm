@@ -1,5 +1,13 @@
 # Week 2 Student–Apprentice Walkthrough
 
+> **Archive reproducibility note:** The dynamic-leveled simulator commands and
+> exact amplification/space figures captured below predate the simulator's
+> `--seed` option. Treat those numbers as historical observations, not
+> reproducible evidence. To reproduce a current trace, run learner and
+> reference binaries from the same source revision and `Cargo.lock` with the
+> same explicit `--seed` and options. The simple and tiered traces do not
+> generate random key ranges and are unaffected.
+
 ## Setup
 
 ### Student
@@ -1861,6 +1869,10 @@ Trace annotation (`max_levels=4`, `base_level_size_mb=128`, multiplier 2, 32 MiB
 - The L0 tasks select every L4 SST overlapping the combined L0 key envelope. The observed broad envelopes select zero, two, and then four lower SSTs, respectively; outputs are restored in first-key order.
 - Final level counts are `L0=0, L1=0, L2=0, L3=0, L4=6`; the trace reports 3.000x write amplification, 2.000x maximum space usage, and 1x read amplification.
 
+> **Archive note:** This run did not record a workload seed. Its exact
+> amplification and space figures are illustrative and must not be used as
+> reproducible comparison evidence.
+
 Important expression (`src/compact/leveled.rs:68`):
 
 ```rust
@@ -3590,6 +3602,10 @@ Observed outcome: exit status 0 for the combined command.
 - Simple leveled performed cascade compactions at iterations 1 and 3 and two compactions at iteration 5; its final level counts were `0 0 2 4`, with 4.000x write amplification, 1.333x maximum space amplification, and 2x read amplification.
 - Tiered accumulated eight single-SST tiers through iteration 7, then compacted all eight into eight output SSTs; its final level counts were `0 8`, with 2.000x write amplification, 2.000x maximum space amplification, and 1x read amplification.
 - Leveled triggered L0-to-L4 compactions at iterations 1, 3, and 5; its final level counts were `0 0 0 0 6`, with 2.667x write amplification, 1.667x maximum space amplification, and 1x read amplification.
+
+> **Archive note:** The leveled command above did not record a workload seed.
+> Its exact amplification and space figures are illustrative; reproduce the
+> workload with the current explicit-seed command before making a comparison.
 
 ### 78. Re-run the six focused Checkpoint 4 tests after restoring the fault
 

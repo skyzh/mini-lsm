@@ -28,6 +28,8 @@ use mini_lsm_wrapper::key::KeyBytes;
 use mini_lsm_wrapper::lsm_storage::LsmStorageState;
 use mini_lsm_wrapper::mem_table::MemTable;
 use mini_lsm_wrapper::table::SsTable;
+use rand::rngs::StdRng;
+use rand::{Rng, RngExt, SeedableRng};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -102,6 +104,10 @@ enum Args {
         iterations: usize,
         #[clap(long, default_value = "32")]
         sst_size_mb: usize,
+        /// Seed for the mock SST key ranges. Use the same seed when comparing
+        /// learner and reference output.
+        #[clap(long, default_value = "42")]
+        seed: u64,
     },
 }
 
@@ -236,15 +242,13 @@ impl MockStorage {
     }
 }
 
-fn generate_random_key_range() -> (KeyBytes, KeyBytes) {
-    use rand::RngExt;
-    let mut rng = rand::rng();
-    let begin: usize = rng.random_range(0..(1 << 31));
-    let end: usize = begin + rng.random_range((1 << 10)..(1 << 31));
+fn generate_random_key_range<R: Rng + ?Sized>(rng: &mut R) -> (KeyBytes, KeyBytes) {
+    let begin: u64 = rng.random_range(0..(1 << 31));
+    let end: u64 = begin + rng.random_range((1 << 10)..(1 << 31));
     let mut begin_bytes = BytesMut::new();
     let mut end_bytes = BytesMut::new();
-    begin_bytes.put_u64(begin as u64);
-    end_bytes.put_u64(end as u64);
+    begin_bytes.put_u64(begin);
+    end_bytes.put_u64(end);
     (
         KeyBytes::for_testing_from_bytes_no_ts(begin_bytes.freeze()),
         KeyBytes::for_testing_from_bytes_no_ts(end_bytes.freeze()),
@@ -499,6 +503,7 @@ fn main() {
             base_level_size_mb,
             iterations,
             sst_size_mb,
+            seed,
         } => {
             let controller = LeveledCompactionController::new(LeveledCompactionOptions {
                 level0_file_num_compaction_trigger,
@@ -508,6 +513,8 @@ fn main() {
             });
 
             let mut storage = MockStorage::new();
+            let mut rng = StdRng::seed_from_u64(seed);
+            println!("Seed: {seed}");
             for i in 0..max_levels {
                 storage.snapshot.levels.push((i + 1, Vec::new()));
             }
@@ -515,7 +522,7 @@ fn main() {
             for i in 0..iterations {
                 println!("=== Iteration {i} ===");
                 let id = storage.flush_sst_to_l0();
-                let (first_key, last_key) = generate_random_key_range();
+                let (first_key, last_key) = generate_random_key_range(&mut rng);
                 storage.snapshot.sstables.insert(
                     id,
                     Arc::new(SsTable::create_meta_only(

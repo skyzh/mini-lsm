@@ -158,8 +158,13 @@ Use these simulator commands without consulting the reference implementation:
 ```shell
 cargo run --bin compaction-simulator simple
 cargo run --bin compaction-simulator tiered
-cargo run --bin compaction-simulator leveled
+cargo run --locked --bin compaction-simulator -- leveled --seed 42
 ```
+
+The leveled simulator's seed controls its mock SST key ranges. Record the seed
+with the trace, and use the same source checkout, `Cargo.lock`, options, and
+seed for any authorized learner/reference comparison. A different seed is a
+different workload.
 
 For at least one trace per policy, annotate the selected inputs, the reason the task fired, whether it reaches the bottom, the source that wins equal keys, and the files that remain afterward. Change one threshold and predict the next task before rerunning the simulator.
 
