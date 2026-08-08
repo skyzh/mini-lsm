@@ -40,9 +40,10 @@
     color: var(--avatar-fg, #57606a);
 }
 
-.raft-card-avatar svg {
-    width: 28px;
-    height: 28px;
+.raft-card-avatar svg,.raft-card-avatar img {
+    width: 44px;
+    height: 44px;
+    image-rendering: pixelated;
 }
 
 .raft-card-body {
