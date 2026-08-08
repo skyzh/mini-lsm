@@ -6,7 +6,7 @@
 
 Mini-LSM is a hands-on course in database internals for systems and backend engineers. Build an LSM-tree storage engine from memtables and SSTs through compaction, crash recovery, MVCC, and transactions.
 
-**[Start the guided three-week course](https://skyzh.github.io/mini-lsm)** · **[Try the coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) (in progress)**
+**[Start the guided three-week course](https://skyzh.github.io/mini-lsm)** · **[Try the coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html)**
 
 Week 1 produces a working storage engine. Weeks 2 and 3 add production-inspired compaction, durability, concurrency control, and multi-version transactions.
 
@@ -29,7 +29,7 @@ Mini-LSM focuses on the storage layer of a database. It does not cover SQL parsi
 | Path | Best for | Format | Status |
 | --- | --- | --- | --- |
 | [Guided course](https://skyzh.github.io/mini-lsm/00-overview.html) | Learners who want to implement and reason through each subsystem | Three weeks, with seven chapters per week | Complete |
-| [Coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) | Learners who want an agent to handle mechanical implementation without outsourcing system design | Three planned days built around decision stops, focused code slices, and adversarial tests | Days 1–3 available (WIP) |
+| [Coding-agent track](https://skyzh.github.io/mini-lsm/agent-fast-forward-overview.html) | Learners who want an agent to handle mechanical implementation without outsourcing system design | Three planned days built around decision stops, focused code slices, and adversarial tests | Days 1–3 available |
 
 You need basic Rust, but you do not need prior knowledge of LSM trees, compaction, MVCC, or transaction isolation. The course is a good fit if you have used systems such as PostgreSQL, MySQL, Redis, or RocksDB and want to understand what happens below their APIs.
 

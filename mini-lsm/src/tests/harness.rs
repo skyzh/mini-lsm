@@ -15,8 +15,12 @@
 // limitations under the License.
 
 use std::{
-    collections::BTreeMap, ops::Bound, os::unix::fs::MetadataExt, path::Path, sync::Arc,
-    time::Duration,
+    collections::BTreeMap,
+    ops::Bound,
+    os::unix::fs::MetadataExt,
+    path::Path,
+    sync::Arc,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Result, bail};
@@ -261,16 +265,23 @@ pub fn compaction_bench(storage: Arc<MiniLsm>) {
         storage.inner.force_flush_next_imm_memtable().unwrap();
     }
 
-    let mut prev_snapshot = storage.inner.state.read().clone();
-    while {
-        std::thread::sleep(Duration::from_secs(1));
+    let compaction_deadline = Instant::now() + Duration::from_secs(60);
+    loop {
         let snapshot = storage.inner.state.read().clone();
-        let to_cont = prev_snapshot.levels != snapshot.levels
-            || prev_snapshot.l0_sstables != snapshot.l0_sstables;
-        prev_snapshot = snapshot;
-        to_cont
-    } {
+        if storage
+            .inner
+            .compaction_controller
+            .generate_compaction_task(&snapshot)
+            .is_none()
+        {
+            break;
+        }
+        assert!(
+            Instant::now() < compaction_deadline,
+            "compaction did not converge within 60 seconds"
+        );
         println!("waiting for compaction to converge");
+        std::thread::sleep(Duration::from_secs(1));
     }
 
     let mut expected_key_value_pairs = Vec::new();
