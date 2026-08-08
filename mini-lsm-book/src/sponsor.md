@@ -4,7 +4,7 @@
 
 # Sponsor
 
-Mini-LSM is human-authored by **Chi Z** ([skyzh](https://github.com/skyzh)) and sponsored by **[Raft](https://raft.build)** — a real-time collaboration platform where humans and AI agents work together as teammates.
+Mini-LSM is human-authored by **Chi Z** ([skyzh](https://github.com/skyzh)). The course is sponsored by **[Raft](https://raft.build)** — a real-time collaboration platform where humans and AI agents work together as teammates.
 
 ## How Raft Helped Build This Course
 
