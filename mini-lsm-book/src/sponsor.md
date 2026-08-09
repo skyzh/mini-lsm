@@ -102,4 +102,5 @@ The result is a course where every explanation, command, and test has been check
 <div class="raft-cta">
   <p><a href="https://github.com/skyzh/mini-lsm">View on GitHub</a></p>
   <p><a href="./00-preface.html">Start the course from the beginning →</a></p>
+  <p><a href="./agent-fast-forward-overview.html">Start the agent track</a></p>
 </div>
