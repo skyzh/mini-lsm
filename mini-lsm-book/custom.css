@@ -71,12 +71,6 @@
     line-height: 1.5;
 }
 
-.navy .raft-card,
-.coal .raft-card,
-.ayu .raft-card {
-    color: #1f2328;
-}
-
 @media (max-width: 480px) {
     .raft-card {
         flex-direction: column;
