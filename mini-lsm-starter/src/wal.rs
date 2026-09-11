@@ -31,23 +31,27 @@ pub struct Wal {
 }
 
 impl Wal {
+    /// Week 2 Day 6: create a new write-ahead log.
     pub fn create(_path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
+    /// Week 2 Day 6: recover entries from a write-ahead log.
     pub fn recover(_path: impl AsRef<Path>, _skiplist: &SkipMap<Bytes, Bytes>) -> Result<Self> {
         unimplemented!()
     }
 
+    /// Week 2 Day 6: append a key-value pair to the write-ahead log.
     pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
-    /// Implement this in week 3, day 5.
+    /// Week 3 Day 5: append a batch of key-value pairs.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
 
+    /// Week 2 Day 6: synchronize the write-ahead log to storage.
     pub fn sync(&self) -> Result<()> {
         unimplemented!()
     }

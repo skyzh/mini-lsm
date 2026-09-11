@@ -51,17 +51,17 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 }
 
 impl MemTable {
-    /// Create a new mem-table.
+    /// Week 1 Day 1: create the plain in-memory memtable.
     pub fn create(_id: usize) -> Self {
         unimplemented!()
     }
 
-    /// Create a new mem-table with WAL
+    /// Week 2 Day 6: create a memtable backed by a write-ahead log.
     pub fn create_with_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
 
-    /// Create a memtable from WAL
+    /// Week 2 Day 6: recover a memtable from its write-ahead log.
     pub fn recover_from_wal(_id: usize, _path: impl AsRef<Path>) -> Result<Self> {
         unimplemented!()
     }
@@ -85,21 +85,21 @@ impl MemTable {
         self.scan(lower, upper)
     }
 
-    /// Get a value by key.
+    /// Week 1 Day 1: get a value by key.
     pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
         unimplemented!()
     }
 
-    /// Put a key-value pair into the mem-table.
+    /// Put a key-value pair into the memtable.
     ///
-    /// In week 1, day 1, simply put the key-value pair into the skipmap.
-    /// In week 2, day 6, also flush the data to WAL.
-    /// In week 3, day 5, route this through the batch WAL implementation.
+    /// Week 1 Day 1: put the key-value pair into the in-memory map.
+    /// Week 2 Day 6: also append the data to the write-ahead log.
+    /// Week 3 Day 5: route the write through the batch WAL implementation.
     pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
         unimplemented!()
     }
 
-    /// Implement this in week 3, day 5.
+    /// Week 3 Day 5: put a batch of key-value pairs.
     pub fn put_batch(&self, _data: &[(KeySlice, &[u8])]) -> Result<()> {
         unimplemented!()
     }
