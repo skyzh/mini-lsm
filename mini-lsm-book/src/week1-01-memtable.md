@@ -73,7 +73,7 @@ To access the memtable, acquire the `state` lock. Because `MemTable::put` requir
 
 ## Task 3: Write Path - Freezing a Memtable
 
-Day 1 continues to use the plain `MemTable::create` constructor. The WAL-backed `MemTable::create_with_wal`, `MemTable::recover_from_wal`, and `Wal::*` APIs shown below illustrate the future Week 2 Day 6 shape; do not implement or copy them as part of Day 1.
+Day 1 continues to use the plain `MemTable::create` constructor. `MemTable::create_with_wal`, `MemTable::recover_from_wal`, and the `Wal` APIs belong to Week 2 Day 6, not Day 1. The snippets below preview only how WAL-backed creation can happen outside the state lock; do not implement or copy that future work as part of Day 1.
 
 In this task, you will need to modify:
 
