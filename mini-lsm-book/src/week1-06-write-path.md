@@ -158,6 +158,7 @@ After the tests pass, record the state before and after a manual flush: the muta
 * What happens if a user requests to delete a key twice?
 * Why must the state update verify that the memtable removed from `imm_memtables` has the ID used to build the SST?
 * Construct an interleaving that would corrupt the state if two flushes selected the same oldest memtable without `state_lock`.
+* Revisit the Day 1 freeze path: does your `put` hold the state read lock until the memtable write finishes? If it released the lock after saving the memtable `Arc`, could that write land after the memtable was frozen?
 * For each combination of included, excluded, and unbounded scan bounds, state the condition under which an SST range can be safely excluded.
 
 ### Memory and Performance
