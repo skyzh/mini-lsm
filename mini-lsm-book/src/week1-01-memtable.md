@@ -214,7 +214,6 @@ Answer the correctness questions with reference to your implementation. For ques
 * Does it make sense for a memtable to store every write instead of only the latest version of a key? For example, suppose a user writes `a -> 1`, `a -> 2`, and `a -> 3` to the same memtable.
 * Why do we need a combination of `state` and `state_lock`? Can we only use `state.read()` and `state.write()`?
 * Construct the smallest example in which probing memtables in the wrong order returns a stale value. Then construct one in which it resurrects a deleted value.
-* After a memtable is frozen, could a thread that still holds an old LSM-state snapshot write to that now-immutable memtable? How does your solution prevent this?
 * In several places, you might acquire a state read lock, release it, and then acquire a write lock. The two operations may occur in different functions that call one another. How does this differ from directly upgrading a read lock to a write lock? Is an upgrade necessary, and what does it cost?
 
 ### Performance and Design
