@@ -22,7 +22,7 @@ use crate::{
         CompactionOptions, LeveledCompactionOptions, SimpleLeveledCompactionOptions,
         TieredCompactionOptions,
     },
-    lsm_storage::{LsmStorageOptions, MiniLsm},
+    lsm_storage::{LsmStorageInner, LsmStorageOptions, MiniLsm},
     tests::harness::dump_files_in_dir,
 };
 
@@ -112,6 +112,70 @@ fn test_multiple_compacted_ssts_leveled() {
         let (key, val) = key_value_pair_with_target_size(i, 20 * 1024);
         assert_eq!(&storage.get(&key).unwrap().unwrap()[..], &val);
     }
+}
+
+/// A crash can happen after the compaction record is written to the manifest but before the
+/// compacted-away SSTs are deleted, so recovery must remove them.
+#[test]
+fn test_recovery_removes_obsolete_ssts() {
+    let dir = tempdir().unwrap();
+    // flush two L0 SSTs without compaction running, so that their ids are stable
+    let storage = MiniLsm::open(
+        &dir,
+        LsmStorageOptions::default_for_week2_test(CompactionOptions::NoCompaction),
+    )
+    .unwrap();
+    storage.put(b"0", b"v1").unwrap();
+    storage.force_flush().unwrap();
+    storage.put(b"1", b"v1").unwrap();
+    storage.force_flush().unwrap();
+    let obsolete_sst_ids = storage.inner.state.read().l0_sstables.clone();
+    assert_eq!(obsolete_sst_ids.len(), 2);
+    storage.close().unwrap();
+    drop(storage);
+
+    // reopen with compaction enabled so that the two L0 SSTs get compacted away
+    let options = LsmStorageOptions::default_for_week2_test(CompactionOptions::Simple(
+        SimpleLeveledCompactionOptions {
+            size_ratio_percent: 200,
+            level0_file_num_compaction_trigger: 2,
+            max_levels: 3,
+        },
+    ));
+    let storage = MiniLsm::open(&dir, options.clone()).unwrap();
+    let mut prev_snapshot = storage.inner.state.read().clone();
+    while {
+        std::thread::sleep(Duration::from_secs(1));
+        let snapshot = storage.inner.state.read().clone();
+        let to_cont = prev_snapshot.levels != snapshot.levels
+            || prev_snapshot.l0_sstables != snapshot.l0_sstables;
+        prev_snapshot = snapshot;
+        to_cont
+    } {
+        println!("waiting for compaction to converge");
+    }
+    assert!(storage.inner.state.read().l0_sstables.is_empty());
+    storage.close().unwrap();
+    drop(storage);
+
+    // simulate a crash between the manifest write and the file removal
+    for id in &obsolete_sst_ids {
+        let path = LsmStorageInner::path_of_sst_static(&dir, *id);
+        std::fs::write(&path, b"obsolete").unwrap();
+    }
+    dump_files_in_dir(&dir);
+
+    let storage = MiniLsm::open(&dir, options).unwrap();
+    for id in &obsolete_sst_ids {
+        let path = LsmStorageInner::path_of_sst_static(&dir, *id);
+        assert!(
+            !path.exists(),
+            "obsolete SST {} was not removed during recovery",
+            id
+        );
+    }
+    assert_eq!(&storage.get(b"0").unwrap().unwrap()[..], b"v1".as_slice());
+    assert_eq!(&storage.get(b"1").unwrap().unwrap()[..], b"v1".as_slice());
 }
 
 fn test_integration(compaction_options: CompactionOptions) {
