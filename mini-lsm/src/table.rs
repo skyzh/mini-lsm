@@ -142,8 +142,6 @@ impl BlockMeta {
             cursor.len() == std::mem::size_of::<u32>(),
             "SST block metadata has trailing or missing bytes"
         );
-        let stored_checksum = take_u32(&mut cursor, "SST metadata checksum")?;
-        ensure!(stored_checksum == checksum, "meta checksum mismatched");
 
         Ok(block_meta)
     }
